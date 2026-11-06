@@ -1,0 +1,5 @@
+.openai/*
+!.openai/hosting.json
+node_modules/
+*.tar.gz
+*.zip
