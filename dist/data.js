@@ -7,7 +7,7 @@ export const ITEMS={
  pipeGrenade:{name:'Трубная граната',type:'grenade',stack:true,value:150,icon:'grenade',min:30,max:180,dodgeDc:13,description:'Одна граната в начале боя. Термический урон 30–180. Уклонение против 13 уменьшает урон вдвое. Шанс задеть себя 5%, шанс сильного взрыва 10%.'},
  dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять на вылазку.'},
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
- rareMushrooms:{name:'Редкие подземные грибы',type:'resource',stack:true,rarity:'rare',icon:'bag',description:'Ингредиент для грибного чая. Источник появится позже.'},
+ rareMushrooms:{name:'Редкие подземные грибы',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Ингредиент для грибного чая. Можно найти по пути на Павелецкую.'},
  mushroomTea:{name:'Чай из Грибов',type:'food',stack:true,value:250,icon:'medical',description:'На станции снимает 1–4 + Сила РАД, даёт 50 опыта и навсегда уменьшает максимум HP на 3.'},
  hideArmor:{name:'Доспех Шкура',type:'body',stack:false,value:400,armor:20,thermalArmor:20,radiationProtection:1,icon:'jacket',description:'Поглощает 20 физического и 20 термического урона. Защита от РАД +1.'},
  ghoulJacket:{name:'Куртка из Упыря',type:'body',stack:false,value:800,armor:40,thermalArmor:10,meleeAccuracyBonus:5,rarity:'rare',icon:'jacket',description:'Редкая броня. Поглощает 40 физического и 10 термического урона. +5 п.п. к точности атак оружием ближнего боя.'},
@@ -72,7 +72,7 @@ export const RECIPES={
  lcu:{name:'LCU',production:'science',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',chance:70,prefix:'LCU',accuracyBonus:5,valueBonus:150,xp:15},
  patchedArmor:{name:'Штопанная броня',production:'science',level:1,cost:100,seconds:10,ingredients:{leather:2},upgrade:true,target:'body',chance:80,prefix:'Штопаный',armorBonus:7,valueBonus:100,xp:10},
  fullLeather:{name:'Целая кожа',production:'armor',level:2,cost:30,seconds:10,ingredients:{leather:4},output:'fullLeather',xp:10,batch:true},
- qualityJacket:{name:'Качественная кожанка',production:'armor',level:3,cost:50,seconds:12,ingredients:{jacket:1,fullLeather:1},output:'qualityJacket',xp:22},
+ qualityJacket:{name:'Качественная кожанка',production:'armor',level:3,cost:100,seconds:12,ingredients:{leather:3,fullLeather:1},output:'qualityJacket',xp:22},
  knife:{name:'Нож',production:'melee',level:1,cost:50,seconds:5,ingredients:{metal:1},output:'knife',xp:5},
  crowbar:{name:'Монтировка',production:'melee',level:2,cost:70,seconds:12,ingredients:{metal:3},output:'crowbar',xp:10},
  ashot:{name:'АШОТ',production:'ranged',level:1,cost:100,seconds:8,ingredients:{metal:2},output:'ashot',xp:15},
@@ -238,4 +238,8 @@ export const LEVEL_PERKS={
  'enduring':{name:'Выносливый',profession:'saboteur',minLevel:5,repeatable:true,description:'+30 к максимуму HP. Можно выбирать многократно; текущее здоровье не увеличивается.'}
 };
 
-for(const id of PROFESSIONS.saboteur.perks)LEVEL_PERKS[id]={name:PERKS[id].name,description:PERKS[id].description,profession:'saboteur',minLevel:1,repeatable:false,starterEffect:id};
+for(const [profession,profile] of Object.entries(PROFESSIONS)){
+ for(const id of profile.perks??[]){
+  LEVEL_PERKS[id]={...PERKS[id],profession,minLevel:1,repeatable:false,starterEffect:id};
+ }
+}

@@ -31,6 +31,14 @@
 .tabs.production-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
 .tabs.production-tabs button{white-space:normal;justify-content:center;min-width:0}
 .tabs.production-tabs button:nth-child(n+5){grid-column:span 2}
+.production-level{white-space:nowrap;color:var(--gold2)}
+.tabs.production-tabs button.production-level-up{animation:production-level-up 1.2s ease-out}
+@keyframes production-level-up{
+ 0%,25%{border-color:var(--gold2);background:#504624;box-shadow:0 0 12px #d3bc8880}
+}
+@media(prefers-reduced-motion:reduce){
+ .tabs.production-tabs button.production-level-up{animation:none;border-color:var(--gold2);background:#504624}
+}
 @media(max-width:600px){.tabs.production-tabs button{font-size:11px;padding:8px 4px;gap:4px}}
 
 /* Brief feedback after collecting a chance-based craft. */
@@ -92,3 +100,34 @@
 .consumable-slot{padding:13px 4px;gap:6px}
 .consumable-slot .icon{width:21px;height:21px}
 .consumable-slot strong{font-size:11px}
+
+.hero-stats-compact .portrait{width:56px;height:66px}
+.hero-stats-compact .subtitle{margin-top:4px}
+.hero-stats-compact .stats{margin:12px 0;gap:5px}
+.hero-stats-compact .stat{padding:6px 3px}
+.hero-stats-compact .stat b{font-size:18px}
+.hero-stats-compact .badge-row{gap:5px;margin-top:8px;align-items:center}
+.hero-stats-compact .pill{padding:4px 6px}
+.hero-stats-compact .perks-shortcut{min-height:29px;padding:4px 8px;font-size:11px}
+.hero-stats-compact .divider{margin:11px 0}
+.hero-stats-compact .note{padding:8px 0}
+.perk-history{display:grid;gap:8px;list-style:none;padding:0;margin:8px 0 14px}
+.perk-history li{padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+.perk-history small{display:block;color:var(--muted)}
+.perk-history p{font-size:12px}
+
+.job-result .modal-head{padding-block:10px}
+.job-result .modal-body{padding-top:12px}
+.job-result .report-stats{gap:5px;margin:9px 0}
+.job-result .report-stats>div{padding:7px 4px}
+.job-result .report-stats strong{font-size:17px}
+.job-result .loot{gap:5px;margin:8px 0}
+.job-result .loot>div{padding:4px 6px;gap:5px}
+.job-result .note{padding:6px 0}
+.result-log{margin-top:10px;line-height:1.45}
+.result-log p{padding:3px 0}
+.result-log h3{margin:7px 0 4px}
+.series-run+.series-run{margin-top:9px}
+.series-run h4{font-size:12px;margin:4px 0;color:var(--gold)}
+
+.btn.recipe-sort{min-height:32px;padding:5px 8px;font-size:11px;white-space:nowrap}

@@ -12,7 +12,7 @@ export function createGame(now=Date.now(),random=Math.random){return {version:1,
 export function getHeroes(s){return Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);}
 export function normalizeGame(state){const s=clone(state);s.filters??=0;s.productions??={};for(const key of Object.keys(PRODUCTIONS))s.productions[key]??={level:1,xp:0,job:null};if(!Number.isSafeInteger(s.totalSpent)||s.totalSpent<0){s.totalSpent=0;s.spendingPartial=true;}s.heroes=Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;}s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===s.selectedHeroId)||s.heroes.find(h=>h.id===s.hero?.id)||s.heroes[0]||null;s.hero=selected;s.selectedHeroId=selected?.id??null;const offers=s.yuras?.visit?.offers;if(s.yuras?.visit?.role==='seller'&&Array.isArray(offers)){for(const offer of [{item:'cloth',qty:3},{item:'pipe',qty:1}])if(!offers.some(x=>x.item===offer.item))offers.push(offer);}return s;}
 export function restartQuote(state){const spent=Number.isSafeInteger(state.totalSpent)&&state.totalSpent>=0?state.totalSpent:0;const bonus=roundRatio(spent,2);return {spent,bonus,money:(state.startingMoney??1500)+bonus};}
-export function restartGame(state,now=Date.now(),random=Math.random){const fresh=createGame(now,random);fresh.startingMoney=restartQuote(state).money;fresh.money=fresh.startingMoney;return fresh;}
+export function restartGame(state,now=Date.now(),random=Math.random){const fresh=createGame(now,random);fresh.startingMoney=restartQuote(state).money;fresh.money=fresh.startingMoney;if(state.recipeLevelOrder==='desc')fresh.recipeLevelOrder='desc';return fresh;}
 export function hireCost(s){const count=getHeroes(s).length;return count===0?500:1500*2**(count-1);}
 export function heroTitle(hero){const profession=PROFESSIONS[hero.profession??'saboteur']?.name??'Сталкер',perk=PERKS[hero.startPerk??hero.perk]?.shortName??PERKS[hero.startPerk??hero.perk]?.name;return `${hero.name}${perk?', '+perk.toLocaleLowerCase('ru-RU'):','} ${profession.toLocaleLowerCase('ru-RU')}`;}
 export function itemName(row){const item=ITEMS[row.item];return [...(row.upgrades??[]).map(u=>u.prefix),item.name].join(' ');}
@@ -27,7 +27,7 @@ export function upgradeChance(state,recipeId){
  const recipe=RECIPES[recipeId];
  if(!recipe)return 0;
  const engineers=getHeroes(state).filter(hero=>hero.profession==='engineer');
- const gunsmiths=recipe.production==='upgrade'?engineers.filter(hero=>hero.perk==='gunsmith').length:0;
+ const gunsmiths=recipe.production==='upgrade'?engineers.filter(hero=>hero.perk==='gunsmith'||hasLevelPerk(hero,'gunsmith')).length:0;
  const assistants=engineers.filter(hero=>hasLevelPerk(hero,'engineer-assistant')).length;
  return Math.min(100,(recipe.chance??100)+5*(gunsmiths+assistants));
 }
@@ -40,7 +40,7 @@ function paySideJob(state,hero,firstLevel,now){
 }
 export function nationalityMoneyBonus(hero,money=0){return hero.nationalityBonuses?.questMoneyPercent?Math.max(10,roundRatio(money,hero.nationalityBonuses.questMoneyPercent)):0;}
 export function nationalityClaimBonus(hero,job){if(!job||job.kind==='series')return 0;if(isCombatJob(job.kind)&&!job.result.alive)return 0;const hasReward=job.kind==='rest'?job.healing>0&&hero.hp<effectiveMaxHp(hero):(job.result.xp??0)>0||(job.result.money??0)>0||Object.values(job.result.loot).some(q=>q>0);return hasReward?nationalityMoneyBonus(hero,job.result?.money??0):0;}
-export function claimBonus(hero,job){if(hero.perk!=='greedy'||!job)return 0;let level=hero.level,hasReward=false;
+export function claimBonus(hero,job){if((hero.perk!=='greedy'&&!hasLevelPerk(hero,'greedy'))||!job)return 0;let level=hero.level,hasReward=false;
  if(job.kind==='series'){if(job.worker.dead)return 0;level=job.worker.level;hasReward=job.xp>0||job.money>0||Object.values(job.loot).some(q=>q>0)||job.location==='rest'&&job.completed>0;}
  else if(job.kind==='rest')hasReward=job.healing>0&&hero.hp<effectiveMaxHp(hero);
  else {const e=job.result;if(isCombatJob(job.kind)&&!e.alive)return 0;hasReward=(e.xp??0)>0||(e.money??0)>0||Object.values(e.loot).some(q=>q>0);const preview=clone(hero);levelUp(preview,e.xp??0);level=preview.level;}
@@ -112,7 +112,7 @@ export const REST_OPTIONS = {
  meal: {name:'Поспать и поесть', seconds:600, cost:50, healing:hero=>(10+heroAttributes(hero).strength)*hero.level}
 };
 function makeRun(s,hero,kind,at,seed){
- const duration=ms=>Math.round(ms*(hero.perk==='quick-orders'?0.85:1));
+ const duration=ms=>Math.round(ms*(hero.perk==='quick-orders'||hasLevelPerk(hero,'quick-orders')?0.85:1));
  if(kind==='caravan'){
   const config={...heroConfig(s,hero),rat:CARAVAN.enemy,mission:CARAVAN.mission,loot:CARAVAN.loot};
   const caravan={...CARAVAN.escort,maxHp:CARAVAN.escort.hp};
@@ -356,7 +356,21 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   break;
  }
  case 'sell':{const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const qty=action.all&&ITEMS[row.item].stack?row.qty:(action.qty??1);requireThat(Number.isInteger(qty)&&qty>0&&qty<=row.qty,'Неверное количество товара.');const slot=s.shelves.findIndex(x=>!x);requireThat(slot>=0,'Все полки заняты.');requireThat(Number.isInteger(ITEMS[row.item].value),'Цена предмета ещё не задана.');const details=clone(row),price=itemValue(row)*qty;removeRow(s,row.uid,qty);s.shelves[slot]={...details,id:uid(),item:row.item,qty,price,startedAt:now,endsAt:now+price*200};break;}
- case 'claimSale':{const sale=s.shelves[action.slot];requireThat(sale&&ready(sale,now),'Товар ещё не продан.');s.money+=sale.price;s.shelves[action.slot]=null;addHistory(s,`Получено за продажу: ${sale.price/10} A.`,now);break;}
+ case 'claimAllSales':
+ case 'claimSale':{
+  const slots=action.type==='claimAllSales'
+   ?s.shelves.flatMap((sale,index)=>ready(sale,now)?[index]:[])
+   :ready(s.shelves[action.slot],now)?[action.slot]:[];
+  requireThat(slots.length,action.type==='claimAllSales'?'Нет завершённых продаж.':'Товар ещё не продан.');
+  let proceeds=0;
+  for(const slot of slots){
+   proceeds+=s.shelves[slot].price;
+   s.shelves[slot]=null;
+  }
+  s.money+=proceeds;
+  addHistory(s,`Получено за продажу: ${proceeds/10} A.`,now);
+  break;
+ }
  case 'cancelSale':{const sale=s.shelves[action.slot];requireThat(sale,'Полка пуста.');requireThat(!ready(sale,now),'Товар уже продан. Получи деньги.');receive(s,[{...sale,item:sale.item,qty:sale.qty}]);s.shelves[action.slot]=null;break;}
  case 'openYuras':openYuras(s,now,random,action.merchant);break;
  case 'trade':{const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null,v=npc?.visit;requireThat(v&&v.id===action.visitId,'Этот визит уже завершён.');requireThat(TRADE_EFFECTS[action.modifier],'Неверный вариант торга.');const offer=v.offers?.[action.offer];requireThat(offer,'Предложение недоступно.');const quote=tradeQuote(offer,offer.qty,action.modifier,v.role,merchant);if(v.role==='seller'){requireThat(canReceive(s,[offer]),'В инвентаре не хватает места.');pay(s,quote.price);receive(s,[offer]);}else{const row=s.inventory.find(x=>x.uid===offer.inventoryUid);requireThat(row&&row.item===offer.item&&row.qty>=offer.qty,'Этого предмета уже нет в инвентаре.');removeRow(s,row.uid,offer.qty);s.money+=quote.price;}npc.xp=Math.round((npc.xp+quote.xp)*1000000)/1000000;npc.nextAt=now+quote.cooldown;npc.visit=null;addHistory(s,`Сделка · ${MERCHANTS[merchant].name}: ${ITEMS[offer.item].name}, ${quote.price/10} A.`,now);break;}
