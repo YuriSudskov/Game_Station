@@ -84,7 +84,12 @@
 .inventory-filters .btn{min-height:29px;padding:4px 8px;font-size:10px;white-space:nowrap}
 .inventory-filters .btn[aria-pressed="true"]{background:#302e20;border-color:#8c7749;color:var(--gold)}
 
+.location.location-special{border-color:#a58b3d;background:#352e1b}
+.location-special h3,.location-special .location-meta{color:#e4c45e}
+.location-special .location-icon{background:#443819;color:#e4c45e}
+.location-special .location-actions .btn{background:#d0af48;border-color:#a58b3d;color:#25200b}
 .location.location-first{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.btn.special-repeat{background:#d0af48;border-color:#a58b3d;color:#25200b}
 .btn.first-result{background:var(--gold2);border-color:var(--gold2);box-shadow:0 0 7px #e5cc8570}
 .btn.mission-start{background:var(--green);border-color:var(--green);color:#15241a}
 

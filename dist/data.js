@@ -7,6 +7,8 @@ export const ITEMS={
  pipeGrenade:{name:'Трубная граната',type:'grenade',stack:true,value:150,icon:'grenade',min:30,max:180,dodgeDc:13,description:'Одна граната в начале боя. Термический урон 30–180. Уклонение против 13 уменьшает урон вдвое. Шанс задеть себя 5%, шанс сильного взрыва 10%.'},
  dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять на вылазку.'},
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
+ leaderKebab:{name:'Редкий шашлык из Вожака',type:'food',stack:true,value:400,rarity:'rare',icon:'meat',description:'Восстанавливает 60–240 HP и даёт +2 к Силе на следующие четыре прохождения локаций.'},
+ weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
  rareMushrooms:{name:'Редкие подземные грибы',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Ингредиент для грибного чая. Можно найти по пути на Павелецкую.'},
  mushroomTea:{name:'Чай из Грибов',type:'food',stack:true,value:250,icon:'medical',description:'На станции снимает 1–4 + Сила РАД, даёт 50 опыта и навсегда уменьшает максимум HP на 3.'},
  hideArmor:{name:'Доспех Шкура',type:'body',stack:false,value:400,armor:20,thermalArmor:20,radiationProtection:1,icon:'jacket',description:'Поглощает 20 физического и 20 термического урона. Защита от РАД +1.'},
