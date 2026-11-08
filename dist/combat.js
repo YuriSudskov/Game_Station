@@ -55,6 +55,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const groupAlive=()=>opponents.some(enemy=>enemy.hp>0);
   const heroRoll=random.int(1,20),ratRoll=random.int(1,20);
   let heroTurn=ambush||heroRoll+h.initiative>=ratRoll+r.initiative;
+  const heroFirst=heroTurn;
   note('дистанция',{roll:perceptionRoll,bonus:h.perception-(h.checkPenalty??0),dc,margin,distance});
   note('инициатива',{enemy:r.name??'крыса',heroRoll,heroBonus:h.initiative,ratRoll,ratBonus:r.initiative,first:heroTurn?'герой':(r.name??'крыса')});
   let padding=h.firstHitArmor??0;
@@ -103,7 +104,6 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(hp<=0||!groupAlive())return finish(0);
   }
   let reloading=false;
-  let previousEnemyAttackHit=false;
   const main=h.weapons?h.weapons.main:{type:h.weaponType??'melee',min:h.weaponMin,max:h.weaponMax,bonus:h.weaponBonus??0};
   const inRange=(weapon,distance)=>weapon?.type==='ranged'&&distance<=(weapon.maxDistance??Infinity);
   for(let turn=1;turn<=config.trial.combatTurnLimit;turn++) {
@@ -136,17 +136,17 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     else {
       if(heroTurn&&weapon===main&&weapon.reloadMain) reloading=true;
       const actor=heroTurn?'герой':(r.name??'крыса');
-      const powerSwing=!heroTurn&&previousEnemyAttackHit?r.powerSwing:null;
+      const powerSwing=!heroTurn&&r.previousAttackHit?r.powerSwing:null;
       const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush}):null;
       const accuracy=heroTurn?attackStats.accuracy:r.accuracy+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(rageTriggered?(rageTurns>0?10:-10):0);
-      const escortTarget=!heroTurn&&caravan?.hp>0;
+      const escortTarget=!heroTurn&&caravan?.hp>0&&r.attackTarget!=='hero';
       const evasion=heroTurn?r.evasion:escortTarget?caravan.evasion:evasionAtDistance(h,distance);
       const attacks=heroTurn?attackStats.attacks:(r.attacksPerTurn??1);
       const armor=heroTurn?(weapon.piercing?0:r.armor):escortTarget?caravan.armor:h.armor;
       const damagePenalty=heroTurn?attackStats.damagePenalty:0;
       for(let attack=1;attack<=attacks;attack++){
         const roll=random.int(1,100),hit=hits(roll,accuracy,evasion);
-        if(!heroTurn)previousEnemyAttackHit=hit;
+        if(!heroTurn)r.previousAttackHit=hit;
         let base=0,bonus=0,damage=0;
         const components=[];
         const effectiveArmor=armor+(heroTurn&&!weapon.piercing&&rageTurns>0?20:0)+(!heroTurn&&!escortTarget&&hit?absorbFirstHit(turn):0);
@@ -170,13 +170,16 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     r.hp=ratHp;
     r.distance=distance;
     if(!groupAlive()||hp<=0)return finish(turn);
-    if(caravan?.hp>0&&turn%2===0){
-      const roll=random.int(1,100),accuracy=caravan.accuracy-15*distance,hit=hits(roll,accuracy,r.evasion);
-      const damage=hit?damageAfterArmor(damageRoll(random,ITEMS.ashot.min,ITEMS.ashot.max,damageMode),r.armor):0;
-      ratHp-=damage;
-      r.hp=ratHp;
-      note('атака',{turn,actor:'Караванщик',weapon:'ashot',roll,accuracy,evasion:r.evasion,hit,damage,heroHp:hp,ratHp:Math.max(0,ratHp),caravanHp:caravan.hp});
-      if(ratHp<=0)return finish(turn);
+    const nextEnemy=heroTurn?-1:opponents.findIndex((enemy,index)=>index>enemyIndex&&enemy.hp>0);
+    const caravanTurn=heroFirst?!heroTurn&&nextEnemy<0:heroTurn;
+    if(caravan?.hp>0&&caravanTurn){
+      const target=opponents.find(enemy=>enemy.hp>0&&enemy.attackTarget==='caravan')??opponents.find(enemy=>enemy.hp>0);
+      const roll=random.int(1,100),accuracy=caravan.accuracy-15*target.distance,hit=hits(roll,accuracy,target.evasion);
+      const damage=hit?damageAfterArmor(damageRoll(random,ITEMS.ashot.min,ITEMS.ashot.max,damageMode),target.armor):0;
+      target.hp-=damage;
+      ratHp=r.hp;
+      note('атака',{turn,actor:'Караванщик',weapon:'ashot',roll,accuracy,evasion:target.evasion,hit,damage,heroHp:hp,ratHp:Math.max(0,target.hp),caravanHp:caravan.hp,targetName:target.name});
+      if(!groupAlive())return finish(turn);
     }
     if(!heroTurn&&rageTurns>0&&--rageTurns===0)note('усталость вожака',{turn});
     if(enemies&&!heroTurn){
@@ -224,6 +227,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
   const scoutCount=found;
   if(m.finalEnemy)found++;
   for(let i=killed;i<(m.segments??found);i++) {
+    let encounterEnemies=null;
     if(caravan){
       const attacked=random.int(1,100)<=m.attackChances[i];
       if(trace)events.push({type:'участок каравана',segment:i+1,attacked});
@@ -236,17 +240,20 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
         if(trace)events.push({type:'обыск каравана',roll,bonus,drops});
         continue;
       }
-      found++;
+      const count=random.int(1,2);
+      encounterEnemies=Array.from({length:count},(_,index)=>({...config.rat,attackTarget:count===2&&index===0?'hero':'caravan'}));
+      found+=count;
+      if(trace)events.push({type:'упыри каравана',count});
     }
     const grenade=grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
     if(grenade==='pipeGrenade')grenades--;
     if(grenade==='molotov')molotovs--;
     const enemy=m.finalEnemy&&i===scoutCount?m.finalEnemy:i===0?firstEnemy:config.rat;
     if(trace&&enemy===m.finalEnemy)events.push({type:'появление вожака'});
-    const result=battle({...config,rat:enemy},random,hp,{trace,damageMode,grenade,caravan}); hp=result.hp; battles.push(result);
+    const result=battle({...config,rat:enemy},random,hp,{trace,damageMode,grenade,caravan,enemies:encounterEnemies}); hp=result.hp; battles.push(result);
     if(trace) events.push({type:'бой',number:i+1,...result});
     if(!result.won) return {alive:false,hp,found,killed,lootSuccesses:0,loot,xp:0,battles,events,initialBandages,bandagesUsed,bandagesLost:bandages,bandagesRemaining:0,healed,...(initialKits?{dressingKitsRemaining:0}:{}),...(initialMedicKits?{medicKitsRemaining:0}:{}),...(initialGrenades?{grenadesRemaining:0}:{}),...(initialMolotovs?{molotovsRemaining:0}:{})};
-    killed++;
+    killed+=encounterEnemies?result.killed:1;
     const maxHp=config.hero.maxHp;
     if(config.hero.selfHealAfterBattle&&bandages===0&&dressingKits===0&&medicKits===0&&hp<maxHp){
       const amount=Math.min(maxHp-hp,config.hero.selfHealAfterBattle);

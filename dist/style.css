@@ -161,3 +161,11 @@
 .series-run h4{font-size:12px;margin:4px 0;color:var(--gold)}
 
 .btn.recipe-sort{min-height:32px;padding:5px 8px;font-size:11px;white-space:nowrap}
+
+/* Звёзды переподготовки */
+.card.reborn-1{border-color:#a7b5be;background:linear-gradient(125deg,#9daeb51a,transparent 75%),var(--panel)}
+.card.reborn-2{border-color:#c7a451;background:linear-gradient(125deg,#c7a45120,transparent 75%),var(--panel)}
+.card.reborn-3{border-color:#71badd;background:linear-gradient(125deg,#71badd20,transparent 75%),var(--panel)}
+.xpbar.retraining-ready{height:auto;min-height:30px;position:relative;margin-bottom:8px;border-radius:6px}
+.xpbar.retraining-ready>i{position:absolute;inset:0;height:100%;opacity:.3}
+.xpbar .retraining-button{position:relative;width:100%;min-height:30px;padding:5px 8px;border:1px solid #a7b5be;background:transparent;color:#eef6fa;font-size:12px}
