@@ -9,6 +9,14 @@ export const ITEMS={
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
  leaderKebab:{name:'Редкий шашлык из Вожака',type:'food',stack:true,value:400,rarity:'rare',icon:'meat',description:'Восстанавливает 60–240 HP и даёт +2 к Силе на следующие четыре прохождения локаций.'},
  weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
+ antiseptic:{name:'Антисептик',type:'resource',stack:true,value:130,icon:'medical',description:'Реагент, найденный на поверхности.'},
+ strongTape:{name:'Крепкая изолента',type:'resource',stack:true,value:150,icon:'bag',description:'Материал, найденный на поверхности.'},
+ intactBook:{name:'Уцелевшая книга',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Редкая сохранившаяся книга.'},
+ armorPlates:{name:'Бронепластины',type:'resource',stack:true,value:250,icon:'jacket',description:'Материал для брони.'},
+ ak74:{name:'АК74',type:'weapon',combat:'ranged',stack:false,value:1000,shots:3,shotPenalty:20,min:30,max:120,closeAccuracyBonus:5,icon:'gun',description:'Очередь из трёх выстрелов, −20 п.п. точности. Вплотную +5 п.п. точности.'},
+ medicKit:{name:'Аптечка медика',type:'medicine',stack:true,value:300,icon:'medical',description:'Лечит 30–80 HP + 10 × Восприятие. Можно взять с собой на задание.'},
+ radiationCloak:{name:'Плащ РАД-защиты',type:'accessory',stack:false,value:1500,radiationProtection:2,icon:'jacket',description:'Дополнительный слот снаряжения. +2 к защите от радиации, сочетается с бронёй.'},
+ protectiveSuit:{name:'Защитный костюм',type:'accessory',stack:false,value:500,radiationProtection:2,icon:'gasmask',description:'Дополнительная защита. +2 РАД, ещё +1 РАД за каждый плюс качества. Сочетается с бронёй.'},
  rareMushrooms:{name:'Редкие подземные грибы',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Ингредиент для грибного чая. Можно найти по пути на Павелецкую.'},
  mushroomTea:{name:'Чай из Грибов',type:'food',stack:true,value:250,icon:'medical',description:'На станции снимает 1–4 + Сила РАД, даёт 50 опыта и навсегда уменьшает максимум HP на 3.'},
  hideArmor:{name:'Доспех Шкура',type:'body',stack:false,value:400,armor:20,thermalArmor:20,radiationProtection:1,icon:'jacket',description:'Поглощает 20 физического и 20 термического урона. Защита от РАД +1.'},
@@ -73,9 +81,11 @@ export const RECIPES={
  awl:{name:'Шило',production:'melee',level:5,cost:100,seconds:30,ingredients:{sharpBlade:1,metalParts:3},output:'awl',xp:40},
  lcu:{name:'LCU',production:'science',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',chance:70,prefix:'LCU',accuracyBonus:5,valueBonus:150,xp:15},
  patchedArmor:{name:'Штопанная броня',production:'science',level:1,cost:100,seconds:10,ingredients:{leather:2},upgrade:true,target:'body',chance:80,prefix:'Штопаный',armorBonus:7,valueBonus:100,xp:10},
+ protectiveSuit:{name:'Защитный костюм',production:'science',level:6,cost:0,seconds:30,ingredients:{ghoulHide:6,toughLeather:2},output:'protectiveSuit',chance:100,xp:20},
  fullLeather:{name:'Целая кожа',production:'armor',level:2,cost:30,seconds:10,ingredients:{leather:4},output:'fullLeather',xp:10,batch:true},
  qualityJacket:{name:'Качественная кожанка',production:'armor',level:3,cost:100,seconds:12,ingredients:{leather:3,fullLeather:1},output:'qualityJacket',xp:22},
- knife:{name:'Нож',production:'melee',level:1,cost:50,seconds:5,ingredients:{metal:1},output:'knife',xp:5},
+ knife:{name:'Нож',production:'melee',level:1,cost:50,seconds:5,ingredients:{metal:1},output:'knife',xp:5,legacy:true},
+ kaBar:{name:'Нож «Ка-Бар»',production:'melee',level:1,cost:40,seconds:8,ingredients:{metal:1,leather:1},output:'kaBar',xp:10},
  crowbar:{name:'Монтировка',production:'melee',level:2,cost:70,seconds:12,ingredients:{metal:3},output:'crowbar',xp:10},
  ashot:{name:'АШОТ',production:'ranged',level:1,cost:100,seconds:8,ingredients:{metal:2},output:'ashot',xp:15},
  jacket:{name:'Старая кожаная куртка',production:'armor',level:1,cost:50,seconds:8,ingredients:{leather:2},output:'jacket',xp:10},
@@ -85,8 +95,10 @@ export const RECIPES={
  psct:{name:'ПСЦТ',production:'upgrade',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',chance:75,prefix:'ПСЦТ',bonus:20,accuracyBonus:-5,valueBonus:150,xp:15}
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
-export const PRODUCTION_XP={1:10,2:30,3:60};
-export function productionXpThreshold(id,level){return (id==='melee'||id==='ranged'||id==='armor'||id==='medicine'||id==='upgrade'||id==='science')&&level===4?100:PRODUCTION_XP[level];}
+export const MAX_PRODUCTION_LEVEL=13;
+export const LOCATION_LEVELS={help:1,mission:2,patrol:3,caravan:4,technopark:5,surface:6};
+export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780};
+export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
 export const TRADE_EFFECTS={ '-15':{xp:.5,cooldown:2},'-10':{xp:.7,cooldown:1.5},0:{xp:1,cooldown:1},10:{xp:1.3,cooldown:.7},15:{xp:1.5,cooldown:.5}};
 export const CAPACITY=20;
@@ -103,7 +115,17 @@ export const PLANNED_LOCATIONS=[
  {id:'zil',name:'Исследовать ЗИЛ',area:'surface',icon:'station'}
 ];
 
-export const PATROL={requiredLevel:2,enemy:{name:'упырь-разведчик',hp:150,evasion:40,accuracy:10,initiative:1,stealth:2,armor:10,thermalArmor:0,damageMin:40,damageMax:100,attackName:'физическая атака'},mission:{searches:2,searchDc:8,lootPerKill:true,seconds:14,baseXp:10,findXp:0,killXp:20,lootXp:0},loot:[{id:'ghoulHide',name:'Шкура упыря',chance:80},{id:'sharpClaws',name:'Острые когти',chance:60},{id:'ghoulMeat',name:'Мясо упыря',chance:50},{id:'toughLeather',name:'Прочная кожа',chance:10}]};
+export const PATROL={requiredLevel:3,enemy:{name:'упырь-разведчик',hp:150,evasion:40,accuracy:10,initiative:1,stealth:2,armor:10,thermalArmor:0,damageMin:40,damageMax:100,attackName:'физическая атака'},mission:{searches:2,searchDc:8,lootPerKill:true,seconds:14,baseXp:10,findXp:0,killXp:20,lootXp:0},loot:[{id:'ghoulHide',name:'Шкура упыря',chance:80},{id:'sharpClaws',name:'Острые когти',chance:60},{id:'ghoulMeat',name:'Мясо упыря',chance:50},{id:'toughLeather',name:'Прочная кожа',chance:10}]};
+export const SURFACE={
+ seconds:20,baseXp:30,dogXp:8,guardXp:15,
+ description:'Слыш, гляжу у тебя кишка не тонка, может на поверхность выйти хочешь? В длинные вылазки туда ходят только по двое, но если на 10 минут — можно и одному попробовать. Один фильтр защитит тебя от радиоактивной пыли на 20 минут, так что успей вовремя вернуться, и да, радиация там то 2 то 3 у входа, запасись чем-нибудь.',
+ dog:{name:'Мутировавшая собака',hp:120,evasion:50,accuracy:10,damageMin:40,damageMax:70,armor:10,thermalArmor:0,stealth:1,initiative:1,attackName:'Укус'},
+ tiers:[
+  {dc:8,text:'Кажется, в этом магазине ещё что-то осталось не разграбленным…',hidden:'Так, тут следы каких-то собак? Спрячусь-ка, а потом продолжим…',spotted:'Чёрт, собаки меня заметили… Ёпт, ствол где?',loot:[{item:'metalParts',chance:80},{item:'antiseptic',chance:40},{item:'strongTape',chance:25},{item:'intactBook',chance:10}]},
+  {dc:13,text:'О, кажется, вон там ещё несколько растерзанных трупов за углом… посмотрим.',hidden:'Ага, это Суслики постарались, пора валить, пока меня не заметили…',spotted:'Чёрт, это Суслики… Слышен вой одного из Стражей.',loot:[{item:'armorPlates',chance:80},{currency:'money',min:12,max:30,chance:40},{currency:'filters',chance:25},{item:'ak74',chance:10}]},
+  {dc:18,text:'О! Это, кажется, схрон сталкеров. Давай-ка заглянем. Проверю на ловушки…',loot:[{currency:'money',min:15,max:30,chance:80},{currency:'filters',min:1,max:2,chance:40},{item:'medicKit',chance:25},{item:'radiationCloak',chance:10}]}
+ ]
+};
 export const CARAVAN={
  seconds:60,
  description:'Дрезина каравана сломалась, и теперь нужно идти по тоннелю пешком. Упыри иногда нападают на караван, так что нам нужна защита. Платим 30 A, если все доберутся туда живыми. А обратно тебя на дрезине привезём.',
