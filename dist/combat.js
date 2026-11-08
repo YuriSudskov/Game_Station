@@ -21,8 +21,8 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false}={}){
     +(weapon.accuracyBonus??0)
     +(ranged?(hero.rangedAccuracyBonus??0)-(weapon.distancePenalty??15)*distance:(hero.meleeAccuracyBonus??0)-(hero.attackAccuracyPenalty??0))
     -(pistol?(hero.pistolAccuracyPenalty??0):0)
-    -(weapon.shotPenalty??0)+(weapon.shots?(hero.burstAccuracyBonus??0):0)+(ambush?15:0);
-  const bonus=(ranged?0:10*hero.strength+(hero.meleeDamageBonus??0))
+    -(weapon.shotPenalty??0)+(weapon.shots?(hero.burstAccuracyBonus??0):0)+(ambush?15:0)-(hero.dualWieldAccuracyPenalty??0);
+  const bonus=(ranged?0:(weapon.noStrength?0:10*hero.strength)+(hero.meleeDamageBonus??0))
     +(distance===0?(hero.closeDamageBonus??0):0)+(weapon.bonus??0)+(pistol?(hero.pistolDamageBonus??0):0);
   const damagePenalty=ranged?0:hero.attackDamagePenalty??0;
   const attacks=ambush?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
@@ -137,14 +137,18 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       if(heroTurn&&weapon===main&&weapon.reloadMain) reloading=true;
       const actor=heroTurn?'герой':(r.name??'крыса');
       const powerSwing=!heroTurn&&r.previousAttackHit?r.powerSwing:null;
-      const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush}):null;
-      const accuracy=heroTurn?attackStats.accuracy:r.accuracy+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(rageTriggered?(rageTurns>0?10:-10):0);
       const escortTarget=!heroTurn&&caravan?.hp>0&&r.attackTarget!=='hero';
       const evasion=heroTurn?r.evasion:escortTarget?caravan.evasion:evasionAtDistance(h,distance);
-      const attacks=heroTurn?attackStats.attacks:(r.attacksPerTurn??1);
-      const armor=heroTurn?(weapon.piercing?0:r.armor):escortTarget?caravan.armor:h.armor;
-      const damagePenalty=heroTurn?attackStats.damagePenalty:0;
+      const primaryAttacks=heroTurn?heroAttackStats(h,weapon,distance,{ambush}).attacks:(r.attacksPerTurn??1);
+      const offhand=heroTurn&&!ambush&&distance===0&&h.dualWield?h.weapons?.ranged:null;
+      const sequence=Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();
+      const attacks=sequence.length;
       for(let attack=1;attack<=attacks;attack++){
+        if(heroTurn)weapon=sequence[attack-1];
+        const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush}):null;
+        const accuracy=heroTurn?attackStats.accuracy:r.accuracy+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(rageTriggered?(rageTurns>0?10:-10):0);
+        const armor=heroTurn?(weapon.piercing?0:r.armor):escortTarget?caravan.armor:h.armor;
+        const damagePenalty=heroTurn?attackStats.damagePenalty:0;
         const roll=random.int(1,100),hit=hits(roll,accuracy,evasion);
         if(!heroTurn)r.previousAttackHit=hit;
         let base=0,bonus=0,damage=0;

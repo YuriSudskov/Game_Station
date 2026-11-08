@@ -4,13 +4,43 @@ const uid=()=>globalThis.crypto?.randomUUID?.()??`${Date.now()}-${Math.random().
 const clone=x=>JSON.parse(JSON.stringify(x));
 const requireThat=(value,message)=>{if(!value)throw new Error(message);};
 export const roundRatio=(value,numerator,denominator=100)=>Math.floor((value*numerator+denominator/2)/denominator);
-export function sellerPrice(item,qty=1){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');const base=itemValue(item)*qty;return Math.max(roundRatio(base,120),base+10);}
+export const PLAYER_ROLES={
+ shekel:{name:'Шекель',title:'Я Шекель',motto:'Это будет моё метро целиком',description:'Продажа предметов на 10% дороже, покупка у торговцев на 20% дешевле. На старте 10 шекелей.',currency:'Шекели'},
+ sova:{name:'Сова',title:'Я Сова',motto:'Мы разовьём станцию',description:'Диверсантам со 2-го уровня открывается выбор перка «Двуручный бой». Новая валюта — люди, на старте 0.',currency:'Люди'}
+};
+export const KEEPER_QUESTS={
+ 1:{id:'tooth',title:'Золотой зуб',description:'Принеси один золотой зуб из мусорных куч.',target:1,reward:300},
+ 2:{id:'patrol',title:'Упыри в тоннеле',description:'Иди в тоннель, патрулируй, победи трёх упырей и тогда возвращайся.',target:3,reward:500},
+ 3:{id:'identity',title:'А ты, собственно говоря, кто?',description:'Познакомься со Смотрителем и выбери, кем будешь на станции.',target:1,reward:0},
+ 4:{id:'technopark',title:'Восстановим Технопарк',description:'Иди, исследуй Технопарк. Мы хотим эту станцию восстановить. Успешно пройди её дважды.',target:2,reward:600}
+};
+export function keeperQuestView(state){
+ if(state.toothQuest!=='completed')return {...KEEPER_QUESTS[1],stage:1,status:state.toothQuest==='accepted'?'accepted':'offered',progress:Math.min(1,countItem(state,'tooth'))};
+ const saved=state.keeperQuest??{stage:2,status:'offered',progress:0};
+ return {...KEEPER_QUESTS[saved.stage],...saved};
+}
+export const heroHasDualWield=hero=>Boolean(hero&&(hero.profession??'saboteur')==='saboteur'&&(hero.levelPerks??[]).some(p=>p.perk==='dual-wield'));
+export const salePrice=(state,item,qty=1)=>state.playerRole==='shekel'?roundRatio(itemValue(item)*qty,110):itemValue(item)*qty;
+function recordKeeperProgress(state,hero,job){
+ const q=keeperQuestView(state);
+ if(q.status!=='accepted'||![2,4].includes(q.stage)||hero.dead)return;
+ if(job.kind==='series'&&job.worker.dead)return;
+ const runs=job.kind==='series'?job.reports??[]:[job];
+ let gained=0;
+ for(const run of runs){
+  if(run.startedAt<(q.acceptedAt??0)||!run.result?.alive)continue;
+  if(q.stage===2&&run.kind==='patrol')gained+=Math.max(0,(run.result.killed??0)-(run.special?1:0));
+  if(q.stage===4&&run.kind==='technopark')gained++;
+ }
+ if(gained)state.keeperQuest={...state.keeperQuest,progress:Math.min(q.target,(q.progress??0)+gained)};
+}
+export function sellerPrice(item,qty=1,state=null){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');const base=itemValue(item)*qty;const price=Math.max(roundRatio(base,120),base+10);return state?.playerRole==='shekel'?roundRatio(price,80):price;}
 export const MERCHANTS={yuras:{name:'Юрась',cooldown:25000,buyPercent:110},duren:{name:'Дурень',cooldown:120000,buyPercent:150}};
-export function buyerPrice(item,qty=1,merchant='yuras'){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');return roundRatio(itemValue(item)*qty,MERCHANTS[merchant].buyPercent);}
-export function tradeQuote(item,qty,modifier,role,merchant='yuras'){const quote=role==='seller'?sellerPrice(item,qty):buyerPrice(item,qty,merchant);const price=roundRatio(quote,100+modifier);const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier];return {price,xp:price/10*effect.xp,cooldown:MERCHANTS[merchant].cooldown*effect.cooldown};}
-export function createGame(now=Date.now(),random=Math.random){return {version:1,id:uid(),welcomeSeen:false,money:1500,startingMoney:1500,filters:0,completedLocations:{},totalSpent:0,spendingPartial:false,inventory:[],inventorySlotsBought:0,heroes:[],selectedHeroId:null,hero:null,productions:Object.fromEntries(Object.keys(PRODUCTIONS).map(key=>[key,{level:1,xp:0,job:null}])),shelves:Array(STARTING_SHELVES).fill(null),yuras:{level:1,xp:0,nextAt:0,visit:{id:uid(),role:random()<.9?'seller':'buyer',offers:null}},history:[],createdAt:now,updatedAt:now};}
+export function buyerPrice(item,qty=1,merchant='yuras',state=null){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');const price=roundRatio(itemValue(item)*qty,MERCHANTS[merchant].buyPercent);return state?.playerRole==='shekel'?roundRatio(price,110):price;}
+export function tradeQuote(item,qty,modifier,role,merchant='yuras',state=null){const quote=role==='seller'?sellerPrice(item,qty,state):buyerPrice(item,qty,merchant,state);const price=roundRatio(quote,100+modifier);const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier];return {price,xp:price/10*effect.xp,cooldown:MERCHANTS[merchant].cooldown*effect.cooldown};}
+export function createGame(now=Date.now(),random=Math.random){return {version:1,id:uid(),welcomeSeen:false,playerRole:null,shekels:0,people:0,money:1500,startingMoney:1500,filters:0,completedLocations:{},totalSpent:0,spendingPartial:false,inventory:[],inventorySlotsBought:0,heroes:[],selectedHeroId:null,hero:null,productions:Object.fromEntries(Object.keys(PRODUCTIONS).map(key=>[key,{level:1,xp:0,job:null}])),shelves:Array(STARTING_SHELVES).fill(null),yuras:{level:1,xp:0,nextAt:0,visit:{id:uid(),role:random()<.9?'seller':'buyer',offers:null}},history:[],createdAt:now,updatedAt:now};}
 export function getHeroes(s){return Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);}
-export function normalizeGame(state){const s=clone(state);s.filters??=0;s.productions??={};for(const key of Object.keys(PRODUCTIONS)){s.productions[key]??={level:1,xp:0,job:null};gainProductionXp(s.productions[key],key,0);}if(!Number.isSafeInteger(s.totalSpent)||s.totalSpent<0){s.totalSpent=0;s.spendingPartial=true;}s.heroes=Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;}s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===s.selectedHeroId)||s.heroes.find(h=>h.id===s.hero?.id)||s.heroes[0]||null;s.hero=selected;s.selectedHeroId=selected?.id??null;const offers=s.yuras?.visit?.offers;if(s.yuras?.visit?.role==='seller'&&Array.isArray(offers)){for(const offer of [{item:'cloth',qty:3},{item:'pipe',qty:1}])if(!offers.some(x=>x.item===offer.item))offers.push(offer);}return s;}
+export function normalizeGame(state){const s=clone(state);s.filters??=0;s.productions??={};for(const key of Object.keys(PRODUCTIONS)){s.productions[key]??={level:1,xp:0,job:null};gainProductionXp(s.productions[key],key,0);}if(!Number.isSafeInteger(s.totalSpent)||s.totalSpent<0){s.totalSpent=0;s.spendingPartial=true;}s.heroes=Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;if(s.playerRole==='sova'&&(h.profession??'saboteur')==='saboteur')h.rewardPerkUnlocks=[...new Set([...(h.rewardPerkUnlocks??[]),'dual-wield'])];}s.shekels??=0;s.people??=0;s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===s.selectedHeroId)||s.heroes.find(h=>h.id===s.hero?.id)||s.heroes[0]||null;s.hero=selected;s.selectedHeroId=selected?.id??null;const offers=s.yuras?.visit?.offers;if(s.yuras?.visit?.role==='seller'&&Array.isArray(offers)){for(const offer of [{item:'cloth',qty:3},{item:'pipe',qty:1}])if(!offers.some(x=>x.item===offer.item))offers.push(offer);}return s;}
 export function inheritedRebirths(state){return [...getHeroes(state).filter(h=>rebirthStars(h)>0).map(h=>({stars:rebirthStars(h),attributes:clone(h.rebirthAttributes??{})})),...(state.inheritedRebirths??[]).map(slot=>clone(slot))].sort((a,b)=>b.stars-a.stars);}
 export function restartQuote(state){const spent=Number.isSafeInteger(state.totalSpent)&&state.totalSpent>=0?state.totalSpent:0;const bonus=roundRatio(spent,2);return {spent,bonus,money:(state.startingMoney??1500)+bonus,inheritance:inheritedRebirths(state)};}
 export function restartGame(state,now=Date.now(),random=Math.random){const fresh=createGame(now,random);fresh.startingMoney=restartQuote(state).money;fresh.money=fresh.startingMoney;fresh.inheritedRebirths=inheritedRebirths(state);if(state.recipeLevelOrder==='desc')fresh.recipeLevelOrder='desc';return fresh;}
@@ -67,6 +97,7 @@ export function canUpgrade(row,recipeId){
  const replacing=upgrades.some(upgrade=>upgrade.recipe===recipe?.replaces);
  return Boolean(row&&recipe?.upgrade
   &&(recipe.target==='body'?ITEMS[row.item]?.type==='body':(ITEMS[row.item]?.combat===(recipe.target??'melee')||((recipe.target??'melee')==='melee'&&ITEMS[row.item]?.bayonet)))
+  &&(!recipe.weaponClasses||recipe.weaponClasses.includes(ITEMS[row.item]?.weaponClass))
   &&(itemTier(row)<3||replacing)
   &&!upgrades.some(upgrade=>upgrade.recipe===recipeId||RECIPES[upgrade.recipe]?.replaces===recipeId));
 }
@@ -106,6 +137,7 @@ export function upgradedItem(row,recipeId){
  output.upgrades=[
   ...upgrades.filter(upgrade=>upgrade.recipe!==recipe.replaces),
   {recipe:recipeId,prefix:recipe.prefix,bonus:recipe.bonus??0,armorBonus:recipe.armorBonus??0,accuracyBonus:recipe.accuracyBonus??0,valueBonus:upgradeValueBonus(recipe)+replacedValue,
+   ...(recipe.blocksAimedShots?{blocksAimedShots:true}:{}),
    ...(recipe.thermalArmorBonus?{thermalArmorBonus:recipe.thermalArmorBonus}:{}),
    ...(recipe.minBonus!=null?{minBonus:recipe.minBonus,maxBonus:recipe.maxBonus}:{})}
  ];
@@ -192,7 +224,7 @@ export function perkSchedule(hero,limit=Number.isFinite(heroLevelCap(hero))?hero
 }
 export function earnedPerkLevels(hero){return perkSchedule(hero,hero.level);}
 export function availablePerkLevels(hero){const chosen=new Set((hero.levelPerks??[]).map(p=>p.level));return [...earnedPerkLevels(hero).filter(level=>!chosen.has(level)),...Array(hero.extraPerkChoices??0).fill(null)];}
-export function levelPerkOptions(hero){return Object.entries(LEVEL_PERKS).filter(([id,p])=>p.profession===(hero.profession??'saboteur')&&hero.level>=p.minLevel&&id!==(hero.startPerk??hero.perk)&&(p.repeatable||!(hero.levelPerks??[]).some(x=>x.perk===id))).map(([id,p])=>({id,...p}));}
+export function levelPerkOptions(hero){return Object.entries(LEVEL_PERKS).filter(([id,p])=>p.profession===(hero.profession??'saboteur')&&hero.level>=p.minLevel&&(!p.rewardRole||(hero.rewardPerkUnlocks??[]).includes(id))&&id!==(hero.startPerk??hero.perk)&&(p.repeatable||!(hero.levelPerks??[]).some(x=>x.perk===id))).map(([id,p])=>({id,...p}));}
 const levelPerkHpBonus=h=>(h.levelPerks??[]).reduce((hp,{perk})=>hp+(perk==='enduring'?30:(LEVEL_PERKS[perk]?.hpBonus??0)),0);
 export function heroConfig(s,hero=s.hero){const h={...hero};for(const slot of ['weapon','rangedWeapon','body','accessory'])if(h[slot]&&!canUseEquipment(h,{...h[slot+'Details'],item:h[slot]})){h[slot]=null;h[slot+'Details']=null;}const p=PROFESSIONS[h.profession??'saboteur'],base=clone(CONFIG);Object.assign(base.hero,heroAttributes(h),{strength:heroAttributes(h).strength+(h.leaderKebabRuns>0?2:0),initiative:heroAttributes(h).agility,accuracy:5*rebirthStars(h)+(p.accuracy??0)+1.25*Math.max(0,(h.level??1)-1)+(h.nationalityBonuses?.accuracy??0),pistolDamageBonus:h.nationalityBonuses?.pistolDamage??0,evasion:35+7.5*heroAttributes(h).agility+(p.evasionBonus??0)+5*rebirthStars(h)});let c=withStarterPerk(base,h.perk,h.level);for(const id of new Set((h.levelPerks??[]).map(x=>LEVEL_PERKS[x.perk]?.starterEffect).filter(Boolean))){if(id!==h.perk)c=withStarterPerk(c,id,h.level);}c.hero.perk=h.perk;for(const chosen of h.levelPerks??[]){if(chosen.perk==='favorite-close'){c.hero.closeAccuracyBonus=(c.hero.closeAccuracyBonus??0)+5;c.hero.closeDamageBonus=(c.hero.closeDamageBonus??0)+5;}if(chosen.perk==='quick-reaction'){c.hero.initiative+=2;c.hero.evasion+=3;}if(chosen.perk==='samurai')c.hero.meleeDamageBonus=(c.hero.meleeDamageBonus??0)+4*Math.max(0,h.level-chosen.pickedAtLevel+1);
  if(chosen.perk==='assault-accurate')c.hero.accuracy+=5;
@@ -210,9 +242,9 @@ c.hero.accuracy-=ITEMS[h.body]?.accuracyPenalty??0;c.hero.maxHp=effectiveMaxHp(h
    min:out.min+(u.minBonus??0),max:out.max+(u.maxBonus??0),
    bonus:out.bonus+(u.bonus??0),accuracyBonus:out.accuracyBonus+(u.accuracyBonus??0)
   }),{min:range.min+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:0,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)});
- return {item,name:itemName({item,...details}),type:combat,weaponClass,piercing,maxDistance,distancePenalty,shots,damageRolls,shotPenalty,reloadMain,closeAccuracyBonus,...bonuses(combat,{min,max}),
+ return {item,name:itemName({item,...details}),type:combat,weaponClass,piercing,maxDistance,distancePenalty,shots,damageRolls,shotPenalty,reloadMain,closeAccuracyBonus,blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
   bayonet:bayonet?{item,type:'melee',isBayonet:true,...bonuses('melee',bayonet)}:null};
-};c.hero.weapons={main:spec(h.weapon,h.weaponDetails),ranged:spec(h.rangedWeapon,h.rangedWeaponDetails)};c.hero.weaponType=weapon?.combat??'melee';c.hero.weaponMin=weapon?.min??10;c.hero.weaponMax=weapon?.max??30;c.hero.weaponBonus=(h.weaponDetails?.upgrades??[]).reduce((sum,u)=>sum+(u.bonus??0),0);if(h.wounds>0){c.hero.accuracy-=10; // Separate percentile penalty is not stacked until rules are clarified.
+};c.hero.weapons={main:spec(h.weapon,h.weaponDetails),ranged:spec(h.rangedWeapon,h.rangedWeaponDetails)};if(heroHasDualWield(h)&&c.hero.weapons.ranged?.type==='melee'){c.hero.dualWield=true;c.hero.dualWieldAccuracyPenalty=10;c.hero.weapons.ranged.noStrength=true;}c.hero.weaponType=weapon?.combat??'melee';c.hero.weaponMin=weapon?.min??10;c.hero.weaponMax=weapon?.max??30;c.hero.weaponBonus=(h.weaponDetails?.upgrades??[]).reduce((sum,u)=>sum+(u.bonus??0),0);if(h.wounds>0){c.hero.accuracy-=10; // Separate percentile penalty is not stacked until rules are clarified.
  c.hero.checkPenalty=2;c.hero.initiative-=2;
  }return c;}
 export function heroMaximumHp(h){const strength=heroAttributes(h).strength;return Math.max(1,((120+30*strength+(h.nationalityBonuses?.hp??0))+(h.level-1)*(10+10*strength/3))*(1+rebirthStars(h)*.1)+levelPerkHpBonus(h)-(h.permanentHpLoss??0));}
@@ -445,7 +477,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   addHistory(s,`${hero.name}: получен дополнительный выбор перка.`,now);break;
  }
  case 'chooseLevelPerk':{const hero=idleHero(s),slots=availablePerkLevels(hero),perk=LEVEL_PERKS[action.perk];requireThat(slots.length,'Нет доступного выбора перка.');requireThat(levelPerkOptions(hero).some(p=>p.id===action.perk),'Этот перк недоступен.');if(slots[0]===null)hero.extraPerkChoices--;hero.levelPerks=[...(hero.levelPerks??[]),{level:slots[0],perk:action.perk,pickedAtLevel:hero.level}];if(action.perk==='enduring')hero.maxHp+=30;if(perk.hpBonus){hero.maxHp+=perk.hpBonus;hero.hp=Math.min(effectiveMaxHp(hero),hero.hp+perk.hpBonus);}if(action.perk==='engineer-side-job')paySideJob(s,hero,hero.level,now);addHistory(s,`${hero.name}: выбран перк «${perk.name}».`,now);break;}
- case 'hire':{const profession=action.profession??'saboteur',p=PROFESSIONS[profession];requireThat(p?.available,'Эта профессия пока недоступна для найма.');requireThat(p.startReady!==false,'Стартовое снаряжение и точность инженера ещё не заданы.');requireThat(p.perks.includes(action.perk),'Выбери стартовый перк этой профессии.');const identity=action.identity?IDENTITIES[action.identity]:null;requireThat(!action.identity||identity,'Выбери имя и национальность.');pay(s,hireCost(s));const inheritance=s.inheritedRebirths?.shift(),number=s.heroes.length+1,maxHp=120+30*p.strength+(identity?.bonuses?.hp??0);const hero={id:uid(),profession,identityId:action.identity??null,nationality:identity?.nationality??null,nationalityBonuses:clone(identity?.bonuses??{}),name:identity?.name??(number===1?p.name:`${p.name} №${number}`),level:1,xp:0,maxHp,hp:maxHp,perk:action.perk,startPerk:action.perk,weapon:p.weapon,rangedWeapon:p.rangedWeapon??null,body:null,bandages:0,dead:false,wounds:0,job:null};if(inheritance){hero.rebirths=inheritance.stars;hero.rebirthAttributes=clone(inheritance.attributes??{});hero.maxHp=heroMaximumHp(hero);hero.hp=hero.maxHp;}s.heroes.push(hero);s.hero=hero;s.selectedHeroId=hero.id;addHistory(s,`${hero.name} (${p.name}) принят на станцию.`,now);break;}
+ case 'hire':{const profession=action.profession??'saboteur',p=PROFESSIONS[profession];requireThat(p?.available,'Эта профессия пока недоступна для найма.');requireThat(p.startReady!==false,'Стартовое снаряжение и точность инженера ещё не заданы.');requireThat(p.perks.includes(action.perk),'Выбери стартовый перк этой профессии.');const identity=action.identity?IDENTITIES[action.identity]:null;requireThat(!action.identity||identity,'Выбери имя и национальность.');pay(s,hireCost(s));const inheritance=s.inheritedRebirths?.shift(),number=s.heroes.length+1,maxHp=120+30*p.strength+(identity?.bonuses?.hp??0);const hero={id:uid(),profession,identityId:action.identity??null,nationality:identity?.nationality??null,nationalityBonuses:clone(identity?.bonuses??{}),name:identity?.name??(number===1?p.name:`${p.name} №${number}`),level:1,xp:0,maxHp,hp:maxHp,perk:action.perk,startPerk:action.perk,weapon:p.weapon,rangedWeapon:p.rangedWeapon??null,body:null,bandages:0,dead:false,wounds:0,job:null};if(s.playerRole==='sova'&&profession==='saboteur')hero.rewardPerkUnlocks=['dual-wield'];if(inheritance){hero.rebirths=inheritance.stars;hero.rebirthAttributes=clone(inheritance.attributes??{});hero.maxHp=heroMaximumHp(hero);hero.hp=hero.maxHp;}s.heroes.push(hero);s.hero=hero;s.selectedHeroId=hero.id;addHistory(s,`${hero.name} (${p.name}) принят на станцию.`,now);break;}
  case 'setRepeatPreferences':{requireThat(h,'Сначала выбери героя.');const {location,total,threshold}=action;requireThat(['mission','help','rest','patrol','technopark','caravan','surface'].includes(location),'Нет такой локации.');requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([50,30,15].includes(threshold),'Выбери порог здоровья.');h.repeatPreferences={...h.repeatPreferences,[location]:{total,threshold}};break;}
  case 'startSeries':{const hero=idleHero(s),kind=action.location,total=action.total,threshold=action.threshold;requireThat(['mission','patrol','help','technopark','caravan','surface'].includes(kind),'Нет такой локации.');requireFreeLocation(s,kind);requireThat(!activeSpecialLocation(s,kind),'Особая локация доступна только для одиночной вылазки.');requireLocationLevel(hero,kind);requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([50,30,15].includes(threshold),'Выбери порог здоровья.');requireThat(hero.hp/effectiveMaxHp(hero)>=threshold/100,'Здоровье уже ниже выбранного порога.');const seeds=Array.from({length:total},()=>Math.floor(random()*4294967296)),worker=clone(hero);worker.job=null;const run=makeRun(s,worker,kind,now,seeds[0]);hero.repeatPreferences={...hero.repeatPreferences,[kind]:{total,threshold}};hero.job={kind:'series',location:kind,total,threshold,seeds,worker,initial:clone(worker),run,phase:'running',completed:0,loot:{},money:0,nationalityBonus:0,xp:0,reports:[],startedAt:now,endsAt:run.endsAt};addHistory(s,`Серия: ${locationName(kind)}, ${total} прохождений.`,now);break;}
  case 'stopSeries':{requireThat(h?.job?.kind==='series'&&h.job.phase==='break','Прервать можно только во время передышки.');stopSeries(h.job,'Остановлено игроком');break;}
@@ -478,6 +510,27 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   requireThat(!s.toothQuest,'Поручение уже принято или выполнено.');
   s.toothQuest='accepted';
   addHistory(s,'Поручение Смотрителя станции: добыть золотой зуб.',now);break;
+ }
+ case 'acceptKeeperQuest':{
+  const q=keeperQuestView(s);
+  requireThat([2,4].includes(q.stage)&&q.status==='offered','Это поручение сейчас недоступно.');
+  s.keeperQuest={stage:q.stage,status:'accepted',progress:0,acceptedAt:now};
+  addHistory(s,`Принято поручение Смотрителя: ${q.title}.`,now);break;
+ }
+ case 'finishKeeperQuest':{
+  const q=keeperQuestView(s);
+  requireThat([2,4].includes(q.stage)&&q.status==='accepted'&&q.progress>=q.target,'Условия поручения ещё не выполнены.');
+  s.money+=q.reward;
+  s.keeperQuest={stage:q.stage+1,status:q.stage===4?'completed':'offered',progress:0};
+  addHistory(s,`Смотритель: ${q.title}. Получено ${q.reward/10} A.`,now);break;
+ }
+ case 'choosePlayerRole':{
+  requireThat(keeperQuestView(s).stage===3&&!s.playerRole,'Сейчас нельзя выбирать роль.');
+  requireThat(Object.hasOwn(PLAYER_ROLES,action.role),'Выбери, кто ты.');
+  s.playerRole=action.role;s.shekels=action.role==='shekel'?10:0;s.people=0;
+  if(action.role==='sova')for(const hero of s.heroes)if((hero.profession??'saboteur')==='saboteur')hero.rewardPerkUnlocks=[...new Set([...(hero.rewardPerkUnlocks??[]),'dual-wield'])];
+  s.keeperQuest={stage:4,status:'offered',progress:0};
+  addHistory(s,`Выбран путь: ${PLAYER_ROLES[action.role].title}.`,now);break;
  }
  case 'turnInToothQuest':{
   requireThat(s.toothQuest==='accepted','Сначала прими поручение Смотрителя.');
@@ -525,7 +578,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   h.hp=Math.min(h.hp,effectiveMaxHp(h));
   addHistory(s,`${h.name}: Облучён (${h.radiation}).`,now);
  }
- if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
+ if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}recordKeeperProgress(s,h,job);const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
  h.lastCompletedLocation=completedLocation;
  if(completedLocation==='technopark'&&!s.duren){
   receive(s,[{item:'sharpBlade',qty:1}]);
@@ -611,13 +664,13 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   hero[key]=(hero[key]??0)+qty;
   break;
  }
- case 'equip':{const hero=idleHero(s);const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const item=ITEMS[row.item];requireThat(canUseEquipment(hero,row),`Требуется ${equipmentRequiredLevel(row)}-й уровень героя.`);requireThat(['body','weapon','accessory'].includes(item.type),'Этот предмет нельзя надеть.');requireThat(!action.slot||['main','ranged'].includes(action.slot),'Неверный слот.');const key=item.type==='accessory'?'accessory':item.type==='body'?'body':action.slot==='main'?'weapon':action.slot==='ranged'?'rangedWeapon':item.combat==='ranged'?'rangedWeapon':'weapon';requireThat(key!=='rangedWeapon'||item.combat==='ranged','В дополнительный слот можно только дистанционное оружие.');const target=item.twoSlots?'weapon':key;
+ case 'equip':{const hero=idleHero(s);const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const item=ITEMS[row.item];requireThat(canUseEquipment(hero,row),`Требуется ${equipmentRequiredLevel(row)}-й уровень героя.`);requireThat(['body','weapon','accessory'].includes(item.type),'Этот предмет нельзя надеть.');requireThat(!action.slot||['main','ranged'].includes(action.slot),'Неверный слот.');const key=item.type==='accessory'?'accessory':item.type==='body'?'body':action.slot==='main'?'weapon':action.slot==='ranged'?'rangedWeapon':item.combat==='ranged'?'rangedWeapon':'weapon';requireThat(key!=='rangedWeapon'||item.combat==='ranged'||heroHasDualWield(hero)&&item.combat==='melee','В дополнительный слот можно только дистанционное оружие.');const target=item.twoSlots?'weapon':key;
  const displaced=item.twoSlots?['weapon','rangedWeapon']:key==='rangedWeapon'&&ITEMS[hero.weapon]?.twoSlots?['weapon',key]:[key];
  removeRow(s,row.uid,1);
  receive(s,displaced.filter(slot=>hero[slot]).map(slot=>({...hero[slot+'Details'],item:hero[slot],qty:1})));
  for(const slot of displaced){hero[slot]=null;hero[slot+'Details']=null;}
  hero[target]=row.item;hero[target+'Details']={...clone(row),qty:1};break;}
- case 'moveWeapon':{const hero=idleHero(s);requireThat(['main','ranged'].includes(action.slot),'Неверный слот.');const from=action.slot==='main'?'weapon':'rangedWeapon',to=from==='weapon'?'rangedWeapon':'weapon',moving=hero[from],details=clone(hero[from+'Details']??null);requireThat(moving,'Слот пуст.');requireThat(!ITEMS[hero.weapon]?.twoSlots,'Это оружие занимает оба слота.');requireThat(to!=='rangedWeapon'||ITEMS[moving].combat==='ranged','В дополнительный слот можно только дистанционное оружие.');const previous=hero[to],previousDetails=clone(hero[to+'Details']??null),swap=previous&&(from==='weapon'||ITEMS[previous].combat==='ranged');if(previous&&!swap)receive(s,[{...previousDetails,item:previous,qty:1}]);hero[to]=moving;hero[to+'Details']=details;hero[from]=swap?previous:null;hero[from+'Details']=swap?previousDetails:null;break;}
+ case 'moveWeapon':{const hero=idleHero(s);requireThat(['main','ranged'].includes(action.slot),'Неверный слот.');const from=action.slot==='main'?'weapon':'rangedWeapon',to=from==='weapon'?'rangedWeapon':'weapon',moving=hero[from],details=clone(hero[from+'Details']??null);requireThat(moving,'Слот пуст.');requireThat(!ITEMS[hero.weapon]?.twoSlots,'Это оружие занимает оба слота.');requireThat(to!=='rangedWeapon'||ITEMS[moving].combat==='ranged'||heroHasDualWield(hero)&&ITEMS[moving].combat==='melee','В дополнительный слот можно только дистанционное оружие.');const previous=hero[to],previousDetails=clone(hero[to+'Details']??null),swap=previous&&(from==='weapon'||ITEMS[previous].combat==='ranged'||heroHasDualWield(hero));if(previous&&!swap)receive(s,[{...previousDetails,item:previous,qty:1}]);hero[to]=moving;hero[to+'Details']=details;hero[from]=swap?previous:null;hero[from+'Details']=swap?previousDetails:null;break;}
  case 'unequipWeapon':{const hero=idleHero(s),key=action.slot==='ranged'?'rangedWeapon':'weapon';requireThat(hero[key],'Слот оружия пуст.');receive(s,[{...hero[key+'Details'],item:hero[key],qty:1}]);hero[key]=null;hero[key+'Details']=null;break;}
  case 'unequipAccessory':{const hero=idleHero(s);requireThat(hero.accessory,'Дополнительный слот пуст.');receive(s,[{...hero.accessoryDetails,item:hero.accessory,qty:1}]);hero.accessory=null;hero.accessoryDetails=null;break;}
  case 'unequipBody':{const hero=idleHero(s);requireThat(hero.body,'Броня не надета.');receive(s,[{...hero.bodyDetails,item:hero.body,qty:1}]);hero.body=null;hero.bodyDetails=null;break;}
@@ -682,7 +735,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   s.shelves.push(null);
   break;
  }
- case 'sell':{const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const qty=action.all&&ITEMS[row.item].stack?row.qty:(action.qty??1);requireThat(Number.isInteger(qty)&&qty>0&&qty<=row.qty,'Неверное количество товара.');const slot=s.shelves.findIndex(x=>!x);requireThat(slot>=0,'Все полки заняты.');requireThat(Number.isInteger(ITEMS[row.item].value),'Цена предмета ещё не задана.');const details=clone(row),price=itemValue(row)*qty;removeRow(s,row.uid,qty);s.shelves[slot]={...details,id:uid(),item:row.item,qty,price,startedAt:now,endsAt:now+price*200};break;}
+ case 'sell':{const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const qty=action.all&&ITEMS[row.item].stack?row.qty:(action.qty??1);requireThat(Number.isInteger(qty)&&qty>0&&qty<=row.qty,'Неверное количество товара.');const slot=s.shelves.findIndex(x=>!x);requireThat(slot>=0,'Все полки заняты.');requireThat(Number.isInteger(ITEMS[row.item].value),'Цена предмета ещё не задана.');const details=clone(row),price=salePrice(s,row,qty);removeRow(s,row.uid,qty);s.shelves[slot]={...details,id:uid(),item:row.item,qty,price,startedAt:now,endsAt:now+price*200};break;}
  case 'claimAllSales':
  case 'claimSale':{
   const slots=action.type==='claimAllSales'
@@ -700,7 +753,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
  }
  case 'cancelSale':{const sale=s.shelves[action.slot];requireThat(sale,'Полка пуста.');requireThat(!ready(sale,now),'Товар уже продан. Получи деньги.');receive(s,[{...sale,item:sale.item,qty:sale.qty}]);s.shelves[action.slot]=null;break;}
  case 'openYuras':openYuras(s,now,random,action.merchant);break;
- case 'trade':{const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null,v=npc?.visit;requireThat(v&&v.id===action.visitId,'Этот визит уже завершён.');requireThat(TRADE_EFFECTS[action.modifier],'Неверный вариант торга.');const offer=v.offers?.[action.offer];requireThat(offer,'Предложение недоступно.');const quote=tradeQuote(offer,offer.qty,action.modifier,v.role,merchant);if(v.role==='seller'){requireThat(canReceive(s,[offer]),'В инвентаре не хватает места.');pay(s,quote.price);receive(s,[offer]);}else{const row=s.inventory.find(x=>x.uid===offer.inventoryUid);requireThat(row&&row.item===offer.item&&row.qty>=offer.qty,'Этого предмета уже нет в инвентаре.');removeRow(s,row.uid,offer.qty);s.money+=quote.price;}npc.xp=Math.round((npc.xp+quote.xp)*1000000)/1000000;npc.nextAt=now+quote.cooldown;npc.visit=null;addHistory(s,`Сделка · ${MERCHANTS[merchant].name}: ${ITEMS[offer.item].name}, ${quote.price/10} A.`,now);break;}
+ case 'trade':{const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null,v=npc?.visit;requireThat(v&&v.id===action.visitId,'Этот визит уже завершён.');requireThat(TRADE_EFFECTS[action.modifier],'Неверный вариант торга.');const offer=v.offers?.[action.offer];requireThat(offer,'Предложение недоступно.');const quote=tradeQuote(offer,offer.qty,action.modifier,v.role,merchant,s);if(v.role==='seller'){requireThat(canReceive(s,[offer]),'В инвентаре не хватает места.');pay(s,quote.price);receive(s,[offer]);}else{const row=s.inventory.find(x=>x.uid===offer.inventoryUid);requireThat(row&&row.item===offer.item&&row.qty>=offer.qty,'Этого предмета уже нет в инвентаре.');removeRow(s,row.uid,offer.qty);s.money+=quote.price;}npc.xp=Math.round((npc.xp+quote.xp)*1000000)/1000000;npc.nextAt=now+quote.cooldown;npc.visit=null;addHistory(s,`Сделка · ${MERCHANTS[merchant].name}: ${ITEMS[offer.item].name}, ${quote.price/10} A.`,now);break;}
  case 'dismissYuras':{
   const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null;
   requireThat(npc?.visit,'Торговец уже ушёл.');

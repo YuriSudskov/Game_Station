@@ -26,7 +26,7 @@ export const ITEMS={
  springMechanism:{name:'Пружинный механизм',type:'resource',stack:true,value:90,icon:'tool',description:'Деталь для сборки стрелкового оружия.'},
  pipe:{name:'Труба',type:'resource',stack:true,value:80,icon:'metal',description:'Материал для Обреза и винтовки Мосина. Продаётся у Юрася.'},
  bastard:{name:'Бастард ПП',type:'weapon',combat:'ranged',weaponClass:'automatic',min:30,max:80,shots:3,shotPenalty:20,stack:false,value:250,icon:'smg',description:'Очередь из трёх выстрелов. У каждого своя проверка попадания со штрафом −20 п.п. и отдельный расчёт физического урона.'},
- sawedOff:{name:'Обрез',type:'weapon',combat:'ranged',min:40,max:130,maxDistance:1,damageRolls:2,shotPenalty:10,reloadMain:true,stack:false,value:600,icon:'shotgun',description:'Дуплет на дистанции 0–1: одна проверка попадания со штрафом −10 п.п., два броска урона. В основном слоте следующий ход после выстрела уходит на перезарядку.'},
+ sawedOff:{name:'Обрез',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:40,max:130,maxDistance:1,damageRolls:2,shotPenalty:10,reloadMain:true,stack:false,value:600,icon:'shotgun',description:'Дуплет на дистанции 0–1: одна проверка попадания со штрафом −10 п.п., два броска урона. В основном слоте следующий ход после выстрела уходит на перезарядку.'},
  mosin:{name:'Винтовка Мосина',type:'weapon',combat:'ranged',min:60,max:150,distancePenalty:10,piercing:true,reloadMain:true,bayonet:{min:10,max:80},twoSlots:true,rarity:'rare',stack:false,value:900,icon:'rifle',description:'Занимает оба слота. Пробивающий выстрел на любой дистанции. Штраф точности −10 п.п. за единицу дистанции. После выстрела перезаряжается, а вплотную в этот же ход атакует штыком.'},
  metalParts:{name:'Металлические части',type:'resource',stack:true,value:100,icon:'metal',description:'Материал для оружия в Цехе.'},
  sharpBlade:{name:'Острое лезвие',type:'resource',stack:true,value:300,rarity:'rare',icon:'knife',description:'Находка в Технопарке. Материал для Шила и винтовки Мосина.'},
@@ -64,6 +64,7 @@ export const PERKS={
 };
 export const CONFIG={hero:{maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:7,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
+ fineShot:{name:'Мелкая дробь',production:'upgrade',level:6,cost:300,seconds:30,ingredients:{},upgrade:true,target:'ranged',weaponClasses:['shotgun'],chance:60,prefix:'Мелкая дробь',accuracyBonus:15,xp:25,blocksAimedShots:true},
  medicKit:{name:'Аптечка медика',production:'medicine',level:6,cost:50,seconds:20,ingredients:{antiseptic:1,dressingKit:1},output:'medicKit',xp:20,batch:true},
  butcherCleaver:{name:'Тесак Мясника',production:'melee',level:6,cost:200,seconds:25,ingredients:{metalParts:3,sharpBlade:1},output:'butcherCleaver',xp:50},
  quilted:{name:'Ватник',production:'science',level:3,cost:100,seconds:20,ingredients:{ghoulHide:2},upgrade:true,target:'body',chance:70,prefix:'Ватник на',firstHitArmor:15,valueBonus:160,xp:20},
@@ -261,6 +262,7 @@ export const LEVEL_PERK_SCHEDULES={
 };
 
 export const LEVEL_PERKS={
+ 'dual-wield':{name:'Двуручный бой',profession:'saboteur',minLevel:2,repeatable:false,rewardRole:'sova',description:'Позволяет ближнее оружие в дополнительном слоте. Вплотную после каждой основной атаки — один удар вторым оружием без бонуса Силы. При экипированном втором ближнем оружии все атаки −10 п.п. точности.'},
  'assault-accurate':{name:'Точный',profession:'assault',minLevel:2,repeatable:false,description:'+5 п.п. точности.'},
  'assault-reaction':{name:'Быстрая реакция',profession:'assault',minLevel:3,repeatable:false,description:'+2 к инициативе и +4 п.п. уклонения.'},
  'assault-enduring':{name:'Выносливый',profession:'assault',minLevel:4,repeatable:false,hpBonus:80,description:'Сразу +80 к текущему и максимальному HP.'},
