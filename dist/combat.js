@@ -4,8 +4,8 @@ export function rng(seed) {
   let state=seed>>>0;
   return { int(min,max) { state=(state+0x6D2B79F5)>>>0; let t=state; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return min+Math.floor((((t^(t>>>14))>>>0)/4294967296)*(max-min+1)); } };
 }
-export const distanceFromMargin = margin => margin>=10?3:margin>=5?2:margin>=1?1:0;
-export const evasionAtDistance = (hero,distance) => hero.evasion+(distance===0?(hero.meleeEvasionBonus??0):0);
+export const distanceFromMargin = (margin,maxDistance=3) => maxDistance>=4&&margin>=15?4:margin>=10?3:margin>=5?2:margin>=1?1:0;
+export const evasionAtDistance = (hero,distance,hp=hero.currentHp??hero.maxHp) => hero.evasion+(distance===0?(hero.meleeEvasionBonus??0):0)+(hp<hero.maxHp*.5?(hero.lowHealthEvasionBonus??0):0);
 export const hits = (roll,accuracy,evasion) => roll+accuracy>evasion;
 export const damageAfterArmor = (raw,armor) => Math.max(1,raw-armor);
 export function levelXp(level,xp,reward,thresholds,maxLevel=20) {
@@ -14,9 +14,9 @@ export function levelXp(level,xp,reward,thresholds,maxLevel=20) {
   return {level,xp};
 }
 function damageRoll(random,min,max,mode) { return mode==='scaled-original'?10*random.int(min/10,max/10):random.int(min,max); }
-export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoundedHero=false,battleDamageBonus=0}={}){
+export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoundedHero=false,battleDamageBonus=0,firstRanged=false,correctionBonus=0,focusDamageBonus=0,hp=hero.currentHp??hero.maxHp}={}){
   const n=hero.nationality??{},energy=['energy','flamethrower'].includes(weapon.weaponClass);const ranged=weapon.type==='ranged',pistol=ranged&&weapon.weaponClass==='pistol';
-  const accuracy=hero.accuracy
+  const accuracy=hero.accuracy-(dualPistolsActive(hero)&&pistol?10:0)+correctionBonus+(ranged&&firstRanged?(hero.firstRangedAccuracyBonus??0):0)
     +(targetHasWoundedHero?n.vendettaAccuracy??0:n.unwoundedAccuracy??0)
     +(ranged?n.rangedAccuracy??0:0)
     +(pistol&&distance<=1?n.closePistolAccuracy??0:0)
@@ -26,14 +26,14 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
     +(weapon.origin==='crafted'?n.craftedAccuracy??0:weapon.origin==='bought'?n.boughtAccuracy??0:0)
     +(distance===0?(hero.closeAccuracyBonus??0)+(weapon.closeAccuracyBonus??0):0)
     +(weapon.accuracyBonus??0)
-    +(ranged?(hero.rangedAccuracyBonus??0)-(weapon.distancePenalty??15)*distance:(hero.meleeAccuracyBonus??0)-(hero.attackAccuracyPenalty??0))
+    +(ranged?(hero.rangedAccuracyBonus??0)-Math.max(0,(weapon.distancePenalty??15)-(['rifle','shotgun'].includes(weapon.weaponClass)?hero.longGunDistanceReduction??0:0))*distance:(hero.meleeAccuracyBonus??0)-(hero.attackAccuracyPenalty??0))
     -(pistol?(hero.pistolAccuracyPenalty??0):0)
     -(weapon.shotPenalty??0)+(weapon.shots?(hero.burstAccuracyBonus??0):0)+(ambush?15:0)-(hero.dualWieldAccuracyPenalty??0);
   const bonus=(ranged?0:(weapon.noStrength?0:10*hero.strength)+(hero.meleeDamageBonus??0))
-    +(n.weaponDamage??0)+(ranged?n.rangedDamage??0:0)+(targetHasWoundedHero?n.vendettaDamage??0:0)+battleDamageBonus+(energy?n.energyDamage??0:0)+(n.mutantDamage??0)+(weapon.damageType==='thermal'?n.thermalDamage??0:0)
+    +focusDamageBonus+(hero.desperation&&hp<hero.maxHp*.5?(ranged?10:20):0)+(n.weaponDamage??0)+(ranged?n.rangedDamage??0:0)+(targetHasWoundedHero?n.vendettaDamage??0:0)+battleDamageBonus+(energy?n.energyDamage??0:0)+(n.mutantDamage??0)+(weapon.damageType==='thermal'?n.thermalDamage??0:0)
     +(distance===0?(hero.closeDamageBonus??0):0)+(weapon.bonus??0)+(pistol?(hero.pistolDamageBonus??0):0);
   const damagePenalty=ranged?0:hero.attackDamagePenalty??0;const damagePenaltyPercent=ranged?0:hero.attackDamagePenaltyPercent??0,damageMultiplier=1-damagePenaltyPercent/100;
-  const attacks=ambush?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
+  const attacks=ambush?1:dualPistolsActive(hero)&&pistol?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
   return {accuracy,bonus,damagePenalty,damagePenaltyPercent,damageMultiplier,attacks,min:Math.max(1,(weapon.min+bonus-damagePenalty)*damageMultiplier),max:Math.max(1,(weapon.max+bonus-damagePenalty)*damageMultiplier)};
 }
 export function withStarterPerk(config,perk,level=1) {
@@ -45,6 +45,15 @@ export function withStarterPerk(config,perk,level=1) {
   else if(perk==='armored'){next.hero.physicalArmorBonus=5;next.hero.thermalArmorBonus=5;}
   else if(perk==='double-shot'){next.hero.pistolAttacks=2;next.hero.pistolAccuracyPenalty=15;}
   else if(perk==='greedy'||perk==='gunsmith'){}
+  else if(perk==='bandit-cowboy')next.hero.dualPistols=true;
+  else if(perk==='bandit-nimble')next.hero.quickRetreat=true;
+  else if(perk==='bandit-survivor')next.hero.emergencyHeal=true;
+  else if(perk==='bandit-blur')next.hero.openingCloseEvasionBonus=15;
+  else if(perk==='bandit-jargon')next.hero.tauntFirstTurn=true;
+  else if(perk==='hunter-seasoned'){next.hero.perceptionCheckBonus=(next.hero.perceptionCheckBonus??0)+1;next.hero.stealthCheckBonus=(next.hero.stealthCheckBonus??0)+1;}
+  else if(perk==='hunter-squirrel-eye')next.hero.longGunDistanceReduction=5;
+  else if(perk==='hunter-stealthy'){next.hero.stealthCheckBonus=(next.hero.stealthCheckBonus??0)+2;next.hero.firstRangedAccuracyBonus=10;}
+  else if(perk==='hunter-vigilant'){next.hero.detectionBonus=(next.hero.detectionBonus??0)+2;next.hero.trapBonus=(next.hero.trapBonus??0)+2;next.hero.lootBonus=(next.hero.lootBonus??0)+1;}
   else if(perk==='burst-fire')next.hero.burstBonus=1;
   else if(perk==='tough-cookie')next.hero.selfHealAfterBattle=5*next.hero.strength;
   else if(perk==='sharp'){next.hero.initiative+=2;next.hero.evasion+=3;}
@@ -55,16 +64,32 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const h=config.hero,events=[];
   let r=config.rat;
   const note=(type,data)=>{if(trace) events.push({type,...data});};
-  let hp=startHp,minimumHp=startHp,ratHp=r.hp,firstMelee=true,woundBonus=false,woundedEvasion=false,berserkDamage=0,counterUsed=false;const national=h.nationality??{};const woundCheck=()=>{minimumHp=Math.min(minimumHp,hp);if(!woundBonus&&national.battleWoundAccuracy&&startHp-hp>=h.maxHp*.2){woundBonus=true;}};
-  const perceptionRoll=random.int(1,20),dc=9+r.stealth,margin=perceptionRoll+h.perception+(h.perceptionCheckBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0)-dc;
-  let distance=Math.min(3,distanceFromMargin(margin)+(h.nationality?.startingDistance??0)),initialDistance=distance;
+  let hp=startHp,minimumHp=startHp,ratHp=r.hp,firstMelee=true,firstRanged=ambush||!h.ambushRangedBonusSpent,woundBonus=false,woundedEvasion=false,berserkDamage=0,counterUsed=false;const national=h.nationality??{};const woundCheck=()=>{minimumHp=Math.min(minimumHp,hp);if(!woundBonus&&national.battleWoundAccuracy&&startHp-hp>=h.maxHp*.2){woundBonus=true;}};
+  if(!ambush)delete h.ambushRangedBonusSpent;
+  const dc=9+r.stealth,perception=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.initialPerceptionBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),dc,{events,trace});
+  const perceptionRoll=perception.roll,margin=perception.total-dc;
+  let distance=Math.min(h.maxStartingDistance??3,distanceFromMargin(margin,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0)),initialDistance=distance;
   const opponents=(enemies??[r]).map((enemy,index)=>({...enemy,name:enemies?`${enemy.name} №${index+1}`:enemy.name,hp:enemy.hp,distance}));
   let enemyIndex=0;
+  let shotCount=h.ambushCorrectionShots??0,lastShotTarget=shotCount?opponents[0]:null;
+  if(!ambush)delete h.ambushCorrectionShots;
+  const correctionFor=weapon=>{
+    if(lastShotTarget&&lastShotTarget!==r){shotCount=0;lastShotTarget=null;}
+    if(weapon.type!=='ranged'||!h.correctionStep)return 0;
+    const bonus=Math.min(h.correctionMax??15,shotCount*h.correctionStep);
+    shotCount++;lastShotTarget=r;if(ambush)h.ambushCorrectionShots=shotCount;return bonus;
+  };
+  let firstOwnTurnDone=false,enemyWaveDone=false,heavyHitUsed=false,perkHealing=0;
+  const focusActive=h.firstEnemyFocus&&(!h.focusBattleUsed||h.focusAmbushPending),focusedEnemy=focusActive?opponents[0]:null;
+  if(h.firstEnemyFocus){h.focusBattleUsed=true;if(ambush)h.focusAmbushPending=focusActive;else delete h.focusAmbushPending;}
+  const focusFor=weapon=>r===focusedEnemy?(weapon.type==='ranged'?10:weapon.noStrength?0:h.strength*7):0;
+  const defense=distance=>evasionAtDistance(h,distance,hp)+(distance===0&&!enemyWaveDone?(h.openingCloseEvasionBonus??0):0)+(woundedEvasion?(national.woundedEvasion??0):0);
+  const reduceIncoming=(damage,turn)=>{if(h.halveHeavyHit&&!heavyHitUsed&&damage>h.maxHp*.25){heavyHitUsed=true;note('бывалый бандита',{turn,before:damage,damage:damage/2});return damage/2;}return damage;};
   const groupAlive=()=>opponents.some(enemy=>enemy.hp>0);
   const heroRoll=random.int(1,20),ratRoll=random.int(1,20);
   let heroTurn=ambush||heroRoll+h.initiative>=ratRoll+r.initiative;
   const heroFirst=heroTurn;
-  note('дистанция',{roll:perceptionRoll,bonus:h.perception+(h.perceptionCheckBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),dc,margin,distance});
+  note('дистанция',{roll:perceptionRoll,bonus:perception.bonus,dc,margin,distance});
   note('инициатива',{enemy:r.name??'крыса',heroRoll,heroBonus:h.initiative,ratRoll,ratBonus:r.initiative,first:heroTurn?'герой':(r.name??'крыса')});
   let padding=h.firstHitArmor??0;
   let rageTurns=0,rageTriggered=false;
@@ -95,12 +120,12 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const self=hitHero?blast('герой',h.agility-(h.checkPenalty??0),(h.thermalArmor??0)+absorbFirstHit(turn),base,dodgeDc):null;
     ratHp=opponents[enemyIndex].hp;
     triggerRage(turn);
-    if(self){hp-=self.damage;woundedEvasion=true;woundCheck();}
+    if(self){self.damage=reduceIncoming(self.damage,turn);hp-=self.damage;woundedEvasion=true;woundCheck();}
     return self?[...targets,self]:targets;
   };
   const finish=turns=>{
     const won=hp>0&&!groupAlive();
-    return {won,minimumHp,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,killed:opponents.filter(enemy=>enemy.hp<=0).length};
+    return {won,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,killed:opponents.filter(enemy=>enemy.hp<=0).length};
   };
   if(grenadeItem){
     const {min,max,dodgeDc}=ITEMS[grenadeItem];
@@ -111,17 +136,17 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     note('граната',{base,underfoot,strong,targets,grenadeItem});
     if(hp<=0||!groupAlive())return finish(0);
   }
-  let reloading=false;
+  let reloading=false,reloadWeapon=null;
   const main=h.weapons?h.weapons.main:{type:h.weaponType??'melee',min:h.weaponMin,max:h.weaponMax,bonus:h.weaponBonus??0};
-  const inRange=(weapon,distance)=>weapon?.type==='ranged'&&distance<=(weapon.maxDistance??Infinity);
+  const inRange=(weapon,distance)=>weapon?.type==='ranged'&&distance<=weaponMaxDistance(h,weapon);
   const counterAttack=turn=>{
-    const weapon=reloading?main?.bayonet:main;if(!weapon)return;
-    counterUsed=true;if(weapon.reloadMain)reloading=true;
+    const weapon=reloading&&reloadWeapon===main?main?.bayonet:main;if(!weapon)return;
+    counterUsed=true;if(weapon.reloadMain){reloading=true;reloadWeapon=weapon;}
     const count=weapon.shots?weapon.shots+(h.burstBonus??0):1;
     for(let attack=1;attack<=count&&ratHp>0;attack++){
-      const stats=heroAttackStats(h,weapon,0,{targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage});
+      const stats=heroAttackStats(h,weapon,0,{targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage,firstRanged,correctionBonus:correctionFor(weapon),focusDamageBonus:focusFor(weapon),hp});
       const accuracy=stats.accuracy+(woundBonus?national.battleWoundAccuracy:0)+(firstMelee&&weapon.type==='melee'?(national.firstMeleeAccuracy??0):0);
-      if(weapon.type==='melee')firstMelee=false;
+      if(weapon.type==='melee')firstMelee=false;if(weapon.type==='ranged')firstRanged=false;
       const criticalRoll=random.int(1,100),critical=criticalRoll<=(h.criticalChance??5),roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,r.evasion);
       const armor=weapon.piercing?0:r.armor+(rageTurns>0?20:0),components=[];let base=0,damage=0;
       if(hit)for(let i=0;i<(weapon.damageRolls??1);i++){const raw=damageRoll(random,weapon.min,weapon.max,damageMode);base+=raw;const dealt=damageAfterArmor((raw+stats.bonus-stats.damagePenalty)*stats.damageMultiplier*(critical?1.5:1),armor);components.push(dealt);damage+=dealt;}
@@ -144,14 +169,15 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
         r=opponents[enemyIndex];ratHp=r.hp;distance=r.distance;
       }
     }
+    if(heroTurn&&!ambush&&!firstOwnTurnDone&&h.tauntFirstTurn){r.accuracy+=10;r.evasion-=20;note('жаргон',{turn,target:r.name});}
     const rush=!heroTurn&&distance===1?r.rush:null;
     const reloadTurn=heroTurn&&reloading;
     let weapon=distance===0?main:inRange(main,distance)?main:h.weapons?.ranged;
     if(ambush)weapon=inRange(main,distance)?main:h.weapons?.ranged;
     if(reloadTurn){
       reloading=false;
-      weapon=distance===0?main.bayonet:null;
-      note('перезарядка',{turn,distance,weapon:main.item});
+      const target=reloadWeapon??main;reloadWeapon=null;weapon=distance===0?target.bayonet:null;
+      note('перезарядка',{turn,distance,weapon:target.item});
     }
     const openingTurn=heroTurn&&!ambush&&!h.openingExtraAttackSpent;
     if(openingTurn)h.openingExtraAttackSpent=true;
@@ -159,23 +185,23 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     else if(heroTurn&&(!weapon||((ambush||distance>0)&&!inRange(weapon,distance)))) note('ожидание',{turn,actor:'герой',distance,reason:ambush||distance>0?'Нет оружия для этой дистанции':'Нет основного оружия'});
     else if(!heroTurn&&distance>0&&!rush) { distance--; note('сближение',{turn,actor:r.name??'крыса',distance}); }
     else {
-      if(heroTurn&&weapon===main&&weapon.reloadMain) reloading=true;
+      if(heroTurn&&weapon.reloadMain&&(weapon===main||weapon.reloadEverySlot)){reloading=true;reloadWeapon=weapon;}
       const actor=heroTurn?'герой':(r.name??'крыса');
       const powerSwing=!heroTurn&&r.previousAttackHit?r.powerSwing:null;
       const escortTarget=!heroTurn&&caravan?.hp>0&&r.attackTarget!=='hero';
-      const evasion=heroTurn?r.evasion:escortTarget?caravan.evasion:evasionAtDistance(h,distance)+(woundedEvasion?(national.woundedEvasion??0):0);
+      let evasion=heroTurn?r.evasion:escortTarget?caravan.evasion:defense(distance);
       let primaryAttacks=heroTurn?heroAttackStats(h,weapon,distance,{ambush}).attacks:(r.attacksPerTurn??1);
       if(openingTurn&&national.openingExtraAttack)primaryAttacks++;
       const offhand=heroTurn&&!ambush&&distance===0&&h.dualWield?h.weapons?.ranged:null;
-      const sequence=Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();
+      const cowboy=heroTurn&&!ambush&&dualPistolsActive(h);const sequence=cowboy?[main,h.weapons.ranged].filter(w=>inRange(w,distance)):Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();if(cowboy&&openingTurn&&national.openingExtraAttack)sequence.push(weapon);
       const attacks=sequence.length;
       for(let attack=1;attack<=attacks;attack++){
-        if(heroTurn)weapon=sequence[attack-1];
-        const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush,targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage}):null;
+        if(heroTurn)weapon=sequence[attack-1];else if(!escortTarget)evasion=defense(distance);
+        const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush,targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage,firstRanged,correctionBonus:correctionFor(weapon),focusDamageBonus:focusFor(weapon),hp}):null;
         const accuracy=heroTurn?attackStats.accuracy+(woundBonus?national.battleWoundAccuracy:0)+(firstMelee&&weapon.type==='melee'?(national.firstMeleeAccuracy??0):0):r.accuracy+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(rageTriggered?(rageTurns>0?10:-10):0);
         const armor=heroTurn?(weapon.piercing?0:r.armor):escortTarget?caravan.armor:h.armor;
         const damagePenalty=heroTurn?attackStats.damagePenalty:0;
-        if(heroTurn&&weapon.type==='melee')firstMelee=false;const criticalRoll=random.int(1,100),critical=criticalRoll<=(heroTurn?(h.criticalChance??5):(r.criticalChance??3));const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);
+        if(heroTurn&&weapon.type==='melee')firstMelee=false;if(heroTurn&&weapon.type==='ranged'){firstRanged=false;if(ambush)h.ambushRangedBonusSpent=true;}const criticalRoll=random.int(1,100),critical=criticalRoll<=(heroTurn?(h.criticalChance??5):(r.criticalChance??3));const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);
         if(!heroTurn)r.previousAttackHit=hit;
         let base=0,bonus=0,damage=0;
         const components=[];
@@ -188,9 +214,11 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
             const dealt=damageAfterArmor((raw+bonus-damagePenalty)*(heroTurn?attackStats.damageMultiplier:1)*(critical?1.5:1)*(critical&&!heroTurn&&!escortTarget?1-(national.criticalDamageReductionPercent??0)/100:1),effectiveArmor);
             base+=raw;damage+=dealt;components.push(dealt);
           }
+          if(!heroTurn&&!escortTarget){const before=damage;damage=reduceIncoming(damage,turn);if(before!==damage)for(let i=0;i<components.length;i++)components[i]*=.5;}
           if(heroTurn)ratHp-=damage;else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hp-=damage;
         }
         if(hit&&!heroTurn&&!escortTarget){r.hurtHero=true;woundedEvasion=true;berserkDamage=Math.min(national.berserkCap??0,berserkDamage+(national.berserkOnHit??0));}woundCheck();note('атака',{turn,attack,actor,...(escortTarget?{target:'караван',caravanHp:caravan.hp}:{}),weapon:heroTurn?(weapon.item??weapon.type):(rush?'Рывок':powerSwing?'Мощный замах':r.attackName??'укус'),...(heroTurn&&weapon.isBayonet?{bayonet:true}:{}),distance,roll,criticalRoll,critical,accuracy,evasion,hit,base,bonus,damagePenalty,damagePenaltyPercent:attackStats?.damagePenaltyPercent??0,armor:effectiveArmor,damage,...(components.length>1?{components}:{}),heroHp:Math.max(0,hp),ratHp:Math.max(0,ratHp)});
+        if(hit&&!heroTurn&&!escortTarget&&h.emergencyHeal&&!h.emergencyHealUsed&&hp<h.maxHp*.3){h.emergencyHealUsed=true;const before=Math.max(0,hp),amount=nationalityHealing(h,30+7*h.strength);hp=Math.min(h.maxHp,before+amount);perkHealing+=hp-before;note('живучий уб',{turn,healed:hp-before,hp,rescued:before===0});}
         if(heroTurn&&hit)triggerRage(turn);if(!heroTurn&&!hit&&!escortTarget&&distance===0&&hp>0&&ratHp>0&&national.counterOnMiss&&!counterUsed)counterAttack(turn);
         if(hp<=0||(!heroTurn&&ratHp<=0)||(ratHp<=0&&!weapon?.shots)) break;
       }
@@ -199,8 +227,9 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(rush){distance=0;note('сближение',{turn,actor:r.name,distance});}
     r.hp=ratHp;
     r.distance=distance;
+    if(heroTurn&&!ambush&&!firstOwnTurnDone){firstOwnTurnDone=true;if(h.quickRetreat&&distance===0&&hp>0&&groupAlive()){for(const enemy of opponents)if(enemy.hp>0)enemy.distance=Math.max(enemy.distance,Math.min(3,enemy.distance+1));distance=r.distance;note('шустрый',{turn,distance:1});}}
     if(!groupAlive()||hp<=0)return finish(turn);
-    const nextEnemy=heroTurn?-1:opponents.findIndex((enemy,index)=>index>enemyIndex&&enemy.hp>0);
+    const nextEnemy=heroTurn?-1:opponents.findIndex((enemy,index)=>index>enemyIndex&&enemy.hp>0);if(!heroTurn&&nextEnemy<0)enemyWaveDone=true;
     const caravanTurn=heroFirst?!heroTurn&&nextEnemy<0:heroTurn;
     if(caravan?.hp>0&&caravanTurn){
       const target=opponents.find(enemy=>enemy.hp>0&&enemy.attackTarget==='caravan')??opponents.find(enemy=>enemy.hp>0);
@@ -219,7 +248,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     heroTurn=!heroTurn;
     if(!heroTurn)enemyIndex=opponents.findIndex(enemy=>enemy.hp>0);
   }
-  return {won:false,minimumHp,hp:Math.max(0,hp),ratHp,turns:config.trial.combatTurnLimit,initialDistance,reason:'лимит',events};
+  return {won:false,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp,turns:config.trial.combatTurnLimit,initialDistance,reason:'лимит',events};
 }
 export function bandageHeal(config,random,hp,item='bandage') {
   const roll=item==='medicKit'?random.int(30,80):item==='dressingKit'?random.int(20,50):random.int(10,30),raw=nationalityHealing(config.hero,roll+10*config.hero.perception+(config.hero.medicineBonus??0),true);
@@ -241,19 +270,19 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
   let found=m.fixedEncounters??0,killed=0,lootSuccesses=0,extraXp=0;
   let firstEnemy=config.rat;
   if(m.ambushDc!=null){
-    const roll=random.int(1,20),bonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.nationality?.detectionBonus??0)-(config.hero.checkPenalty??0),success=roll+bonus>m.ambushDc;
+    const {roll,bonus,success}=perceptionCheck(config.hero,random,config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.detectionBonus??0)+(config.hero.nationality?.detectionBonus??0)-(config.hero.checkPenalty??0),m.ambushDc,{events,trace});
     if(trace)events.push({type:'засада',roll,bonus,dc:m.ambushDc,success});
     if(success){
       const opening=battle(config,random,hp,{trace,damageMode,ambush:true});
       firstEnemy={...firstEnemy,hp:opening.hp};
-      if(trace)events.push(...opening.events.filter(e=>e.type==='атака'||e.type==='ожидание').map(e=>({...e,ambush:true})));
+      if(trace)events.push(...opening.events.filter(e=>e.type==='атака'||e.type==='ожидание'||e.type==='соколиный глаз').map(e=>({...e,ambush:true})));
     }
     const reinforcements=firstEnemy.hp>0?random.int(1,3):0;
     found=1+reinforcements;
     if(trace&&reinforcements)events.push({type:'подкрепление',count:reinforcements});
     if(firstEnemy.hp===0)killed=1;
   }
-  for(let i=0;i<m.searches;i++) { const roll=random.int(1,20),bonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.nationality?.detectionBonus??0)-(config.hero.checkPenalty??0),success=roll+bonus>m.searchDc; found+=Number(success); if(trace) events.push({type:m.lootPerKill?'поиск противника':'поиск крыс',check:i+1,roll,bonus,dc:m.searchDc,success}); }
+  for(let i=0;i<m.searches;i++) { const {roll,bonus,success}=perceptionCheck(config.hero,random,config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.detectionBonus??0)+(config.hero.nationality?.detectionBonus??0)-(config.hero.checkPenalty??0),m.searchDc,{events,trace}); found+=Number(success); if(trace) events.push({type:m.lootPerKill?'поиск противника':'поиск крыс',check:i+1,roll,bonus,dc:m.searchDc,success}); }
   const scoutCount=found;
   if(m.finalEnemy)found++;
   for(let i=killed;i<(m.segments??found);i++) {
@@ -262,7 +291,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
       const attacked=random.int(1,100)<=m.attackChances[i];
       if(trace)events.push({type:'участок каравана',segment:i+1,attacked});
       if(!attacked){
-        const roll=random.int(1,20),bonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0),total=roll+bonus,drops=[];
+        const {roll,bonus,total}=perceptionCheck(config.hero,random,config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.lootBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0),8,{events,trace}),drops=[];
         if(total>8)drops.push(random.int(1,100)<=60?'cloth':'emptyBottle');
         if(total>13)drops.push('rareMushrooms');
         if(total>18)drops.push('rareMushrooms');
@@ -280,7 +309,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     if(grenade==='molotov')molotovs--;
     const enemy=m.finalEnemy&&i===scoutCount?m.finalEnemy:i===0?firstEnemy:config.rat;
     if(trace&&enemy===m.finalEnemy)events.push({type:'появление вожака'});
-    const result=battle({...config,rat:enemy},random,hp,{trace,damageMode,grenade,caravan,enemies:encounterEnemies}); hp=result.hp; battles.push(result);
+    const result=battle({...config,rat:enemy},random,hp,{trace,damageMode,grenade,caravan,enemies:encounterEnemies}); hp=result.hp;healed+=result.perkHealing??0; battles.push(result);
     if(trace) events.push({type:'бой',number:i+1,...result});
     if(!result.won) return {alive:false,hp,found,killed,lootSuccesses:0,loot,xp:0,battles,events,initialBandages,bandagesUsed,bandagesLost:bandages,bandagesRemaining:0,healed,...(initialKits?{dressingKitsRemaining:0}:{}),...(initialMedicKits?{medicKitsRemaining:0}:{}),...(initialGrenades?{grenadesRemaining:0}:{}),...(initialMolotovs?{molotovsRemaining:0}:{})};
     killed+=encounterEnemies?result.killed:1;
@@ -302,13 +331,13 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     }
   }
   for(let i=0;i<found-Number(Boolean(m.finalEnemy))&&config.loot.length;i++) {
-    const roll=m.lootPerKill?null:random.int(1,20),bonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0),success=m.lootPerKill||roll+bonus>m.lootDc;
+    const baseBonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.lootBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0);const {roll,bonus,success}=m.lootPerKill?{roll:null,bonus:baseBonus,success:true}:perceptionCheck(config.hero,random,baseBonus,m.lootDc,{events,trace});
     const drops=[];
     if(success) { lootSuccesses++; for(const item of config.loot) { const itemRoll=random.int(1,100),dropped=itemRoll<=item.chance; if(dropped) loot[item.id]++; drops.push({item:item.name??ITEMS[item.id].name,roll:itemRoll,chance:item.chance,dropped}); } }
     if(trace) events.push({type:m.lootPerKill?'добыча противника':'поиск добычи',check:i+1,roll,bonus,dc:m.lootDc??null,success,drops});
   }
   if(m.finds){
-    const roll=random.int(1,20),bonus=config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0);
+    const {roll,bonus}=perceptionCheck(config.hero,random,config.hero.perception+(config.hero.perceptionCheckBonus??0)+(config.hero.lootBonus??0)+(config.hero.nationality?.lootBonus??0)-(config.hero.checkPenalty??0),Math.min(...m.finds.map(f=>f.dc)),{events,trace});
     const drops=m.finds.map(({id,dc,xp})=>{
       const dropped=roll+bonus>dc;
       if(dropped){loot[id]=1;extraXp+=xp??0;}
@@ -353,7 +382,7 @@ export function journeyToLevel2(config,random) {
 
 export function stationHelp(config,random,dc=8){
  const h=config.hero,checks=[['Сила','strength',null],['Ловкость','agility','cloth'],['Интеллект','intelligence','leather'],['Восприятие','perception','metal']],events=[],loot={cloth:0,leather:0,metal:0};let money=0,successes=0;
- for(const [name,key,item] of checks){const roll=random.int(1,20),bonus=h[key]+(key==='perception'?h.perceptionCheckBonus??0:0)-(h.checkPenalty??0),success=roll+bonus>dc;let reward=0;if(success){successes++;if(item){loot[item]++;reward=1;}else{reward=random.int(1,4);money=reward*10;}}events.push({name,roll,bonus,dc,success,item,reward});}
+ for(const [name,key,item] of checks){const baseBonus=h[key]+(key==='perception'?h.perceptionCheckBonus??0:0)-(h.checkPenalty??0);const {roll,bonus,success}=key==='perception'?perceptionCheck(h,random,baseBonus,dc,{events}):(()=>{const roll=random.int(1,20);return {roll,bonus:baseBonus,success:roll+baseBonus>dc};})();let reward=0;if(success){successes++;if(item){loot[item]++;reward=1;}else{reward=random.int(1,4);money=reward*10;}}events.push({name,roll,bonus,dc,success,item,reward});}
  return {loot,money,xp:5+3*successes,successes,events};
 }
 
@@ -384,13 +413,13 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
   note('Герой применяет лечение после ловушки.',{healed:result.healed});
  };
  for(let step=1;step<=4&&hp>0;step++){
-  const roll=random.int(1,20),bonus=h.perception+(h.perceptionCheckBonus??0)+(h.nationality?.lootBonus??0)-(h.checkPenalty??0),total=roll+bonus;
+  const {roll,bonus,total}=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.lootBonus??0)+(h.nationality?.lootBonus??0)-(h.checkPenalty??0),8,{inclusive:true,events});
   const tier=SURFACE.tiers.findLast(t=>total>=t.dc);
   note(`Этап ${step}. Поиск.`,{roll,bonus});
   if(!tier){note('Ничего полезного не найдено.');continue;}
   note(tier.text);
   if(tier.dc===18){
-   const trapRoll=random.int(1,20),trapBonus=h.perception+(h.perceptionCheckBonus??0)+(h.nationality?.trapBonus??0)-(h.checkPenalty??0),safe=trapRoll+trapBonus>10;
+   const trap=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.trapBonus??0)+(h.nationality?.trapBonus??0)-(h.checkPenalty??0),10,{events}),trapRoll=trap.roll,trapBonus=trap.bonus,safe=trap.success;
    note(safe?'Вот она, растяжечка… и Молотов целенький наш. Так, а что тут ещё припрятано?':'Звук разбитого стекла и вспышка пламени… А-а-а-а-а! Я горю!',{roll:trapRoll,bonus:trapBonus,dc:10,success:safe});
    if(safe){add('molotov');xp+=10;drops(tier.loot);continue;}
    for(let turn=1;turn<=2&&hp>0;turn++){
@@ -411,7 +440,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
   if(grenade==='pipeGrenade')grenades--;
   if(grenade==='molotov')molotovs--;
   const result=battle({...config,rat:enemy},random,hp,{trace:true,grenade,enemies:Array(count).fill(enemy)});
-  hp=result.hp;minimumHp=Math.min(minimumHp,result.minimumHp??hp);found+=count;killed+=result.killed??0;battles.push(result);
+  hp=result.hp;healed+=result.perkHealing??0;minimumHp=Math.min(minimumHp,result.minimumHp??hp);found+=count;killed+=result.killed??0;battles.push(result);
   events.push({type:'бой',number:battles.length,...result});
   if(!result.won){hp=0;break;}
   xp+=count*(dog?SURFACE.dogXp:SURFACE.guardXp);
@@ -428,3 +457,15 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
 
 
 export function nationalityHealing(hero,amount,medicine=false){const n=hero.nationalityBonuses??hero.nationality??{};return amount*(1+(n.healingPercent??0)/100)*(medicine?1+(n.medicinePercent??0)/100:1);}
+
+export function weaponMaxDistance(hero,weapon){const max=weapon?.maxDistance??Infinity;return hero.maxStartingDistance>=4&&max>=3?Math.max(max,4):max;}
+export function perceptionCheck(hero,random,bonus,dc,{inclusive=false,events=null,trace=true}={}){
+ let roll=random.int(1,20),total=roll+bonus,success=inclusive?total>=dc:total>dc;
+ if(!success&&hero.perceptionReroll&&!hero.perceptionRerollUsed){
+  hero.perceptionRerollUsed=true;const firstRoll=roll,firstBonus=bonus;bonus+=2;roll=random.int(1,20);total=roll+bonus;success=inclusive?total>=dc:total>dc;
+  if(events&&trace)events.push({type:'соколиный глаз',firstRoll,firstBonus,roll,bonus,dc,inclusive,success});
+ }
+ return {roll,bonus,total,success};
+}
+
+export function dualPistolsActive(hero){return Boolean(hero.dualPistols&&hero.weapons?.main?.weaponClass==='pistol'&&hero.weapons?.ranged?.weaponClass==='pistol');}

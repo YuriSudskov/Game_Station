@@ -1,4 +1,6 @@
+export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ oldShotgun:{name:'Старое ружьё',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:70,maxDistance:3,distancePenalty:15,reloadMain:true,reloadEverySlot:true,stack:false,value:150,icon:'shotgun',description:'Дробовик. Физический урон 20–70, дистанции 0–3, штраф −15 п.п. точности за каждую дистанцию. После выстрела следующий ход уходит на перезарядку.'},
  combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:null,icon:'stimulant',description:'10 применений, по одному за вылазку. На время вылазки +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
@@ -264,6 +266,14 @@ export const LEVEL_PERK_SCHEDULES={
 };
 
 export const LEVEL_PERKS={
+ 'bandit-alert':{name:'Ухо востро',profession:'bandit',minLevel:2,repeatable:false,description:'За каждую единицу Восприятия: +4 п.п. уклонения и +4 п.п. точности ближнего оружия.'},
+ 'bandit-mark':{name:'Конкретно попал',profession:'bandit',minLevel:3,repeatable:false,description:'Против первого врага первого боя вылазки: дополнительно Сила × 7 ближнего урона либо +10 стрелкового урона.'},
+ 'bandit-seasoned':{name:'Бывалый',profession:'bandit',minLevel:4,repeatable:false,description:'Один раз за бой входящий урон после защиты, который снял бы более 25% максимального HP, уменьшается вдвое.'},
+ 'bandit-rampage':{name:'Беспредел',profession:'bandit',minLevel:5,repeatable:false,description:'Пока HP ниже 50%: +5 п.п. уклонения, +20 ближнего и +10 стрелкового урона.'},
+ 'hunter-correction':{name:'Корректировка',profession:'hunter',minLevel:2,repeatable:false,description:'Каждый следующий выстрел в ту же цель получает накопительно +3 п.п. точности, максимум +15. Смена цели или новый бой сбрасывают бонус.'},
+ 'hunter-falcon-eye':{name:'Соколиный глаз',profession:'hunter',minLevel:3,repeatable:false,description:'Один раз за вылазку автоматически повторяет первую проваленную проверку Восприятия или поиска добычи с бонусом +2.'},
+ 'hunter-familiarity':{name:'Привыкание',profession:'hunter',minLevel:4,repeatable:false,description:'При выборе и каждом повышении уровня надетое оружие получает +5 урона привыканием, максимум +25 на оружие. Перенос между слотами сохраняет бонус, снятие или замена сбрасывают.'},
+ 'hunter-distance':{name:'Дистанция',profession:'hunter',minLevel:5,repeatable:false,description:'+2 к Внимательности при определении дистанции в начале боя. При преимуществе 15+ доступна дистанция 4; оружие с дальностью 3 может стрелять и с неё.'},
  'general-health':{name:'Общее развитие: здоровье',profession:'all',minLevel:2,repeatable:true,maxHpBonus:40,description:'+40 к максимуму HP. Текущее здоровье не увеличивается. Можно выбирать многократно.'},
  'general-evasion':{name:'Общее развитие: уклонение',profession:'all',minLevel:4,repeatable:true,evasionBonus:4,description:'+4 п.п. уклонения на любой дистанции. Можно выбирать многократно.'},
  'general-armor':{name:'Общее развитие: защита',profession:'all',minLevel:6,repeatable:true,physicalArmorBonus:5,thermalArmorBonus:5,description:'+5 к физическому и +5 к термическому поглощению. Можно выбирать многократно.'},
@@ -282,6 +292,23 @@ export const LEVEL_PERKS={
  'samurai':{name:'КакСамурай',profession:'saboteur',minLevel:4,repeatable:false,description:'+4 к урону в ближнем бою за уровень, начиная с уровня выбора.'},
  'enduring':{legacy:true,name:'Выносливый',profession:'saboteur',minLevel:5,repeatable:true,description:'Ранее выбранный перк: +30 к максимуму HP за каждый выбор, без лечения. Бонус сохранён; для новых выборов заменён общим развитием здоровья.'}
 };
+
+Object.assign(PERKS,{
+ 'hunter-seasoned':{name:'Бывалый',maxHpBonus:40,description:'Максимум HP +40; все проверки Восприятия и скрытности +1.'},
+ 'hunter-squirrel-eye':{name:'Белки-глаз',description:'Штраф точности за каждую дистанцию с винтовками и дробовиками уменьшается на 5 п.п., минимум до 0.'},
+ 'hunter-stealthy':{name:'Скрытный',description:'Проверки скрытности +2; первая стрелковая атака каждого боя получает +10 п.п. точности.'},
+ 'hunter-vigilant':{name:'Неусыпный',description:'Обнаружение врагов и ловушек +2; поиск добычи +1.'}
+});
+Object.assign(PROFESSIONS.hunter,{perks:['hunter-seasoned','hunter-squirrel-eye','hunter-stealthy','hunter-vigilant'],available:true,startReady:true,combatReady:true,accuracy:10,weapon:'oldShotgun',rangedWeapon:null,evasionBonus:0});
+
+Object.assign(PERKS,{
+ 'bandit-cowboy':{name:'Ковбой-самоучка',description:'Если в обоих слотах пистолеты, стреляет каждым один раз за ход со штрафом −10 п.п. точности. Каждый пистолет использует собственные параметры.'},
+ 'bandit-nimble':{name:'Шустрый',description:'Один раз за бой в конце своего первого хода при дистанции 0 отходит на 1 дистанцию, максимум до 3.'},
+ 'bandit-survivor':{name:'Живучий Уб',description:'Один раз за локацию после атаки врага при HP ниже 30% лечится на 30 + Сила × 7, не расходуя медикаменты. Спасает от смертельного удара, поднимая здоровье с нуля.'},
+ 'bandit-blur':{name:'Размытый силуэт',description:'+15 п.п. уклонения вплотную до завершения первого хода всех противников.'},
+ 'bandit-jargon':{name:'Жаргон',description:'В первый свой ход до атаки провоцирует одного противника: +10 п.п. точности и −20 п.п. уклонения противнику до конца боя.'}
+});
+Object.assign(PROFESSIONS.bandit,{available:true,startReady:true,combatReady:true,accuracy:9,weapon:'pistol',rangedWeapon:null,evasionBonus:0,perks:['bandit-cowboy','bandit-nimble','bandit-survivor','bandit-blur','bandit-jargon']});
 
 for(const [profession,profile] of Object.entries(PROFESSIONS)){
  for(const id of profile.perks??[]){
