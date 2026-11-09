@@ -1,4 +1,5 @@
 export const ITEMS={
+ combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:null,icon:'stimulant',description:'10 применений, по одному за вылазку. На время вылазки +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
  traderNotes:{name:'Записки бывалого торговца',type:'consumable',stack:true,value:500,rarity:'rare',icon:'bag',description:'Даёт выбранному герою один дополнительный выбор перка.'},
@@ -59,10 +60,10 @@ export const PERKS={
  sharp:{name:'Резкий',description:'+2 инициативы и +3 п.п. уклонения.'},
  'melee-evasion':{name:'Чутьё бойца',description:'+1,4 п.п. уклонения за каждый уровень только на дистанции 0. На дистанции 1 и больше бонус не действует.'},
  evasion:{name:'Лёгкий шаг',description:'Постоянно +5 п.п. уклонения.'},
- initiative:{name:'Быстрая реакция',description:'Постоянно +4 к инициативе.'},
- 'double-strike':{name:'Двойной удар',description:'Две атаки за ход. Каждая: −10 п.п. точности и −20 урона. Навык пока дорабатывается.'}
+ initiative:{name:'Перехват инициативы',description:'Постоянно +4 к инициативе.'},
+ 'double-strike':{name:'Двойной удар',description:'Две атаки за ход. Каждая: −10 п.п. точности и −15% урона до поглощения цели.'}
 };
-export const CONFIG={hero:{maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:7,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
+export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:7,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
  fineShot:{name:'Мелкая дробь',production:'upgrade',level:6,cost:300,seconds:30,ingredients:{},upgrade:true,target:'ranged',weaponClasses:['shotgun'],chance:60,prefix:'Мелкая дробь',accuracyBonus:15,xp:25,blocksAimedShots:true},
  medicKit:{name:'Аптечка медика',production:'medicine',level:6,cost:50,seconds:20,ingredients:{antiseptic:1,dressingKit:1},output:'medicKit',xp:20,batch:true},
@@ -236,7 +237,7 @@ Object.assign(PROFESSIONS.engineer,{available:true,requiredRosterLevel:1,perks:[
 Object.assign(PERKS,{
  armored:{name:'Бронированный',description:'Постоянно +5 к поглощению физического и +5 к поглощению термического урона.'},
  greedy:{name:'Жадный',description:'При получении награды за успешное задание дополнительно приносит A по уровню героя. За серию — один раз при общем получении.'},
- gunsmith:{name:'Оружейник',description:'Все рецепты оружейного дела получают +5 п.п. к шансу успеха за каждого инженера с этим перком. Максимум 100%.'},
+ gunsmith:{name:'Оружейник',qualityProductions:['upgrade','engineering'],description:'+5 п.п. к шансу качества изготовления предметов оружейного дела и будущей Инженерии за каждого инженера с этим перком, максимум 100%. На улучшения выбранных предметов не действует.'},
  'double-shot':{name:'Пистолеты',description:'Два выстрела за ход из пистолета. Каждый: −15 п.п. точности, без снижения урона.'}
 });
 Object.assign(PROFESSIONS.engineer,{perks:['armored','greedy','gunsmith','double-shot'],startReady:true,weapon:'pistol',rangedWeapon:null,accuracy:8,combatReady:true});
@@ -245,6 +246,7 @@ Object.assign(IDENTITIES.ivan,{bonuses:{hp:30},description:'+30 к старто�
 Object.assign(IDENTITIES.hans,{bonuses:{accuracy:5},description:'+5 п.п. точности.'});
 Object.assign(IDENTITIES.izya,{bonuses:{questMoneyPercent:10},description:'+10% A за каждое успешное задание, минимум +1 A. В серии — за каждое прохождение.'});
 IDENTITIES.john={name:'Джон',nationality:'Американец',bonuses:{pistolDamage:8},description:'+8 урона каждым попаданием из пистолета.'};
+for(const [id,headwear] of Object.entries({ivan:'ushanka',hans:'cap',izya:'fedora',john:'cowboy'}))Object.assign(IDENTITIES[id],{gender:'male',headwear});
 
 // Explicit author-approved levels only. Intelligence 6–10 is not specified yet.
 export const LEVEL_PERK_SCHEDULES={
@@ -262,9 +264,13 @@ export const LEVEL_PERK_SCHEDULES={
 };
 
 export const LEVEL_PERKS={
+ 'general-health':{name:'Общее развитие: здоровье',profession:'all',minLevel:2,repeatable:true,maxHpBonus:40,description:'+40 к максимуму HP. Текущее здоровье не увеличивается. Можно выбирать многократно.'},
+ 'general-evasion':{name:'Общее развитие: уклонение',profession:'all',minLevel:4,repeatable:true,evasionBonus:4,description:'+4 п.п. уклонения на любой дистанции. Можно выбирать многократно.'},
+ 'general-armor':{name:'Общее развитие: защита',profession:'all',minLevel:6,repeatable:true,physicalArmorBonus:5,thermalArmorBonus:5,description:'+5 к физическому и +5 к термическому поглощению. Можно выбирать многократно.'},
+ 'general-radiation':{name:'Общее развитие: РАД-защита',profession:'all',minLevel:8,repeatable:true,radiationProtectionBonus:1,clearsRadiation:true,description:'При выборе полностью снимает облучение и навсегда добавляет +1 к защите РАД. Можно выбирать многократно.'},
  'dual-wield':{name:'Двуручный бой',profession:'saboteur',minLevel:2,repeatable:false,rewardRole:'sova',description:'Позволяет ближнее оружие в дополнительном слоте. Вплотную после каждой основной атаки — один удар вторым оружием без бонуса Силы. При экипированном втором ближнем оружии все атаки −10 п.п. точности.'},
  'assault-accurate':{name:'Точный',profession:'assault',minLevel:2,repeatable:false,description:'+5 п.п. точности.'},
- 'assault-reaction':{name:'Быстрая реакция',profession:'assault',minLevel:3,repeatable:false,description:'+2 к инициативе и +4 п.п. уклонения.'},
+ 'assault-reaction':{name:'Боевые рефлексы',profession:'assault',minLevel:3,repeatable:false,description:'+2 к инициативе и +4 п.п. уклонения.'},
  'assault-enduring':{name:'Выносливый',profession:'assault',minLevel:4,repeatable:false,hpBonus:80,description:'Сразу +80 к текущему и максимальному HP.'},
  'assault-burst':{name:'В очередь!',profession:'assault',minLevel:5,repeatable:false,description:'+10 п.п. точности при стрельбе очередями.'},
  'engineer-shooter':{name:'Стрелок',profession:'engineer',minLevel:2,repeatable:false,description:'+5 п.п. точности со стрелковым оружием.'},
@@ -272,9 +278,9 @@ export const LEVEL_PERKS={
  'engineer-side-job':{name:'Халтурка',profession:'engineer',minLevel:4,repeatable:false,description:'При выборе и на каждом новом уровне приносит 80 A + 10 A × текущий уровень.'},
  'engineer-assistant':{name:'Личный помощник',profession:'engineer',minLevel:5,repeatable:false,description:'+5 п.п. к шансу успеха всех рецептов на станции, максимум 100%.'},
  'favorite-close':{name:'Любимый Ближний',profession:'saboteur',minLevel:2,repeatable:false,description:'+5 п.п. точности и +5 урона на дистанции 0.'},
- 'quick-reaction':{name:'Быстрая реакция',profession:'saboteur',minLevel:3,repeatable:false,description:'+2 инициативы и +3 п.п. уклонения постоянно.'},
+ 'quick-reaction':{name:'Боевая реакция',profession:'saboteur',minLevel:3,repeatable:false,description:'+2 инициативы и +3 п.п. уклонения постоянно.'},
  'samurai':{name:'КакСамурай',profession:'saboteur',minLevel:4,repeatable:false,description:'+4 к урону в ближнем бою за уровень, начиная с уровня выбора.'},
- 'enduring':{name:'Выносливый',profession:'saboteur',minLevel:5,repeatable:true,description:'+30 к максимуму HP. Можно выбирать многократно; текущее здоровье не увеличивается.'}
+ 'enduring':{legacy:true,name:'Выносливый',profession:'saboteur',minLevel:5,repeatable:true,description:'Ранее выбранный перк: +30 к максимуму HP за каждый выбор, без лечения. Бонус сохранён; для новых выборов заменён общим развитием здоровья.'}
 };
 
 for(const [profession,profile] of Object.entries(PROFESSIONS)){
@@ -282,3 +288,6 @@ for(const [profession,profile] of Object.entries(PROFESSIONS)){
   LEVEL_PERKS[id]={...PERKS[id],profession,minLevel:1,repeatable:false,starterEffect:id};
  }
 }
+
+// Remains a creation perk; later choices use the repeatable general defense perk.
+LEVEL_PERKS.armored.maxPickLevel=5;
