@@ -224,3 +224,5 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 @media(max-width:380px){.topbar .brand b{display:none}.topbar .brand span{display:block;font-size:7px}.topbar .brand img{width:25px;height:25px}}
 
 .location-list .location .location-find-list{font-size:11px;line-height:1.3;margin:4px 0 7px;color:var(--muted)}
+
+.interactive-stage-image{display:block;width:100%;aspect-ratio:24/11;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin-bottom:12px}.interactive-stage .note{padding:8px 0}.interactive-stage-choices{display:grid;gap:6px;margin-bottom:12px}.interactive-stage-choices .offer{margin:0;padding:10px 12px}.interactive-stage-choices .offer:disabled{opacity:.72}

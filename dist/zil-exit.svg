@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" role="img" aria-labelledby="title desc">
+<title id="title">Выход на поверхность</title><desc id="desc">Заснеженная разрушенная Москва: выход из метро, мост со Стражем вдали и тёмная подворотня справа.</desc>
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#6a7c83"/><stop offset="1" stop-color="#b8c4c3"/></linearGradient><linearGradient id="snow" x2="0" y2="1"><stop stop-color="#b6c6c9"/><stop offset="1" stop-color="#667f88"/></linearGradient></defs>
+<path fill="url(#sky)" d="M0 0h960v440H0z"/>
+<circle cx="590" cy="86" r="36" fill="#d0d8cc" opacity=".35"/>
+<g fill="#687b7d" opacity=".7"><path d="M30 250V125h35v-24h18v24h42v126M151 257V95l22-14 18 18 16-30 17 14v175M262 250V140h30V89h18v51h26v111M588 250V133h23V104h32v44h25v103M698 250V110h25V68h14v42h29v140"/><path d="M440 220V128h12v-15h7v15h18v95M818 249V124h25v-17h29v24h20v118"/></g>
+<path fill="url(#snow)" d="m0 287 152-35 158 14 156-28 181 22 131-6 182 28v158H0Z"/>
+<path d="m192 440 251-186h98l207 186" fill="#91a5aa"/>
+<g stroke="#354c51" stroke-width="5" fill="#50666b"><path d="M270 240h415v20H270z"/><path d="M320 260v55h27v-55m225 0v55h27v-55"/><path d="M280 223h386m-376 0v17m42-17v17m42-17v17m42-17v17m42-17v17m42-17v17m42-17v17m42-17v17m42-17v17m42-17v17" fill="none"/></g>
+<path d="M268 239h419" stroke="#cfdbda" stroke-width="7"/>
+<g fill="#263c3e" stroke="#14292c" stroke-width="2"><path d="m499 215-10 5 6 8 12-2 3-11-4-8h-7Z"/><path d="m503 211-3-9 5-5 8 4-3 11m-12 11-3 12m12-11 5 12m-19-16-6-5" fill="none" stroke-width="4"/></g>
+<g fill="#394f53" stroke="#253c40" stroke-width="4"><path d="M0 0h158l-14 68 30 20-15 55 19 23-17 138-56 18L0 288Z"/><path d="M960 0H791l15 45-23 30 20 36-13 52 20 141 150 15Z"/></g>
+<g fill="#1e3438"><path d="M20 25h37v47H20Zm68-12h40v48H88ZM17 112h36v53H17Zm71-20h30v50H88ZM15 199h42v44H15Zm76-20h32v50H91Z"/><path d="M833 17h36v48h-36Zm64 10h39v49h-39ZM829 101h37v49h-37Zm69 7h37v51h-37Z"/>
+<path d="M821 321v-87a52 52 0 0 1 104 0v101Z"/></g>
+<path d="m819 321 21-79h64l24 94" fill="#172b30"/>
+<path d="m0 306 117-35 61 30 65 139H0Z" fill="#c2d0d0"/>
+<path d="m777 335 77-19 106 24v100H735Z" fill="#a5b8bc"/>
+<g stroke="#b5c7c9" fill="none" stroke-width="4"><path d="M23 440V326l96-33 45 147m-141-89 107-34m-105 58 112-33m-110 60 121-34"/></g>
+<g fill="#e1e6dc" opacity=".7"><circle cx="193" cy="42" r="2"/><circle cx="356" cy="67" r="2"/><circle cx="690" cy="33" r="2"/><circle cx="757" cy="186" r="2"/><circle cx="413" cy="182" r="2"/><circle cx="216" cy="205" r="2"/><circle cx="621" cy="152" r="2"/><circle cx="368" cy="313" r="2"/><circle cx="550" cy="360" r="2"/><circle cx="694" cy="301" r="2"/></g>
+</svg>

@@ -1,4 +1,4 @@
-// Approved spreadsheet rows, snapshot 2026-11-09. Both genders share effects.
+// Approved nationalities, synchronized 2026-11-10. Both genders share effects.
 export const NATIONALITY_VERSION=1;
 export const NATIONALITIES={
   "nizhny_mechanic": {
@@ -125,32 +125,35 @@ export const NATIONALITIES={
     "male": "Андрей",
     "female": "Марина",
     "description": "Восприятие +1. Термическое поглощение +20. После потери не менее 20% HP в бою: +5% п.п. точности до конца боя.",
-    "restriction": "Ловкость −2.",
+    "restriction": "Ловкость −1. Уклонение −5 п.п.",
     "startDescription": "Нет",
     "headwear": "sailor",
     "bonuses": {
       "attributes": {
-        "agility": -2,
+        "agility": -1,
         "perception": 1
       },
       "thermalArmor": 20,
-      "battleWoundAccuracy": 5
-    }
+      "battleWoundAccuracy": 5,
+      "evasion": -5
+    },
+    "balanceRevision": 2
   },
   "saratov_diplomat": {
     "id": "saratov_diplomat",
     "nationality": "Саратов: дипломат",
     "male": "Станислав",
     "female": "Виолетта",
-    "description": "A от успешных небоевых заданий +15%. Цена покупки предметов у НПЦ −5%.",
+    "description": "A от НПЦ квестов +15%. Цена покупки предметов у НПЦ и торговцев −10%.",
     "restriction": "Точность оружия −5 п.п.",
     "startDescription": "Нет",
     "headwear": "flatcap",
     "bonuses": {
-      "noncombatMoneyPercent": 15,
-      "buyPercent": -5,
-      "accuracy": -5
-    }
+      "buyPercent": -10,
+      "accuracy": -5,
+      "npcQuestPercent": 15
+    },
+    "balanceRevision": 2
   },
   "volgograd_farmer": {
     "id": "volgograd_farmer",
@@ -303,17 +306,19 @@ export const NATIONALITIES={
     "male": "Бахтиёр",
     "female": "Нулуфа",
     "description": "Сила +1. Дополнительное очко перка при найме. бонус 50А",
-    "restriction": "Интеллект −2.",
+    "restriction": "Интеллект −1, получаемый опыт -10%",
     "startDescription": "Дополнительное очко перка ×1",
     "headwear": "roundcap",
     "bonuses": {
       "attributes": {
         "strength": 1,
-        "intelligence": -2
+        "intelligence": -1
       },
       "extraPerks": 1,
-      "startMoney": 500
-    }
+      "startMoney": 500,
+      "xpPenalty": 10
+    },
+    "balanceRevision": 2
   },
   "baikal_firekeeper": {
     "id": "baikal_firekeeper",
@@ -508,24 +513,22 @@ export const NATIONALITIES={
         "intelligence": -1
       }
     }
-  }
-};
-// Additional 23 approvals. Archived female proposals remain unused.
-Object.assign(NATIONALITIES,{
+  },
   "belarus_stalwart": {
     "id": "belarus_stalwart",
     "nationality": "Беларусь: крепыш",
     "male": "Алеша",
     "female": "Леська",
     "description": "Максимум HP +50 на старте и ещё +8 за каждый уровень после первого.",
-    "restriction": "Всё лечение и отдых -20% эффективности",
+    "restriction": "Всё лечение и отдых для него -20% эффективности",
     "startDescription": "Нет",
     "headwear": "ushanka",
     "bonuses": {
       "hp": 50,
       "hpPerLevel": 8,
       "healingPercent": -20
-    }
+    },
+    "balanceRevision": 2
   },
   "brazil_footballer": {
     "id": "brazil_footballer",
@@ -701,7 +704,7 @@ Object.assign(NATIONALITIES,{
     "male": "Вэй",
     "female": "Мэй",
     "description": "Максимум HP +40. Ловкость +1. Восприятие +1. Каждый лимит носимой расходки +2.",
-    "restriction": "Сила −2.",
+    "restriction": "Сила −1 Получаемый опыт -10%",
     "startDescription": "Нет",
     "headwear": "straw",
     "bonuses": {
@@ -709,10 +712,12 @@ Object.assign(NATIONALITIES,{
       "attributes": {
         "agility": 1,
         "perception": 1,
-        "strength": -2
+        "strength": -1
       },
-      "supplyLimit": 2
-    }
+      "supplyLimit": 2,
+      "xpPenalty": 10
+    },
+    "balanceRevision": 2
   },
   "china_kungfu": {
     "id": "china_kungfu",
@@ -738,7 +743,7 @@ Object.assign(NATIONALITIES,{
     "male": "Чхоль",
     "female": "Ынхи",
     "description": "Точность +5 п.п. Максимум HP +40. Физическое и термическое поглощение +10. Защита РАД +1",
-    "restriction": "Сила −2, Получаемый опыт -15%",
+    "restriction": "Сила −1, Получаемый опыт -10%",
     "startDescription": "Нет",
     "headwear": "cap",
     "bonuses": {
@@ -748,10 +753,11 @@ Object.assign(NATIONALITIES,{
       "thermalArmor": 10,
       "radiationProtection": 1,
       "attributes": {
-        "strength": -2
+        "strength": -1
       },
-      "xpPenalty": 15
-    }
+      "xpPenalty": 10
+    },
+    "balanceRevision": 2
   },
   "latin_adventurer": {
     "id": "latin_adventurer",
@@ -909,4 +915,4 @@ Object.assign(NATIONALITIES,{
       "supplyLimit": -3
     }
   }
-});
+};
