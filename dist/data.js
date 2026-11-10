@@ -341,7 +341,7 @@ export const INTERACTIVE_MISSIONS={
         "image": "./zil-exit.svg",
         "imageAlt": "Заснеженная разрушенная Москва, мост со Стражем и тёмная подворотня.",
         "text": "Вы выходите на свет: всё вокруг завалено снегом. Между разрушенными домами тянется дорога к мосту. Вдалеке на мосту стоит Страж. Что вы будете делать?",
-        "playable": false,
+        "playable": true,
         "choices": [
           {
             "id": "sneak",
@@ -391,14 +391,14 @@ export const INTERACTIVE_MISSIONS={
         "image": "./zil-bridge.svg",
         "imageAlt": "Заснеженный разрушенный мост над Москвой-рекой.",
         "text": "Каждый герой дважды проверяет Ловкость против сложности 10. При первом провале герой падает: 30–120 физического урона с учётом брони. Если кто-либо упал, появляется матёрый Страж.",
-        "playable": false,
+        "playable": true,
         "choices": [
           {
             "id": "crossBridge",
             "resolve": "bridge",
             "label": "Перейти мост",
             "checkLabel": "Каждому: два успеха Ловкости против 10. Падение: 30–120 физического урона.",
-            "configured": false
+            "configured": true
           }
         ],
         "check": {
@@ -459,14 +459,14 @@ export const INTERACTIVE_MISSIONS={
         "image": "./zil-gates.svg",
         "imageAlt": "Закрытые металлические ворота станции ЗИЛ.",
         "text": "Каждый герой проверяет Интеллект против 12 и Силу против 14. Два успеха на весь отряд откроют ворота. Иначе остаётся подрыв двумя взрывными гранатами или возвращение на станцию.",
-        "playable": false,
+        "playable": true,
         "choices": [
           {
             "id": "tryGate",
             "resolve": "gateChecks",
             "label": "Попробовать открыть ворота",
             "checkLabel": "Каждому: Интеллект 12 и Сила 14. Нужны два успеха на отряд.",
-            "configured": false
+            "configured": true
           }
         ],
         "check": {
@@ -510,8 +510,8 @@ export const INTERACTIVE_MISSIONS={
         "title": "Левый коридор",
         "image": "./zil-sewer-trap.svg",
         "imageAlt": "Растяжка с бутылкой в тёмном подземном проходе.",
-        "text": "Передний герой проверяет ловушку с Молотовым по правилам схрона на поверхности. За ловушкой лежат 20–100 А и Shield Uni +1.",
-        "playable": false,
+        "text": "Передний герой проверяет обнаружение ловушки против сложности 13. Найденную ловушку можно обезвредить и забрать Молотов. Провал вызовет два удара огня.",
+        "playable": true,
         "trap": {
           "item": "molotov",
           "rules": "surface-stash",
@@ -529,9 +529,16 @@ export const INTERACTIVE_MISSIONS={
           "next": null,
           "checkHero": "formation.front",
           "attribute": "perception",
-          "dc": 10
+          "dc": 13
         },
-        "choices": []
+        "choices": [
+          {
+            "id": "checkTrap",
+            "resolve": "leftTrap",
+            "label": "Осмотреть коридор",
+            "checkLabel": "Передний: обнаружение ловушек против 13."
+          }
+        ]
       },
       "longCorridor": {
         "title": "Длинный коридор",
@@ -548,26 +555,25 @@ export const INTERACTIVE_MISSIONS={
       },
       "acidSpiderBattle": {
         "title": "Кислотный Паукан",
-        "image": "./zil-sewer-fork.svg",
-        "text": "В тоннеле рядом со станцией на отряд нападает Кислотный Паукан. Чтобы попасть на ЗИЛ, придётся победить его. Он опутывает героев кислотной паутиной. Чтобы освободиться, придётся потратить ход и пройти проверку Силы против сложности 13.",
+        "image": "./zil-spider.svg",
+        "text": "В конце туннеля вы выходите в большой коридор с рельсами, и нежданно на вас нападает огромный кислотный паук.",
         "playable": false,
         "combat": {
           "enemy": "acidSpider",
           "count": 1,
-          "afterRecovery": "stationInside"
+          "afterRecovery": "spiderTunnel"
         },
         "choices": []
       },
       "stationInside": {
         "title": "На станции ЗИЛ",
-        "image": "./zil-gates.svg",
-        "text": "Вы оказались на станции ЗИЛ. Изнутри двери можно разблокировать без особых проверок. После этого путь назад открыт.",
+        "image": "./zil-station.svg",
+        "text": "Ура, мы на станции ЗИЛ! Здесь вы видите следы других людей, всякий мусор и бочки, в которых недавно горел костёр.",
         "choices": [
           {
-            "id": "unlockInside",
-            "label": "Открыть двери изнутри",
-            "resolve": "goto",
-            "next": "returnHome"
+            "id": "finish",
+            "resolve": "finishZil",
+            "label": "Путь найден — завершить задание"
           }
         ]
       },
@@ -578,7 +584,11 @@ export const INTERACTIVE_MISSIONS={
         "playable": false,
         "completion": {
           "success": true,
-          "rewards": {"xp":150,"sharedEqually":true,"unlockLocation":"zilTunnels"}
+          "rewards": {
+            "xp": 150,
+            "sharedEqually": true,
+            "unlockLocation": "zilTunnels"
+          }
         },
         "choices": []
       },
@@ -586,7 +596,7 @@ export const INTERACTIVE_MISSIONS={
         "title": "Ворота не поддаются",
         "image": "./zil-gates.svg",
         "text": "Без подрыва пройти не получится. Нужно две взрывные гранаты из снаряжения отряда; Молотовы не подходят. Можно вернуться на станцию и начать вылазку заново позже.",
-        "playable": false,
+        "playable": true,
         "demolition": {
           "count": 2,
           "source": "partyCarriedGrenades",
@@ -601,13 +611,13 @@ export const INTERACTIVE_MISSIONS={
             "id": "blastGate",
             "resolve": "gateGrenades",
             "label": "Подорвать вход — 2 взрывные гранаты",
-            "configured": false
+            "configured": true
           },
           {
             "id": "return",
             "resolve": "returnUnfinished",
             "label": "Вернуться на станцию",
-            "configured": false
+            "configured": true
           }
         ],
         "returnOutcome": {
@@ -616,6 +626,37 @@ export const INTERACTIVE_MISSIONS={
           "keepEarnedCombatAndCheckXp": true,
           "restartFromEntry": true
         }
+      },
+      "leftStash": {
+        "title": "Схрон сталкера",
+        "image": "./zil-sewer-trap.svg",
+        "text": "Тут дальше тупик, и схрон сталкера.",
+        "choices": [
+          {
+            "id": "search",
+            "resolve": "leftStash",
+            "label": "Посмотреть что в схроне"
+          },
+          {
+            "id": "return",
+            "resolve": "goto",
+            "next": "sewerFork",
+            "label": "Вернуться обратно к развилке"
+          }
+        ]
+      },
+      "spiderTunnel": {
+        "title": "Путь свободен",
+        "image": "./zil-spider.svg",
+        "text": "Кислотный Паукан повержен. За ним рельсы уходят в тоннель к станции.",
+        "choices": [
+          {
+            "id": "continue",
+            "resolve": "goto",
+            "next": "stationInside",
+            "label": "Идти дальше в тоннеле по рельсам"
+          }
+        ]
       }
     }
   }

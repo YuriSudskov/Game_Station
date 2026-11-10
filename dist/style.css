@@ -226,3 +226,10 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .location-list .location .location-find-list{font-size:11px;line-height:1.3;margin:4px 0 7px;color:var(--muted)}
 
 .interactive-stage-image{display:block;width:100%;aspect-ratio:24/11;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin-bottom:12px}.interactive-stage .note{padding:8px 0}.interactive-stage-choices{display:grid;gap:6px;margin-bottom:12px}.interactive-stage-choices .offer{margin:0;padding:10px 12px}.interactive-stage-choices .offer:disabled{opacity:.72}
+
+/* Party healing uses the existing portrait and offer components. */
+.recovery-party{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.recovery-party .recovery-hero{flex:1 1 130px;min-width:0;margin:0;text-align:left;padding:9px}.recovery-hero .row{gap:8px}.recovery-hero strong{overflow-wrap:anywhere}.recovery-hero.selected{border-color:var(--gold,#c9a65b);box-shadow:inset 0 0 0 1px var(--gold,#c9a65b);background:rgba(201,166,91,.1)}.recovery-target{margin:6px 0 10px}
+
+.interactive-stage-choices .offer.zil-finish{border:2px solid #ffb52e;background:rgba(255,170,30,.12);box-shadow:0 0 10px #ffac344d;color:#ffcf70}.interactive-stage-choices .offer.zil-finish:hover,.interactive-stage-choices .offer.zil-finish:focus-visible{border-color:#ffcf52;box-shadow:0 0 14px #ffac3480;outline:2px solid #ffd675;outline-offset:2px}
+
+.btn.rest-required{border:2px solid #ffbc46;background:#76501e;color:#fff0c7;box-shadow:0 0 9px #ffb52e66}.hero-actions .mission-start:disabled{opacity:.35;box-shadow:none;filter:saturate(.3)}

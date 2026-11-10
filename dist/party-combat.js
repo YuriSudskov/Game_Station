@@ -7,7 +7,7 @@ export function partyEnemyTarget(enemy,heroes,random){
 export function preparePartyCombat(heroes,enemies,random){
  const members=structuredClone(heroes),foes=enemies.map((enemy,index)=>({...structuredClone(enemy),id:enemy.id??'guard-'+(index+1),name:(enemy.name??'Страж')+' №'+(index+1),targetHeroId:null}));
  const order=[...members.map(hero=>({id:hero.id,name:hero.name,side:'hero',bonus:hero.initiative??0})),...foes.map(enemy=>({id:enemy.id,name:enemy.name,side:'enemy',bonus:enemy.initiative??0}))].map((actor,index)=>{const roll=random.int(1,20);return {...actor,index,roll,total:roll+actor.bonus};}).sort((a,b)=>b.total-a.total||(a.side===b.side?0:a.side==='hero'?-1:1)||a.index-b.index);
- const events=[{type:'окружение отряда',text:'Стражи буквально окружают вас и атакуют со всех сторон. В этом беспорядочном бою построение не защищает от выбора целью.'},{type:'инициатива отряда',order:structuredClone(order)}];
+ const events=[{type:'окружение отряда',text:foes.some(enemy=>enemy.webAttack)?"В конце туннеля вы выходите в большой коридор с рельсами, и нежданно на вас нападает огромный кислотный паук.":'Стражи буквально окружают вас и атакуют со всех сторон. В этом беспорядочном бою построение не защищает от выбора целью.'},{type:'инициатива отряда',order:structuredClone(order)}];
  for(const enemy of foes){const target=partyEnemyTarget(enemy,members,random);if(target)events.push({type:'цель Стража',enemy:enemy.name,target:target.name,targetHeroId:target.id});}
  return {heroes:members,enemies:foes,order,events,status:'pending',round:1};
 }
@@ -41,7 +41,8 @@ export function partyHeroTarget(hero,combat){
  const target=pool.find(e=>e.id===hero.attackTargetId)??pool[0]??null;hero.attackTargetId=target?.id??null;return target;
 }
 export function partyBattleExperience(combat){return combat.enemies.filter(e=>e.hp<=0).reduce((xp,e)=>xp+(e.experience??TECHNOPARK.mission.killXp),0);}
-function say(c,text){c.events.push({type:'событие отряда',turn:c.round,text});}
+export const formatPartyLogText=text=>String(text).replace(/-?\d+\.\d+/g,value=>Number(value).toLocaleString('ru-RU',{maximumFractionDigits:1,useGrouping:false}));
+function say(c,text){c.events.push({type:'событие отряда',turn:c.round,text:formatPartyLogText(text)});}
 function armorDamage(c,target,raw,type,piercing=false){
  let armor=piercing?0:type==='thermal'?(target.thermalArmor??0):(target.armor??0);
  if(target.firstHitArmor&&!target.paddingSpent){armor+=target.firstHitArmor;target.paddingSpent=true;say(c,target.name+': ватник слетает.');}
