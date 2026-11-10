@@ -188,3 +188,19 @@
 .version-entry .pill{font-size:10px;padding:3px 6px}
 .version-entry ul{margin:0;padding-left:19px;color:var(--muted);font-size:13px;line-height:1.5}
 .version-entry li+li{margin-top:6px}.version-history{margin-bottom:16px}
+
+.nationality-offer{padding:8px 10px;margin-bottom:6px}.nationality-offer>.row{gap:8px}.nationality-offer .portrait.small{width:36px;height:36px;flex-shrink:0}.nationality-offer p{margin-top:3px;font-size:12px;line-height:1.3}.nationality-offer .subtitle{display:inline;margin:0;font-size:12px}
+
+.station-player-status{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}.station-player-status .role-balance{display:flex;justify-content:center;font-size:16px}.station-player-status .role-status-note{display:block;white-space:nowrap;font-size:11px;color:var(--muted)}
+
+button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest-chain{list-style:none;padding:0;margin:12px 0;display:grid;gap:0}.main-quest-chain li{display:flex;gap:12px;padding:12px 0;position:relative}.main-quest-chain li:not(:last-child):before{content:"";position:absolute;left:15px;top:42px;bottom:-12px;width:1px;background:var(--line)}.main-quest-number{display:grid;place-items:center;width:32px;height:32px;flex-shrink:0;border:1px solid var(--line);border-radius:50%;color:var(--muted)}.main-quest-chain .current .main-quest-number{border-color:var(--gold);color:var(--gold)}.main-quest-chain p,.main-quest-chain small{font-size:12px;color:var(--muted)}
+
+.portrait.npc-portrait{overflow:hidden;flex-shrink:0;background:#263b34}.npc-portrait:before,.npc-portrait:after{content:none}.modal-body>.npc-portrait{margin-bottom:12px;width:64px;height:76px}
+
+.item-cell.loot-muted>.icon,.item-icon.loot-muted>.icon{color:#8b8f8c;opacity:.78}
+
+.tier-1{border-color:#579cff!important;box-shadow:inset 0 0 0 1px #579cff30}.tier-2{border-color:#b47bea!important}.tier-3{border-color:#f0ac47!important}
+
+.keeper-tutorial{display:flex;align-items:flex-start;gap:14px;margin-top:24px}.keeper-tutorial h3{font-size:14px;margin-bottom:6px}.keeper-tutorial p{font-size:12px;line-height:1.6;color:var(--muted)}.keeper-tutorial .npc-portrait{width:48px;height:57px}@media(max-width:400px){.keeper-tutorial{gap:10px;padding:12px}.keeper-tutorial .npc-portrait{width:38px;height:45px}}
+
+.tutorial-dialog{margin:0 0 20px}.tutorial-dialog p{font-size:14px}.tutorial-dialog .npc-portrait{width:56px;height:67px}
