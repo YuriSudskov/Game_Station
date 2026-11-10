@@ -670,7 +670,7 @@ export const MATURE_GUARD={...TECHNOPARK.enemy,name:'Матёрый Страж',
 export const ACID_SPIDER={
  name:'Кислотный Паукан',experience:45,loot:[{id:'hardChitinPlates',chance:70,minQty:1,maxQty:2},{id:'acid',chance:50,minQty:1,maxQty:2}],hp:340,evasion:35,accuracy:15,stealth:4,
  damageType:'thermal',damageMin:30,damageMax:120,
- mainAttack:{name:'Кислотный плевок',distance:0,damageType:'thermal',damageMin:30,damageMax:120},
+ mainAttack:{name:'Кислотный укус',distance:0,damageType:'thermal',damageMin:30,damageMax:120},
  webAttack:{name:'Кислотная паутина',distance:1,accuracyBonus:15,damageType:'thermal',damageMin:15,damageMax:90,
   onHit:{status:'entangled',attribute:'strength',dc:13,escapeCostsTurn:true}},
  tactics:{normal:['web','main'],allHeroesEntangled:['main','main'],entangledTarget:'lowestCurrentHp',mainTarget:'firstUnentangledInFormation'},
