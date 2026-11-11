@@ -8,16 +8,16 @@ export const ITEMS={
  shieldUni:{name:'Shield Uni',type:'body',armorClass:'medium',armor:50,thermalArmor:20,accuracyPenalty:5,evasionBonusCap:40,missionTimePenaltyPercent:10,ricochet:5,value:800,stack:false,icon:'jacket',description:'Средний бронежилет. Поглощает 50 физического и 20 термического урона. −5 п.п. точности, задания на 10% дольше. Прибавки уклонения сверх базы ограничены 40 п.п.; рикошет +5% отдельно.'},
  heavyVest:{name:'Тяжёлый бронежилет',type:'body',armorClass:'heavy',armor:70,thermalArmor:20,accuracyPenalty:10,evasionBonusCap:25,missionTimePenaltyPercent:20,ricochet:10,value:1800,stack:false,icon:'jacket',description:'Тяжёлая броня. Поглощает 70 физического и 20 термического урона. −10 п.п. точности, задания на 20% дольше. Прибавки уклонения сверх базы ограничены 25 п.п.; рикошет +10% отдельно.'},
  oldShotgun:{name:'Старое ружьё',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:70,maxDistance:3,distancePenalty:15,reloadMain:true,reloadEverySlot:true,stack:false,value:150,icon:'shotgun',description:'Дробовик. Физический урон 20–70, дистанции 0–3, штраф −15 п.п. точности за каждую дистанцию. После выстрела следующий ход уходит на перезарядку.'},
- combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:null,icon:'stimulant',description:'10 применений, по одному за вылазку. На время вылазки +40 максимального и текущего HP, +5 п.п. точности.'},
+ combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:null,icon:'stimulant',description:'10 применений, по одному за прохождение локации. На время прохождения +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
  darkCrystal:{name:'Тёмный кристалл',type:'consumable',stack:false,value:10000,rarity:'epic',icon:'crystal',description:'Уникальная находка Крысиного короля. Даёт выбранному герою одну Метку: «Регенерация» или «Тёмная хватка». Регенерация лечит героя, Тёмная хватка заменяет бросок гранаты особой атакой. В текущей игре может выпасть только один раз.'},
  traderNotes:{name:'Записки бывалого торговца',type:'consumable',stack:true,value:3000,rarity:'epic',icon:'bag',description:'Даёт выбранному герою один дополнительный выбор перка.'},
- gasMaskFilter:{name:'Фильтр для противогаза',type:'currency',value:200,icon:'filter',description:'Ресурс для вылазок на поверхность.'},
+ gasMaskFilter:{name:'Фильтр для противогаза',type:'currency',value:200,icon:'filter',description:'Ресурс для выходов на поверхность и вылазок с карты.'},
  emptyBottle:{name:'Пустая бутылка',type:'resource',stack:true,icon:'bag',description:'Ингредиент для коктейля Молотова. Источник появится позже.'},
  molotov:{name:'Молотов',type:'grenade',stack:true,value:150,icon:'grenade',min:20,max:120,dodgeDc:13,description:'Термический урон 20–120 в начале боя и повторный урон огнём на втором ходу. Уклонение против 13 уменьшает урон вдвое.'},
  pipeGrenade:{name:'Трубная граната',type:'grenade',stack:true,value:150,icon:'grenade',min:30,max:180,dodgeDc:13,description:'Одна граната в начале боя. Термический урон 30–180. Уклонение против 13 уменьшает урон вдвое. Шанс задеть себя 5%, шанс сильного взрыва 10%.'},
- dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять на вылазку.'},
+ dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять в лечебный слот.'},
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
  leaderKebab:{name:'Редкий шашлык из Вожака',type:'food',stack:true,value:400,rarity:'rare',icon:'meat',description:'Восстанавливает 60–240 HP и даёт +2 к Силе на следующие четыре прохождения локаций.'},
  weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
@@ -275,11 +275,11 @@ export const LEVEL_PERK_SCHEDULES={
 
 export const LEVEL_PERKS={
  'bandit-alert':{name:'Ухо востро',profession:'bandit',minLevel:2,repeatable:false,description:'За каждую единицу Восприятия: +4 п.п. уклонения и +4 п.п. точности ближнего оружия.'},
- 'bandit-mark':{name:'Конкретно попал',profession:'bandit',minLevel:3,repeatable:false,description:'Против первого врага первого боя вылазки: дополнительно Сила × 7 ближнего урона либо +10 стрелкового урона.'},
+ 'bandit-mark':{name:'Конкретно попал',profession:'bandit',minLevel:3,repeatable:false,description:'Против первого врага первого боя на локации или в вылазке: дополнительно Сила × 7 ближнего урона либо +10 стрелкового урона.'},
  'bandit-seasoned':{name:'Бывалый',profession:'bandit',minLevel:4,repeatable:false,description:'Один раз за бой входящий урон после защиты, который снял бы более 25% максимального HP, уменьшается вдвое.'},
  'bandit-rampage':{name:'Беспредел',profession:'bandit',minLevel:5,repeatable:false,description:'Пока HP ниже 50%: +5 п.п. уклонения, +20 ближнего и +10 стрелкового урона.'},
  'hunter-correction':{name:'Корректировка',profession:'hunter',minLevel:2,repeatable:false,description:'Каждый следующий выстрел в ту же цель получает накопительно +3 п.п. точности, максимум +15. Смена цели или новый бой сбрасывают бонус.'},
- 'hunter-falcon-eye':{name:'Соколиный глаз',profession:'hunter',minLevel:3,repeatable:false,description:'Один раз за вылазку автоматически повторяет первую проваленную проверку Восприятия или поиска добычи с бонусом +2.'},
+ 'hunter-falcon-eye':{name:'Соколиный глаз',profession:'hunter',minLevel:3,repeatable:false,description:'Один раз за прохождение локации или за вылазку автоматически повторяет первую проваленную проверку Восприятия или поиска добычи с бонусом +2.'},
  'hunter-familiarity':{name:'Привыкание',profession:'hunter',minLevel:4,repeatable:false,description:'При выборе и каждом повышении уровня надетое оружие получает +5 урона привыканием, максимум +25 на оружие. Перенос между слотами сохраняет бонус, снятие или замена сбрасывают.'},
  'hunter-distance':{name:'Дистанция',profession:'hunter',minLevel:5,repeatable:false,description:'+2 к Внимательности при определении дистанции в начале боя. При преимуществе 15+ доступна дистанция 4; оружие с дальностью 3 может стрелять и с неё.'},
  'general-health':{name:'Общее развитие: здоровье',profession:'all',minLevel:2,repeatable:true,maxHpBonus:40,description:'+40 к максимуму HP. Текущее здоровье не увеличивается. Можно выбирать многократно.'},
@@ -373,7 +373,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "sewerHatch": {
         "title": "Канализационный люк",
-        "image": "./zil-alley.svg",
+        "image": "./zil-hatch.svg",
         "imageAlt": "Канализационный люк в заснеженном переулке.",
         "text": "Похоже, суслики вас не заметили. Вы спокойно ищете другой путь. Среди снега найден канализационный люк.",
         "playable": false,
@@ -433,7 +433,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "guardBattle": {
         "title": "Стражи заметили отряд",
-        "image": "./zil-exit.svg",
+        "image": "./zil-guard-ambush.svg",
         "text": "Суслик замечает вас и начинает выть. Вы не успеваете оглянуться, как вокруг появляются несколько Стражей. Пятеро против вашего отряда — начинается групповой бой.",
         "playable": false,
         "combat": {
@@ -444,7 +444,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "matureGuardBattle": {
         "title": "Матёрый Страж",
-        "image": "./zil-bridge.svg",
+        "image": "./zil-mature-guard.svg",
         "text": "Неудача на мосту привлекла тёмного матёрого Стража. Он преграждает путь отряду. После победы можно продолжить путь ко входу на станцию.",
         "playable": false,
         "combat": {
@@ -481,7 +481,7 @@ export const INTERACTIVE_MISSIONS={
             }
           ],
           "requiredSuccesses": 2,
-          "success": "stationInside",
+          "success": "stationBandits",
           "failure": "gateBlocked",
           "oneAttemptPerVisit": true
         }
@@ -542,7 +542,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "longCorridor": {
         "title": "Длинный коридор",
-        "image": "./zil-sewer-fork.svg",
+        "image": "./zil-long-corridor.svg",
         "text": "Коридор уводит вас всё дальше под землю. В конце появляется проход в тоннель рядом со станцией ЗИЛ. Здесь отряд поджидает кислотный паук.",
         "choices": [
           {
@@ -565,15 +565,52 @@ export const INTERACTIVE_MISSIONS={
         },
         "choices": []
       },
+      "stationBandits": {
+        "title": "Станция ЗИЛ: встреча с бандитами",
+        "image": "./zil-station-bandits.svg",
+        "text": "Ура, мы на станции ЗИЛ. Здесь вы видите следы жизни людей, всякий мусор, бочки, в которых недавно горел костёр. Рядом с одной из бочек вы видите две фигуры. Судя по всему, это бандиты. Они замечают вас и подходят с оружием в руках!",
+        "choices": [
+          {
+            "id": "talk",
+            "resolve": "zilBandits",
+            "label": "Поговорить с бандитами мирно",
+            "checkLabel": "Восприятие против 14. Достаточно одного успеха."
+          },
+          {
+            "id": "threaten",
+            "resolve": "zilBandits",
+            "label": "Угрожать бандитам",
+            "checkLabel": "Восприятие против 14. К броску добавляется разница с уровнем бандитов (4)."
+          },
+          {
+            "id": "bribe",
+            "resolve": "zilBandits",
+            "label": "Откупиться за 50 A",
+            "checkLabel": "Бандиты уйдут без проверок."
+          },
+          {
+            "id": "attack",
+            "resolve": "zilBandits",
+            "label": "Напасть первыми",
+            "checkLabel": "+4 к инициативе каждого героя."
+          }
+        ]
+      },
+      "banditBattle": {
+        "title": "Бой с бандитами",
+        "image": "./zil-bandit-battle.svg",
+        "text": "Один бандит вскидывает «Бастард ПП», второй берёт вас на мушку из «Браунинга».",
+        "choices": []
+      },
       "stationInside": {
         "title": "На станции ЗИЛ",
         "image": "./zil-station.svg",
-        "text": "Ура, мы на станции ЗИЛ! Здесь вы видите следы других людей, всякий мусор и бочки, в которых недавно горел костёр.",
+        "text": "Платформа опустела. Путь на ЗИЛ найден.",
         "choices": [
           {
             "id": "finish",
             "resolve": "finishZil",
-            "label": "Путь найден — завершить задание"
+            "label": "Вернуться - Задание выполнено"
           }
         ]
       },
@@ -594,7 +631,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "gateBlocked": {
         "title": "Ворота не поддаются",
-        "image": "./zil-gates.svg",
+        "image": "./zil-gate-blocked.svg",
         "text": "Без подрыва пройти не получится. Нужно две взрывные гранаты из снаряжения отряда; Молотовы не подходят. Можно вернуться на станцию и начать вылазку заново позже.",
         "playable": true,
         "demolition": {
@@ -604,7 +641,7 @@ export const INTERACTIVE_MISSIONS={
             "molotov"
           ],
           "explosiveOnly": true,
-          "success": "stationInside"
+          "success": "stationBandits"
         },
         "choices": [
           {
@@ -629,7 +666,7 @@ export const INTERACTIVE_MISSIONS={
       },
       "leftStash": {
         "title": "Схрон сталкера",
-        "image": "./zil-sewer-trap.svg",
+        "image": "./zil-stash.svg",
         "text": "Тут дальше тупик, и схрон сталкера.",
         "choices": [
           {
@@ -647,13 +684,13 @@ export const INTERACTIVE_MISSIONS={
       },
       "spiderTunnel": {
         "title": "Путь свободен",
-        "image": "./zil-spider.svg",
+        "image": "./zil-rail-walk.svg",
         "text": "Кислотный Паукан повержен. За ним рельсы уходят в тоннель к станции.",
         "choices": [
           {
             "id": "continue",
             "resolve": "goto",
-            "next": "stationInside",
+            "next": "stationBandits",
             "label": "Идти дальше в тоннеле по рельсам"
           }
         ]

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="96 35 768 352" role="img" aria-label="Подземный тоннель с рельсами">
+ <rect width="960" height="440" fill="#101b20"/>
+ <path d="M38 440V222a442 275 0 0 1 884 0v218" fill="#24373c" stroke="#44585a" stroke-width="12"/>
+ <path d="M166 440V241a314 196 0 0 1 628 0v199M290 355V234a190 111 0 0 1 380 0v121" fill="none" stroke="#61726e" stroke-width="7" opacity=".42"/>
+ <path d="M397 303v-76a83 57 0 0 1 166 0v76" fill="#0b1316" stroke="#5b6966" stroke-width="5"/>
+ <path d="M0 440l417-165h126l417 165" fill="#182726"/>
+ <path d="M177 439l276-164m330 164L507 275" stroke="#849391" stroke-width="8"/>
+ <path d="M240 414h480M305 379h350M359 345h242M398 322h164M426 303h108M443 289h74" stroke="#4f5550" stroke-width="5"/>
+ <ellipse cx="504" cy="212" rx="70" ry="34" fill="#d3b66e" opacity=".12"/>
+ <path d="M489 205h30" stroke="#d3b66e" stroke-width="5"/>
+ </svg>

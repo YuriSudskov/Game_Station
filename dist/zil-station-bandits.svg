@@ -1,0 +1,26 @@
+<svg role="img" aria-label="Подземная станция ЗИЛ: платформа, рельсы и следы привала" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 480" fill="none">
+<defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#151d19"/><stop offset="1" stop-color="#080d0c"/></linearGradient><linearGradient id="floor" x2="0" y2="1"><stop stop-color="#44483a"/><stop offset="1" stop-color="#18201b"/></linearGradient><radialGradient id="lamp"><stop stop-color="#f1c878" stop-opacity=".5"/><stop offset="1" stop-color="#d9ad5c" stop-opacity="0"/></radialGradient><linearGradient id="train"><stop stop-color="#4f5848"/><stop offset="1" stop-color="#1e3029"/></linearGradient><pattern id="tiles" width="72" height="38" patternUnits="userSpaceOnUse"><path d="M0 0h72v38H0z" stroke="#5b6652" stroke-width="1" opacity=".22"/></pattern></defs>
+<path fill="url(#bg)" d="M0 0h1100v480H0z"/>
+<path d="M150 360V230a400 240 0 0 1 800 0v130" stroke="#344235" stroke-width="84"/>
+<path d="M150 360V230a400 240 0 0 1 800 0v130" stroke="url(#tiles)" stroke-width="79"/>
+<path d="M228 344V230a322 189 0 0 1 644 0v114" stroke="#65715a" stroke-opacity=".2" stroke-width="4"/>
+<path d="M290 350V230a260 145 0 0 1 520 0v120" stroke="#070f0d" stroke-width="47"/>
+<path d="M331 350V232a219 115 0 0 1 438 0v118" fill="#09110e"/>
+<path d="M0 352h1100v128H0z" fill="url(#floor)"/><path d="m460 352-190 128m370-128 190 128M0 403h1100M0 458h1100" stroke="#91917a" opacity=".12"/>
+<path d="m540 352-22 128m67-128 82 128" stroke="#070c0b" stroke-width="5"/>
+<path d="M5 173h249v170H5z" fill="url(#train)" stroke="#66715c"/><path d="M0 250h255M0 294h255" stroke="#9caa7d" opacity=".3"/>
+<rect x="17" y="189" width="73" height="56" rx="8" fill="#101a16" stroke="#829071"/><rect x="115" y="189" width="73" height="56" rx="8" fill="#15221b" stroke="#829071"/>
+<path d="M213 184h33v159h-33z" fill="#17241d" stroke="#73826b"/><rect x="218" y="195" width="23" height="42" fill="#b3a771" opacity=".2"/>
+<path d="M15 304h184v11H15z" fill="#19281f"/><path d="M42 343v15m142-15v15" stroke="#0a100d" stroke-width="13"/>
+<path d="M882 181h218v172H882z" fill="#273528"/><path d="M904 204h171v149H904z" fill="#172319"/><path d="M922 220h58v69h-58zM998 220h59v69h-59z" fill="#c5a55f" opacity=".2"/>
+<path d="M888 179h212v22H888z" fill="#566044"/><path d="m890 178 10-15h200v15" fill="#343d2c"/>
+<path d="M910 315h163v40H910z" fill="#3d4330"/><path d="M925 319h141" stroke="#bd9b59" opacity=".4"/>
+<path d="M0 60h1100M0 76h1100" stroke="#343c32" stroke-width="7"/><path d="M160 63v45m780-45v45" stroke="#57604c" stroke-width="6"/>
+<ellipse cx="221" cy="242" rx="220" ry="185" fill="url(#lamp)"/><ellipse cx="884" cy="251" rx="240" ry="190" fill="url(#lamp)"/>
+<path d="M214 110v38m666-38v38" stroke="#7c7c5a" stroke-width="3"/><path d="M198 150h32m634 0h32" stroke="#f1c77a" stroke-width="5"/>
+<path d="M510 171h80v25h-80z" fill="#3e4935" stroke="#738161"/><text x="550" y="189" text-anchor="middle" font-family="monospace" font-size="15" fill="#c0bb8b">ЗИЛ</text>
+<path d="M350 314h43v39h-43zM366 291h37v23h-37z" fill="#3d4934" stroke="#697057"/><path d="m350 314 43 39m-43 0 43-39" stroke="#202d22"/>
+<path d="M58 378h101v45H58z" fill="#273526" stroke="#4b5941"/><path d="m58 378 101 45m-101 0 101-45" stroke="#121e16"/><path d="M71 367h19v11H71z" fill="#756a40"/>
+<path d="M967 365h41v62h-41z" fill="#3c4833"/><path d="M970 375h35m-35 40h35" stroke="#89906a" stroke-width="3"/>
+<path d="M0 472h1100" stroke="#c3a35c" stroke-width="2" opacity=".2"/>
+<g><rect x="672" y="310" width="48" height="68" rx="8" fill="#443f30" stroke="#827551" stroke-width="3"/><ellipse cx="696" cy="310" rx="24" ry="8" fill="#151610" stroke="#827551" stroke-width="3"/><path d="M674 326h44m-44 35h44" stroke="#7d7151" stroke-width="3"/><path d="M688 309l8-5 7 5" stroke="#a17845" stroke-width="3"/><path d="M692 296q-12-14 1-27t-2-26" stroke="#82907b" opacity=".3" stroke-width="4" fill="none"/><rect x="746" y="337" width="37" height="55" rx="6" fill="#333b2c" stroke="#697057"/><ellipse cx="765" cy="337" rx="18" ry="5" fill="#10160f"/><path d="m421 394 19-4 8 12-21 4zM815 413l24-6 13 10-25 7zM485 440l15-9 12 10-18 6z" fill="#96917a" opacity=".65"/><path d="m630 415 35 7m-29-2 22-14m-19 16 18 9" stroke="#756447" stroke-width="5"/><path d="M455 376l8 10m14-9 8 11m-2 6 8 11m-20-4 8 12" stroke="#111a14" stroke-width="5" opacity=".7"/></g><g fill="#191f18" stroke="#b09962" stroke-width="3"><path d="M641 345l8-62 24-16 23 18 11 60-17 2-16-32-15 32z"/><circle cx="672" cy="252" r="13"/><path d="M687 294l39-13 6 9-38 17"/><path d="M755 342l11-63 21-14 22 16 16 61h-18l-20-32-15 32z"/><circle cx="787" cy="250" r="13"/><path d="M772 289l-33-10-5 9 34 16"/></g></svg>

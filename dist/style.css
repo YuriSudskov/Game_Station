@@ -233,3 +233,11 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .interactive-stage-choices .offer.zil-finish{border:2px solid #ffb52e;background:rgba(255,170,30,.12);box-shadow:0 0 10px #ffac344d;color:#ffcf70}.interactive-stage-choices .offer.zil-finish:hover,.interactive-stage-choices .offer.zil-finish:focus-visible{border-color:#ffcf52;box-shadow:0 0 14px #ffac3480;outline:2px solid #ffd675;outline-offset:2px}
 
 .btn.rest-required{border:2px solid #ffbc46;background:#76501e;color:#fff0c7;box-shadow:0 0 9px #ffb52e66}.hero-actions .mission-start:disabled{opacity:.35;box-shadow:none;filter:saturate(.3)}
+
+.zil-scene-head{padding-block:10px;align-items:flex-start}
+.zil-scene-meta{display:flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted);font-size:12px}
+.zil-scene-meta .pill{padding:2px 6px}
+.interactive-stage-image{width:92%;max-height:175px;object-fit:contain;margin:0 auto 8px;background:#101b20}
+.interactive-stage-choices .scene-choice-explored{background:#222624;border-color:#525953;color:#b3b9b3}
+.interactive-stage-choices .scene-choice-explored:hover{border-color:#9da79e}
+.interactive-stage-choices .subtitle:empty{display:none}
