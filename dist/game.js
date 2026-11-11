@@ -39,7 +39,7 @@ function recordKeeperProgress(state,hero,job){
  if(gained)state.keeperQuest={...state.keeperQuest,progress:Math.min(q.target,(q.progress??0)+gained)};
 }
 export function sellerPrice(item,qty=1,state=null){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');const base=itemValue(item)*qty;const price=Math.max(roundRatio(base,120),base+10);return roundRatio(price,tradePercent(state,'buyPercent'));}
-export const MERCHANTS={yuras:{name:'Юрась',cooldown:25000,buyPercent:110,sellerChance:.9},duren:{name:'Дурень',cooldown:120000,buyPercent:150,sellerChance:0,buyTypes:['medicine','food','stimulant']},vasek:{name:'Васёк',cooldown:30000,buyPercent:110,sellerChance:.6,buyTypes:['weapon','body'],budgetMultiplier:2}};
+export const MERCHANTS={yuras:{name:'Юрась',cooldown:40000,buyPercent:110,sellerChance:.8,buyBudgetPerLevel:500},duren:{name:'Дурень',cooldown:120000,buyPercent:150,sellerChance:0,sellerChanceStep:5,buyBudgetPerLevel:400,buyTypes:['medicine','food','stimulant']},vasek:{name:'Васёк',cooldown:50000,buyPercent:110,sellerChance:.6,buyTypes:['weapon','body'],budgetMultiplier:2}};
 export const MAX_MERCHANT_LEVEL=10;
 export const MERCHANT_XP_THRESHOLDS=Object.fromEntries(Array.from({length:9},(_,i)=>[i+1,20*3**i]));
 export function merchantXpThreshold(level){return MERCHANT_XP_THRESHOLDS[level]??null;}
@@ -55,26 +55,67 @@ export const YURAS_STOCK_BY_LEVEL={
  8:[{item:'armorPlates',qty:2}],9:[{item:'rareMushrooms',qty:2}],10:[{item:'gasMaskFilter',qty:2},{item:'springMechanism',qty:1}]
 };
 export const VASEK_STOCK_BY_LEVEL={
- 1:[{item:'crowbar',qty:1},{item:'ashot',qty:1},{item:'oldShotgun',qty:1},{item:'qualityJacket',qty:1},{item:'springMechanism',qty:2}],
+ 1:[{item:'crowbar',qty:1,quality:1},{item:'ashot',qty:1,quality:1},{item:'oldShotgun',qty:1,quality:1},{item:'qualityJacket',qty:1,quality:1},{item:'springMechanism',qty:4}],
  2:[{item:'pilotJacket',qty:1}],3:[{item:'browning',qty:1}],4:[{item:'shieldUni',qty:1}],
- 5:[{item:'ghoulJacket',qty:1},{item:'kazakVest',qty:1}],6:[{item:'awl',qty:1,quality:1},{item:'ak74',qty:1}],
- 7:[{item:'heavyVest',qty:1}],8:[{item:'mosin',qty:1,quality:1}],9:[{item:'butcherCleaver',qty:1,quality:1}],10:[{item:'ak47',qty:1}]
+ 5:[{item:'ghoulJacket',qty:1,quality:1},{item:'kazakVest',qty:1}],6:[{item:'awl',qty:1,quality:1},{item:'ak74',qty:1}],
+ 7:[{item:'heavyVest',qty:1},{item:'pilotJacket',qty:1,quality:2}],8:[{item:'mosin',qty:1,quality:1}],9:[{item:'butcherCleaver',qty:1,quality:1}],10:[{item:'ak47',qty:1}]
 };
 export const MERCHANT_STOCK=YURAS_STOCK_BY_LEVEL[1];
 export function merchantSellerOffers(state,id,random=Math.random){
+ if(id==='duren'){
+  const gear=Object.keys(ITEMS).filter(item=>['weapon','body'].includes(ITEMS[item].type)&&Number.isInteger(ITEMS[item].value));
+  return [{item:gear[Math.floor(random()*gear.length)],qty:1,quality:random()<.7?1:2}];
+ }
  const level=state[id].level??1,entries=Object.entries(id==='vasek'?VASEK_STOCK_BY_LEVEL:YURAS_STOCK_BY_LEVEL).filter(([required])=>Number(required)<=level);
  const highest=entries.at(-1)[1],best=highest[Math.floor(random()*highest.length)],rest=entries.flatMap(([,rows])=>rows).filter(row=>row.item!==best.item);
  for(let i=rest.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[rest[i],rest[j]]=[rest[j],rest[i]];}
- return clone([best,...rest.slice(0,4)]);
+ const distinct=new Map();
+ for(const row of rest)if(!distinct.has(row.item))distinct.set(row.item,row);
+ const offers=clone([best,...Array.from(distinct.values()).slice(0,4)]);
+ if(id==='yuras'&&level>=2){
+  for(const offer of offers){
+   if(!ITEMS[offer.item]?.stack||!(itemValue(offer)>0))continue;
+   const target=Math.floor((0.4+0.6*random())*400*level);
+   offer.qty=1;
+   while(sellerPrice(offer,offer.qty+1)<=target)offer.qty++;
+  }
+ }
+ return offers;
+}
+export function merchantBuyBudget(state,id){
+ const merchant=MERCHANTS[id];
+ return (merchant.buyBudgetPerLevel??300)*(state[id]?.level??1)*(merchant.budgetMultiplier??1);
 }
 export function prepareMerchantOffers(state,id,random=Math.random){
- const npc=state[id],v=npc?.visit;if(!v)return false;if(v.offers!==null){if(v.role!=='buyer'||v.offers.every(offer=>state.inventory.some(row=>row.uid===offer.inventoryUid&&row.item===offer.item&&row.qty>=offer.qty)))return false;v.offers=null;}
+ const npc=state[id],v=npc?.visit;
+ if(!v)return false;
+ const level=npc.level??1;
+ const buyBudget=merchantBuyBudget(state,id);
+ const buyCount=id==='duren'?3:3+Math.floor((level-1)/3);
+ if(v.offers!==null){
+  const oldBuyerRules=v.buyBudget!==buyBudget||v.buyCount!==buyCount;
+  const stockStillAvailable=v.offers.every(offer=>state.inventory.some(row=>row.uid===offer.inventoryUid&&row.item===offer.item&&row.qty>=offer.qty));
+  if(v.role!=='buyer'||(!oldBuyerRules&&stockStillAvailable))return false;
+  v.offers=null;
+ }
  if(v.role==='seller')v.offers=merchantSellerOffers(state,id,random);
  else{
-  v.buyBudget=300*(npc.level??1)*(MERCHANTS[id].budgetMultiplier??1);v.buyCount=3;
+  v.buyBudget=buyBudget;v.buyCount=buyCount;
   const rows=state.inventory.filter(row=>Number.isInteger(ITEMS[row.item]?.value)&&(!MERCHANTS[id].buyTypes||MERCHANTS[id].buyTypes.includes(ITEMS[row.item].type))&&tradeQuote(row,1,0,'buyer',id,state).price<=v.buyBudget);
   for(let i=rows.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[rows[i],rows[j]]=[rows[j],rows[i]];}
-  v.offers=rows.slice(0,v.buyCount).map(row=>({...clone(row),qty:1,inventoryUid:row.uid}));
+  v.offers=rows.slice(0,v.buyCount).map(row=>{
+   let qty=1;
+   if(ITEMS[row.item].stack&&row.qty>1){
+    const target=Math.floor((0.5+0.5*random())*buyBudget);
+    let max=row.qty;
+    while(qty<max){
+     const count=Math.ceil((qty+max)/2);
+     if(tradeQuote(row,count,0,'buyer',id,state).price<=target)qty=count;
+     else max=count-1;
+    }
+   }
+   return {...clone(row),qty,inventoryUid:row.uid};
+  });
  }
  return true;
 }
@@ -86,11 +127,14 @@ export function tradeRelationDelta(modifier,role){const benefit=role==='seller'?
 export function merchantCooldown(state,id,level=state?.[id]?.level??1,relation=state?.[id]?.relation??0){return Math.round(MERCHANTS[id].cooldown*1.5**(Math.max(1,Math.min(10,level))-1)*(1-.03*Math.max(-10,Math.min(20,relation))));}
 export function tradeQuote(item,qty,modifier,role,merchant='yuras',state=null){
  const npc=state?.[merchant]??{level:1,xp:0,relation:0},relation=Math.max(-10,Math.min(20,(npc.relation??0)+tradeRelationDelta(modifier,role)));
- const base=role==='seller'?sellerPrice(item,qty,state):buyerPrice(item,qty,merchant,state),price=roundRatio(roundRatio(base,100+modifier),100+(role==='seller'?-3:3)*relation);
+ const base=role==='buyer'?buyerPrice(item,qty,merchant,state):merchant==='duren'
+  ? roundRatio(itemValue(item)*qty,tradePercent(state,'buyPercent'))
+  : sellerPrice(item,qty,state);
+ const price=roundRatio(roundRatio(base,100+modifier),100+(role==='seller'?-3:3)*relation);
  const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier],xp=price/10*effect.xp*(1+.03*relation),preview={level:npc.level??1,xp:npc.xp??0};gainMerchantXp(preview,xp);
  return {price,xp,relation,nextLevel:preview.level,cooldown:Math.round(merchantCooldown(state,merchant,preview.level,relation)*effect.cooldown)};
 }
-export function createGame(now=Date.now(),random=Math.random){return {version:1,id:uid(),welcomeSeen:false,playerRole:null,shekels:0,people:0,batteries:0,money:1500,startingMoney:1500,filters:0,completedLocations:{},totalSpent:0,spendingPartial:false,inventory:[],inventorySlotsBought:0,heroes:[],selectedHeroId:null,hero:null,productions:Object.fromEntries(Object.keys(PRODUCTIONS).map(key=>[key,{level:1,xp:0,job:null}])),shelves:Array(STARTING_SHELVES).fill(null),yuras:{level:1,xp:0,nextAt:0,visit:{id:uid(),role:random()<.9?'seller':'buyer',offers:null}},history:[],createdAt:now,updatedAt:now};}
+export function createGame(now=Date.now(),random=Math.random){return {version:1,id:uid(),welcomeSeen:false,playerRole:null,shekels:0,people:0,batteries:0,money:1500,startingMoney:1500,filters:0,completedLocations:{},totalSpent:0,spendingPartial:false,inventory:[],inventorySlotsBought:0,heroes:[],selectedHeroId:null,hero:null,productions:Object.fromEntries(Object.keys(PRODUCTIONS).map(key=>[key,{level:1,xp:0,job:null}])),shelves:Array(STARTING_SHELVES).fill(null),yuras:{level:1,xp:0,nextAt:0,visit:{id:uid(),role:random()<MERCHANTS.yuras.sellerChance?'seller':'buyer',offers:null}},history:[],createdAt:now,updatedAt:now};}
 export function getHeroes(s){return Array.isArray(s.heroes)?s.heroes:(s.hero?[s.hero]:[]);}
 function refreshNationalityBalance(hero){
  if(!hero)return;const nation=NATIONALITIES[hero.nationalityId];
@@ -514,8 +558,8 @@ function createRun(s,hero,kind,at,seed,allowSpecial=true){
   result.events.unshift({type:'радиация локации',level:locationRadiation,protection:config.hero.radiationProtection,received:result.radiation});
   return {kind,seed,startedAt:at,endsAt:at+duration(TECHNOPARK.seconds*1000),result};
  }
- if(kind==='patrol'){requireThat(patrolReady(),'Характеристики упыря-разведчика ещё уточняются.');const config=heroConfig(s,hero,kind);config.rat=clone(PATROL.enemy);config.mission=clone(PATROL.mission);config.loot=clone(PATROL.loot);return {kind,seed,startedAt:at,endsAt:at+duration(14000),result:expedition(config,rng(seed),{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,trace:true})};}
- if(kind==='mission')return {kind,seed,startedAt:at,endsAt:at+duration(7000),result:expedition(heroConfig(s,hero,kind),rng(seed),{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,trace:true})};
+ if(kind==='patrol'){requireThat(patrolReady(),'Характеристики упыря-разведчика ещё уточняются.');const config=heroConfig(s,hero,kind);config.rat=clone(PATROL.enemy);config.mission=clone(PATROL.mission);config.loot=clone(PATROL.loot);return {kind,seed,startedAt:at,endsAt:at+duration(PATROL.mission.seconds*1000),result:expedition(config,rng(seed),{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,trace:true})};}
+ if(kind==='mission')return {kind,seed,startedAt:at,endsAt:at+duration(CONFIG.mission.seconds*1000),result:expedition(heroConfig(s,hero,kind),rng(seed),{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,trace:true})};
  if(kind==='help')return {kind,seed,startedAt:at,endsAt:at+duration(10000),result:stationHelp(heroConfig(s,hero,kind),rng(seed))};
  requireThat(kind==='rest','Нет такой локации.');requireThat(hero.hp<effectiveMaxHp(hero),'Здоровье уже полное.');pay(s,100);return {kind,startedAt:at,endsAt:at+30000,healing:.2*hero.maxHp+10*heroConfig(s,hero,kind).hero.strength};
 }
@@ -562,7 +606,12 @@ export function ready(job,now=Date.now()){return Boolean(job&&(job.kind==='serie
 export function visit(s,now=Date.now(),random=Math.random){let changed=false;
  for(const merchant of Object.keys(MERCHANTS)){
   const npc=s[merchant];if(!npc||npc.banned)continue;
-  if(!npc.visit&&now>=npc.nextAt){npc.visit={id:uid(),role:random()<(MERCHANTS[merchant].sellerChance??0)?'seller':'buyer',offers:null};changed=true;}
+  if(!npc.visit&&now>=npc.nextAt){
+   const settings=MERCHANTS[merchant];
+   const sellerChance=settings.sellerChance+((npc.level??1)-1)*(settings.sellerChanceStep??0)/100;
+   npc.visit={id:uid(),role:random()<sellerChance?'seller':'buyer',offers:null};
+   changed=true;
+  }
   if(npc.visit&&prepareMerchantOffers(s,merchant,random))changed=true;
  }
  return changed;}
@@ -1209,7 +1258,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
  }
  case 'cancelSale':{const sale=s.shelves[action.slot];requireThat(sale,'Полка пуста.');requireThat(!ready(sale,now),'Товар уже продан. Получи деньги.');receive(s,[{...sale,item:sale.item,qty:sale.qty}]);s.shelves[action.slot]=null;break;}
  case 'openYuras':openYuras(s,now,random,action.merchant);break;
- case 'trade':{const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null,v=npc?.visit;requireThat(v&&v.id===action.visitId,'Этот визит уже завершён.');requireThat(!npc.banned&&(npc.relation??0)>-10,'Торговец отказывается торговать.');requireThat(TRADE_EFFECTS[action.modifier],'Неверный вариант торга.');const offer=v.offers?.[action.offer];requireThat(offer,'Предложение недоступно.');const quote=tradeQuote(offer,offer.qty,action.modifier,v.role,merchant,s);if(v.role==='seller'){requireThat(canReceive(s,[offer]),'В инвентаре не хватает места.');pay(s,quote.price);receive(s,[{...offer,origin:'bought'}]);}else{requireThat(tradeQuote(offer,offer.qty,0,'buyer',merchant,s).price<=(v.buyBudget??300*npc.level*(MERCHANTS[merchant].budgetMultiplier??1)),'Торговец не готов заплатить столько за один предмет.');const row=s.inventory.find(x=>x.uid===offer.inventoryUid);requireThat(row&&row.item===offer.item&&row.qty>=offer.qty,'Этого предмета уже нет в инвентаре.');removeRow(s,row.uid,offer.qty);s.money+=quote.price;}npc.relation=quote.relation;const previousLevel=npc.level;gainMerchantXp(npc,quote.xp);if(npc.level>previousLevel)addHistory(s,`${MERCHANTS[merchant].name}: уровень ${npc.level}.`,now);npc.nextAt=now+quote.cooldown;npc.visit=null;addHistory(s,`Сделка · ${MERCHANTS[merchant].name}: ${ITEMS[offer.item].name}, ${quote.price/10} A.`,now);break;}
+ case 'trade':{const merchant=action.merchant??'yuras',npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null,v=npc?.visit;requireThat(v&&v.id===action.visitId,'Этот визит уже завершён.');requireThat(!npc.banned&&(npc.relation??0)>-10,'Торговец отказывается торговать.');requireThat(TRADE_EFFECTS[action.modifier],'Неверный вариант торга.');const offer=v.offers?.[action.offer];requireThat(offer,'Предложение недоступно.');const quote=tradeQuote(offer,offer.qty,action.modifier,v.role,merchant,s);if(v.role==='seller'){requireThat(canReceive(s,[offer]),'В инвентаре не хватает места.');pay(s,quote.price);receive(s,[{...offer,origin:'bought'}]);}else{requireThat(tradeQuote(offer,offer.qty,0,'buyer',merchant,s).price<=(v.buyBudget??merchantBuyBudget(s,merchant)),'Торговец не готов заплатить столько за один предмет.');const row=s.inventory.find(x=>x.uid===offer.inventoryUid);requireThat(row&&row.item===offer.item&&row.qty>=offer.qty,'Этого предмета уже нет в инвентаре.');removeRow(s,row.uid,offer.qty);s.money+=quote.price;}npc.relation=quote.relation;const previousLevel=npc.level;gainMerchantXp(npc,quote.xp);if(npc.level>previousLevel)addHistory(s,`${MERCHANTS[merchant].name}: уровень ${npc.level}.`,now);npc.nextAt=now+quote.cooldown;npc.visit=null;addHistory(s,`Сделка · ${MERCHANTS[merchant].name}: ${ITEMS[offer.item].name}, ${quote.price/10} A.`,now);break;}
  case 'bribeMerchant':{const id=action.merchant,npc=Object.hasOwn(MERCHANTS,id)?s[id]:null;requireThat(npc?.visit&&!npc.banned&&npc.relation===-10,'Задобрить торговца сейчас нельзя.');pay(s,merchantBribeCost(s,id));npc.relation=-8;addHistory(s,MERCHANTS[id].name+': торговец задобрен, отношение −8.',now);break;}
  case 'robMerchant':{const id=action.merchant,npc=Object.hasOwn(MERCHANTS,id)?s[id]:null;requireThat(npc?.visit&&!npc.banned&&npc.relation===-10,'Ограбление сейчас недоступно.');const bandit=s.heroes.find(x=>x.id===action.banditId);requireThat(bandit?.profession==='bandit'&&!bandit.dead&&!bandit.job,'Нужен живой свободный бандит.');const loot=merchantRobberyLoot(s,id);requireThat(canReceive(s,loot),'Освободи место в инвентаре для всей добычи торговца.');const foe=merchantFighter(s,id),f=foe.config.hero,w=ITEMS[foe.hero.weapon];const enemy={name:MERCHANTS[id].name,hp:foe.hero.hp,initiative:f.initiative,stealth:f.perception,agility:f.agility,accuracy:f.accuracy,evasion:f.evasion,armor:f.armor,thermalArmor:f.thermalArmor??0,damageMin:w.min+f.strength*10,damageMax:w.max+f.strength*10,attackName:w.name};const config=heroConfig(s,bandit);config.rat=enemy;const result=battle(config,rng(Math.floor(random()*4294967296)),bandit.hp,{trace:true});bandit.hp=result.hp;bandit.dead=result.hp<=0;if(bandit.dead)for(const key of ['bandages','dressingKits','medicKits','grenades','molotovs','stimulants'])bandit[key]=0;npc.visit=null;npc.nextAt=now+merchantCooldown(s,id);let stolen=null;if(result.won){receive(s,loot);npc.banned=true;}else{const slots=['weapon','body'].filter(key=>bandit[key]);if(slots.length){const key=slots[Math.min(slots.length-1,Math.floor(random()*slots.length))];stolen={...clone(bandit[key+'Details']??{}),item:bandit[key],qty:1};bandit[key]=null;bandit[key+'Details']=null;addHistory(s,MERCHANTS[id].name+' забрал у бандита: '+itemName(stolen)+'.',now);}}npc.lastRobbery={...result,stolen,banditName:bandit.name,loot:result.won?loot:[],merchant:id};addHistory(s,result.won?bandit.name+' ограбил '+MERCHANTS[id].name+'. Торговец больше не вернётся.':'Так тебе и надо. '+MERCHANTS[id].name+' ушёл до следующего визита, отношение −10.',now);break;}
  case 'banMerchant':{const merchant=action.merchant,npc=Object.hasOwn(MERCHANTS,merchant)?s[merchant]:null;requireThat(npc?.visit&&!npc.banned&&npc.relation===-10,'Нельзя прогнать торговца.');npc.banned=true;npc.visit=null;addHistory(s,MERCHANTS[merchant].name+' прогнан со станции навсегда.',now);break;}

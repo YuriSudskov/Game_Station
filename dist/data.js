@@ -8,19 +8,19 @@ export const ITEMS={
  shieldUni:{name:'Shield Uni',type:'body',armorClass:'medium',armor:50,thermalArmor:20,accuracyPenalty:5,evasionBonusCap:40,missionTimePenaltyPercent:10,ricochet:5,value:800,stack:false,icon:'jacket',description:'Средний бронежилет. Поглощает 50 физического и 20 термического урона. −5 п.п. точности, задания на 10% дольше. Прибавки уклонения сверх базы ограничены 40 п.п.; рикошет +5% отдельно.'},
  heavyVest:{name:'Тяжёлый бронежилет',type:'body',armorClass:'heavy',armor:70,thermalArmor:20,accuracyPenalty:10,evasionBonusCap:25,missionTimePenaltyPercent:20,ricochet:10,value:1800,stack:false,icon:'jacket',description:'Тяжёлая броня. Поглощает 70 физического и 20 термического урона. −10 п.п. точности, задания на 20% дольше. Прибавки уклонения сверх базы ограничены 25 п.п.; рикошет +10% отдельно.'},
  oldShotgun:{name:'Старое ружьё',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:70,maxDistance:3,distancePenalty:15,reloadMain:true,reloadEverySlot:true,stack:false,value:150,icon:'shotgun',description:'Дробовик. Физический урон 20–70, дистанции 0–3, штраф −15 п.п. точности за каждую дистанцию. После выстрела следующий ход уходит на перезарядку.'},
- combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:null,icon:'stimulant',description:'10 применений, по одному за прохождение локации. На время прохождения +40 максимального и текущего HP, +5 п.п. точности.'},
+ combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:500,icon:'stimulant',description:'10 применений, по одному за прохождение локации. На время прохождения +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
  darkCrystal:{name:'Тёмный кристалл',type:'consumable',stack:false,value:10000,rarity:'epic',icon:'crystal',description:'Уникальная находка Крысиного короля. Даёт выбранному герою одну Метку: «Регенерация» или «Тёмная хватка». Регенерация лечит героя, Тёмная хватка заменяет бросок гранаты особой атакой. В текущей игре может выпасть только один раз.'},
  traderNotes:{name:'Записки бывалого торговца',type:'consumable',stack:true,value:3000,rarity:'epic',icon:'bag',description:'Даёт выбранному герою один дополнительный выбор перка.'},
  gasMaskFilter:{name:'Фильтр для противогаза',type:'currency',value:200,icon:'filter',description:'Ресурс для выходов на поверхность и вылазок с карты.'},
- emptyBottle:{name:'Пустая бутылка',type:'resource',stack:true,icon:'bag',description:'Ингредиент для коктейля Молотова. Источник появится позже.'},
+ emptyBottle:{name:'Пустая бутылка',type:'resource',stack:true,value:30,icon:'bag',description:'Ингредиент для коктейля Молотова. Источник появится позже.'},
  molotov:{name:'Молотов',type:'grenade',stack:true,value:150,icon:'grenade',min:20,max:120,dodgeDc:13,description:'Термический урон 20–120 в начале боя и повторный урон огнём на втором ходу. Уклонение против 13 уменьшает урон вдвое.'},
  pipeGrenade:{name:'Трубная граната',type:'grenade',stack:true,value:150,icon:'grenade',min:30,max:180,dodgeDc:13,description:'Одна граната в начале боя. Термический урон 30–180. Уклонение против 13 уменьшает урон вдвое. Шанс задеть себя 5%, шанс сильного взрыва 10%.'},
  dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять в лечебный слот.'},
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
  leaderKebab:{name:'Редкий шашлык из Вожака',type:'food',stack:true,value:400,rarity:'rare',icon:'meat',description:'Восстанавливает 60–240 HP и даёт +2 к Силе на следующие четыре прохождения локаций.'},
- weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
+ weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,value:2000,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
  antiseptic:{name:'Антисептик',type:'resource',stack:true,value:130,icon:'medical',description:'Реагент, найденный на поверхности.'},
  strongTape:{name:'Крепкая изолента',type:'resource',stack:true,value:150,icon:'bag',description:'Материал, найденный на поверхности.'},
  intactBook:{name:'Уцелевшая книга',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Редкая сохранившаяся книга.'},
@@ -73,7 +73,7 @@ export const PERKS={
  initiative:{name:'Перехват инициативы',description:'Постоянно +4 к инициативе.'},
  'double-strike':{name:'Двойной удар',description:'Две атаки за ход. Каждая: −10 п.п. точности и −15% урона до поглощения цели.'}
 };
-export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:7,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
+export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:13,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
  fineShot:{name:'Точный или мелкая дробь',production:'upgrade',level:6,cost:300,seconds:30,ingredients:{},upgrade:true,target:'ranged',otherRanged:{prefix:'Точный',accuracyBonus:5,blocksAimedShots:false},chance:60,prefix:'Мелкая дробь',accuracyBonus:15,xp:25,blocksAimedShots:true},
  medicKit:{name:'Аптечка медика',production:'medicine',level:6,cost:50,seconds:20,ingredients:{antiseptic:1,dressingKit:1},output:'medicKit',xp:20,batch:true},
@@ -135,9 +135,9 @@ export const PLANNED_LOCATIONS=[
  {id:'zil',name:'Исследовать ЗИЛ',area:'surface',icon:'station'}
 ];
 
-export const PATROL={requiredLevel:2,enemy:{name:'упырь-разведчик',hp:150,evasion:40,accuracy:10,initiative:1,stealth:2,armor:10,thermalArmor:0,damageMin:40,damageMax:100,attackName:'физическая атака'},mission:{searches:2,searchDc:8,lootPerKill:true,seconds:14,baseXp:10,findXp:0,killXp:20,lootXp:0},loot:[{id:'ghoulHide',name:'Шкура упыря',chance:80},{id:'sharpClaws',name:'Острые когти',chance:60},{id:'ghoulMeat',name:'Мясо упыря',chance:50},{id:'toughLeather',name:'Прочная кожа',chance:10}]};
+export const PATROL={requiredLevel:2,enemy:{name:'упырь-разведчик',hp:150,evasion:40,accuracy:10,initiative:1,stealth:2,armor:10,thermalArmor:0,damageMin:40,damageMax:100,attackName:'физическая атака'},mission:{searches:2,searchDc:8,lootPerKill:true,seconds:20,baseXp:10,findXp:0,killXp:20,lootXp:0},loot:[{id:'ghoulHide',name:'Шкура упыря',chance:80},{id:'sharpClaws',name:'Острые когти',chance:60},{id:'ghoulMeat',name:'Мясо упыря',chance:50},{id:'toughLeather',name:'Прочная кожа',chance:10}]};
 export const SURFACE={
- seconds:20,baseXp:30,dogXp:8,guardXp:15,
+ seconds:30,baseXp:30,dogXp:8,guardXp:15,
  description:'Слыш, гляжу у тебя кишка не тонка, может на поверхность выйти хочешь? В длинные вылазки туда ходят только по двое, но если на 10 минут — можно и одному попробовать. Один фильтр защитит тебя от радиоактивной пыли на 20 минут, так что успей вовремя вернуться, и да, радиация там то 2 то 3 у входа, запасись чем-нибудь.',
  dog:{name:'Мутировавшая собака',hp:120,evasion:50,accuracy:10,damageMin:40,damageMax:70,armor:10,thermalArmor:0,stealth:1,initiative:1,attackName:'Укус'},
  tiers:[
@@ -156,7 +156,7 @@ export const CARAVAN={
 };
 export const TECHNOPARK={
  radiation:{min:0,max:3},
- seconds:30,
+ seconds:35,
  description:'Тоннель за постом охраны ведёт на заброшенную станцию. Когда-то у неё был стеклянный потолок, наверное, это считалось современным. Теперь через дырки в потолке на станцию попадают снег, радиация и монстры Стражи. Их ещё называют «сусликами» из-за стойки, в которой они патрулируют территорию. Если не снять суслика первым выстрелом, он будет выть и призовёт своих собратьев, и придётся разобраться и с ними.',
  enemy:{name:'Страж',hp:210,evasion:45,stealth:2,initiative:2,accuracy:10,armor:17,thermalArmor:0,damageMin:30,damageMax:100,attackName:'Укус',rush:{accuracyBonus:10,min:50,max:120}},
  mission:{ambushDc:10,baseXp:20,findXp:0,killXp:15,lootXp:0,lootPerKill:true,finds:[{id:'metal',dc:8,alternateId:'cloth',primaryChance:50,minQty:2,maxQty:3},{id:'pipe',dc:14},{id:'sharpBlade',dc:19,xp:10}]},
