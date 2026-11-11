@@ -1,13 +1,26 @@
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ slugShotgun:{name:'Убойник',type:'weapon',combat:'ranged',weaponClass:'shotgun',damageType:'physical',min:30,max:170,maxDistance:3,stack:false,value:1500,icon:'shotgun',description:'Дробовик. 30–170 физического урона. Дистанция 0–3, один выстрел за ход.'},
+ ppsh:{name:'ПП Шпагина',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:10,max:110,maxDistance:1,shots:10,shotPenalty:25,jamChance:10,stack:false,value:2500,icon:'smg',description:'10–110 физического урона, дистанция 0–1. Очередь из 10 выстрелов, каждый со штрафом −25 п.п. точности. Шанс заклинить в начале хода — 10%.'},
+ nailGun:{name:'Гвоздемёт',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:30,max:160,maxDistance:2,shots:3,shotPenalty:20,stack:false,value:2000,icon:'rifle',description:'30–160 физического урона, дистанция 0–2. Очередь из 3 выстрелов, каждый со штрафом −20 п.п. точности.'},
+ handCrossbow:{name:'Ручной арбалет',type:'weapon',combat:'ranged',weaponClass:'crossbow',damageType:'physical',min:20,max:120,strengthMultiplier:20,rangedSlotOnly:true,reloadMain:true,reloadEverySlot:true,stack:false,value:1200,icon:'rifle',description:'Только в дополнительный слот. Физический урон 20–120 + Сила × 20, на любой дистанции. После выстрела пропускает ход на перезарядку.'},
+ steel:{name:'Сталь',type:'resource',stack:true,value:450,icon:'metal',description:'Обработанный металл. Материал для молота из двутавра.'},
+ beamHammer:{name:'Молот из двутавра',type:'weapon',combat:'melee',damageType:'physical',min:20,max:200,strengthMultiplier:15,twoSlots:true,stack:false,value:2500,rarity:'rare',icon:'tool',description:'Редкое оружие ближнего боя. Занимает оба слота. Физический урон 20–200 + Сила × 15.'},
+ tinGrenade:{name:'Граната «Жестянка»',type:'grenade',stack:true,value:350,icon:'grenade',min:50,max:250,dodgeDc:14,damageType:'physical',description:'50–250 физического урона. Сложность уворота 14. Можно брать на локации и в вылазки.'},
+ armorUpgradePlan:{name:'Схема улучшения брони',type:'resource',stack:true,rarity:'rare',value:2000,icon:'bag',description:'Повышает качество брони в Науке. Источник пока не задан.'},
+ metalMediumArmor:{name:'Средний металлический доспех',type:'body',armorClass:'medium',stack:false,value:1300,armor:60,thermalArmor:10,accuracyPenalty:5,missionTimePenaltyPercent:10,evasionBonusCap:40,ricochet:5,icon:'jacket',description:'Средняя броня. Поглощает 60 физического и 10 термического урона. −5 п.п. точности, прохождение локаций на 10% дольше, рикошет 5%. Прибавки к уклонению сверх базы ограничены 40 п.п.'},
+ chitinArmor:{name:'Броня из хитина',type:'body',armorClass:'light',stack:false,value:2500,armor:60,thermalArmor:30,accuracyPenalty:5,ricochet:5,rarity:'rare',icon:'jacket',description:'Редкая лёгкая броня. Поглощает 60 физического и 30 термического урона. −5 п.п. точности, рикошет 5%.'},
  hardChitinPlates:{name:'Твёрдые пластины хитина',type:'loot',stack:true,value:300,rarity:'rare',icon:'leather',description:'Редкий реагент.'},
  acid:{name:'Кислота',type:'loot',stack:true,value:300,rarity:'rare',icon:'bottle',description:'Редкий реагент.'},
- ak47:{name:'АК47',type:'weapon',combat:'ranged',stack:false,value:2000,shots:3,shotPenalty:20,min:10,max:100,closeAccuracyBonus:5,piercing:true,rarity:'epic',icon:'assaultRifle',description:'Эпический автомат. Очередь из трёх выстрелов, −20 п.п. точности на каждый. Пробивающий физический урон 10–100 за попадание, защита цели игнорируется. Вплотную +5 п.п. точности.'},
+ ak47:{name:'АК47',type:'weapon',combat:'ranged',weaponClass:'automatic',stack:false,value:2000,shots:3,shotPenalty:20,min:10,max:100,closeAccuracyBonus:5,piercing:true,rarity:'epic',icon:'assaultRifle',description:'Эпический автомат. Очередь из трёх выстрелов, −20 п.п. точности на каждый. Пробивающий физический урон 10–100 за попадание, защита цели игнорируется. Вплотную +5 п.п. точности.'},
  browning:{name:'Браунинг',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:140,maxDistance:2,distancePenalty:15,stack:false,value:900,icon:'shotgun',description:'Дробовик. Физический урон 20–140, дистанции 0–2. Стреляет каждый ход, без отдельного хода перезарядки. Штраф точности −15 п.п. за единицу дистанции.'},
  pilotJacket:{name:'Куртка пилота',type:'body',armorClass:'light',armor:30,thermalArmor:30,accuracyPenalty:5,rarity:'rare',value:900,stack:false,icon:'jacket',description:'Редкая лёгкая броня. Поглощает 30 физического и 30 термического урона. −5 п.п. точности.'},
  shieldUni:{name:'Shield Uni',type:'body',armorClass:'medium',armor:50,thermalArmor:20,accuracyPenalty:5,evasionBonusCap:40,missionTimePenaltyPercent:10,ricochet:5,value:800,stack:false,icon:'jacket',description:'Средний бронежилет. Поглощает 50 физического и 20 термического урона. −5 п.п. точности, задания на 10% дольше. Прибавки уклонения сверх базы ограничены 40 п.п.; рикошет +5% отдельно.'},
+ workshopHeavyArmor:{name:'Тяжёлая броня ЦЕХ',type:'body',armorClass:'heavy',armor:80,thermalArmor:20,accuracyPenalty:10,evasionBonusCap:25,missionTimePenaltyPercent:20,ricochet:10,value:3500,stack:false,icon:'jacket',description:'Тяжёлая броня. Поглощает 80 физического и 20 термического урона. Рикошет 10%. −10 п.п. точности. Задания длятся на 20% дольше. Прибавки к уклонению сверх базы ограничены 25 п.п.'},
  heavyVest:{name:'Тяжёлый бронежилет',type:'body',armorClass:'heavy',armor:70,thermalArmor:20,accuracyPenalty:10,evasionBonusCap:25,missionTimePenaltyPercent:20,ricochet:10,value:1800,stack:false,icon:'jacket',description:'Тяжёлая броня. Поглощает 70 физического и 20 термического урона. −10 п.п. точности, задания на 20% дольше. Прибавки уклонения сверх базы ограничены 25 п.п.; рикошет +10% отдельно.'},
  oldShotgun:{name:'Старое ружьё',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:70,maxDistance:3,distancePenalty:15,reloadMain:true,reloadEverySlot:true,stack:false,value:150,icon:'shotgun',description:'Дробовик. Физический урон 20–70, дистанции 0–3, штраф −15 п.п. точности за каждую дистанцию. После выстрела следующий ход уходит на перезарядку.'},
+ electronicParts:{name:'Электронные запчасти',type:'resource',stack:true,value:200,icon:'tool',description:'Материал для сборки авто-стимулятора.'},
+ cardioStimulator:{name:'Кардио-стимулятор',type:'stimulant',stack:false,value:850,icon:'stimulant',description:'10 применений. На время прохождения локации увеличивает максимальное и текущее HP на 15%.'},
  combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:500,icon:'stimulant',description:'10 применений, по одному за прохождение локации. На время прохождения +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
@@ -25,7 +38,7 @@ export const ITEMS={
  strongTape:{name:'Крепкая изолента',type:'resource',stack:true,value:150,icon:'bag',description:'Материал, найденный на поверхности.'},
  intactBook:{name:'Уцелевшая книга',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Редкая сохранившаяся книга.'},
  armorPlates:{name:'Бронепластины',type:'resource',stack:true,value:250,icon:'jacket',description:'Материал для брони.'},
- ak74:{name:'АК74',type:'weapon',combat:'ranged',stack:false,value:1000,shots:3,shotPenalty:20,min:30,max:120,closeAccuracyBonus:5,icon:'assaultRifle',description:'Очередь из трёх выстрелов, −20 п.п. точности. Вплотную +5 п.п. точности.'},
+ ak74:{name:'АК74',type:'weapon',combat:'ranged',weaponClass:'automatic',stack:false,value:1000,shots:3,shotPenalty:20,min:30,max:120,closeAccuracyBonus:5,icon:'assaultRifle',description:'Очередь из трёх выстрелов, −20 п.п. точности. Вплотную +5 п.п. точности.'},
  medicKit:{name:'Аптечка медика',type:'medicine',stack:true,value:300,icon:'medical',description:'Лечит 30–80 HP + 10 × Восприятие. Можно взять с собой на задание.'},
  radiationCloak:{name:'Плащ РАД-защиты',type:'accessory',stack:false,value:1500,radiationProtection:3,icon:'jacket',description:'Дополнительный слот снаряжения. +3 к защите от радиации, сочетается с бронёй.'},
  protectiveSuit:{name:'Защитный костюм',type:'accessory',stack:false,value:500,radiationProtection:2,icon:'gasmask',description:'Дополнительная защита. +2 РАД, ещё +1 РАД за каждый плюс качества. Сочетается с бронёй.'},
@@ -38,7 +51,7 @@ export const ITEMS={
  pipe:{name:'Труба',type:'resource',stack:true,value:80,icon:'metal',description:'Материал для Обреза и винтовки Мосина. Продаётся у Юрася.'},
  bastard:{name:'Бастард ПП',type:'weapon',combat:'ranged',weaponClass:'automatic',min:30,max:80,shots:3,shotPenalty:20,stack:false,value:250,icon:'smg',description:'Очередь из трёх выстрелов. У каждого своя проверка попадания со штрафом −20 п.п. и отдельный расчёт физического урона.'},
  sawedOff:{name:'Обрез',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:40,max:130,maxDistance:1,damageRolls:2,shotPenalty:10,reloadMain:true,stack:false,value:600,icon:'shotgun',description:'Дуплет на дистанции 0–1: одна проверка попадания со штрафом −10 п.п., два броска урона. В основном слоте следующий ход после выстрела уходит на перезарядку.'},
- mosin:{name:'Винтовка Мосина',type:'weapon',combat:'ranged',min:60,max:150,distancePenalty:10,piercing:true,reloadMain:true,bayonet:{min:10,max:80},twoSlots:true,rarity:'rare',stack:false,value:900,icon:'rifle',description:'Занимает оба слота. Пробивающий выстрел на любой дистанции. Штраф точности −10 п.п. за единицу дистанции. После выстрела перезаряжается, а вплотную в этот же ход атакует штыком.'},
+ mosin:{name:'Винтовка Мосина',type:'weapon',combat:'ranged',weaponClass:'rifle',min:60,max:150,distancePenalty:10,piercing:true,reloadMain:true,bayonet:{min:10,max:80},twoSlots:true,rarity:'rare',stack:false,value:900,icon:'rifle',description:'Занимает оба слота. Пробивающий выстрел на любой дистанции. Штраф точности −10 п.п. за единицу дистанции. После выстрела перезаряжается, а вплотную в этот же ход атакует штыком.'},
  metalParts:{name:'Металлические части',type:'resource',stack:true,value:100,icon:'metal',description:'Материал для оружия в Цехе.'},
  sharpBlade:{name:'Острое лезвие',type:'resource',stack:true,value:300,rarity:'rare',icon:'knife',description:'Находка в Технопарке. Материал для Шила и винтовки Мосина.'},
  clawKnuckles:{name:'Когтистый кастет',type:'weapon',combat:'melee',min:30,max:100,stack:false,value:250,icon:'knife',description:'Физический урон 30–100 + Сила × 10.'},
@@ -75,7 +88,25 @@ export const PERKS={
 };
 export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:13,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
+ slugShotgun:{name:'Убойник',production:'ranged',level:7,cost:400,seconds:65,xp:70,ingredients:{steel:1,pipe:2,metalParts:3},output:'slugShotgun'},
+ ppsh:{name:'ПП Шпагина',production:'ranged',level:8,cost:650,seconds:90,xp:95,ingredients:{springMechanism:4,steel:2,metalParts:3},output:'ppsh'},
+ nailGun:{name:'Гвоздемёт',production:'ranged',level:9,cost:450,seconds:80,xp:110,ingredients:{springMechanism:2,steel:2,metalParts:3},output:'nailGun'},
+ handCrossbow:{name:'Ручной арбалет',production:'melee',level:7,cost:300,seconds:60,xp:65,ingredients:{metalParts:4,springMechanism:3,strongTape:1},output:'handCrossbow'},
+ steel:{name:'Качественная обработка металла',production:'melee',level:8,cost:100,seconds:30,xp:30,ingredients:{metalParts:3},output:'steel',batch:true},
+ beamHammer:{name:'Молот из двутавра',production:'melee',level:9,cost:500,seconds:80,xp:100,ingredients:{steel:3,pipe:2},output:'beamHammer'},
+ weaponGrade:{name:'Улучшение оружия схемой',production:'upgrade',level:7,cost:400,seconds:40,xp:80,ingredients:{weaponUpgradePlan:1},upgrade:true,target:'weapon',raisesQuality:true},
+ tinGrenade:{name:'Граната «Жестянка»',production:'upgrade',level:8,cost:60,seconds:20,xp:25,ingredients:{strongTape:1,metal:5},output:'tinGrenade',batch:true},
+ sharpEdge:{name:'Заточка ближнего оружия +20',production:'upgrade',level:9,cost:300,seconds:30,xp:60,ingredients:{metalParts:1},upgrade:true,target:'melee',chance:65,prefix:'Остро заточенный',bonus:20,replaces:'sharpen'},
+ spikedArmor:{name:'Шипованная броня',production:'science',level:8,cost:0,seconds:30,xp:45,ingredients:{strongTape:1,sharpClaws:8},upgrade:true,target:'body',chance:60,prefix:'Шипованная',thorns:{min:20,max:40}},
+ armorGrade:{name:'Улучшение брони схемой',production:'science',level:9,cost:500,seconds:60,xp:80,ingredients:{armorUpgradePlan:1},upgrade:true,target:'body',raisesQuality:true},
+ metalMediumArmor:{name:'Средний металлический доспех',production:'armor',level:7,cost:150,seconds:75,ingredients:{armorPlates:3,metalParts:4},output:'metalMediumArmor',xp:70},
+ armorPlates:{name:'Бронепластины',production:'armor',level:8,cost:50,seconds:15,ingredients:{metalParts:1,acid:1},output:'armorPlates',outputQty:2,xp:15,batch:true},
+ workshopHeavyArmor:{name:'Тяжёлая броня ЦЕХ',production:'armor',level:10,cost:750,seconds:110,ingredients:{steel:3,armorPlates:4},output:'workshopHeavyArmor',xp:120},
+ chitinArmor:{name:'Броня из хитина',production:'armor',level:9,cost:250,seconds:90,ingredients:{kazakVest:1,hardChitinPlates:4},output:'chitinArmor',xp:100},
  fineShot:{name:'Точный или мелкая дробь',production:'upgrade',level:6,cost:300,seconds:30,ingredients:{},upgrade:true,target:'ranged',otherRanged:{prefix:'Точный',accuracyBonus:5,blocksAimedShots:false},chance:60,prefix:'Мелкая дробь',accuracyBonus:15,xp:25,blocksAimedShots:true},
+ combatStimulator:{name:'Боевой стимулятор',production:'medicine',level:7,cost:100,seconds:45,xp:35,ingredients:{acid:1,antiseptic:1},output:'combatStimulator'},
+ cardioStimulator:{name:'Кардио-стимулятор',production:'medicine',level:8,cost:200,seconds:60,xp:50,ingredients:{acid:1,rareMushrooms:1},output:'cardioStimulator'},
+ autoStimulator:{name:'Авто-Стимулятор',production:'medicine',level:9,cost:350,seconds:75,xp:65,ingredients:{springMechanism:1,electronicParts:2},upgrade:true,target:'body',chance:75,prefix:'Авто-',autoHeal:true,valueBonus:450},
  medicKit:{name:'Аптечка медика',production:'medicine',level:6,cost:50,seconds:20,ingredients:{antiseptic:1,dressingKit:1},output:'medicKit',xp:20,batch:true},
  butcherCleaver:{name:'Тесак Мясника',production:'melee',level:6,cost:200,seconds:25,ingredients:{metalParts:3,sharpBlade:1},output:'butcherCleaver',xp:50},
  quilted:{name:'Ватник',production:'science',level:3,cost:100,seconds:20,ingredients:{ghoulHide:2},upgrade:true,target:'body',chance:70,prefix:'Ватник на',firstHitArmor:15,valueBonus:160,xp:20},
@@ -111,12 +142,12 @@ export const RECIPES={
  jacket:{name:'Старая куртка',production:'armor',level:1,cost:50,seconds:8,ingredients:{leather:2},output:'jacket',xp:10},
  bandage:{name:'Старые бинты',production:'medicine',level:1,cost:10,seconds:5,ingredients:{cloth:1},output:'bandage',xp:2,batch:true},
  broth:{name:'Отвар из Крысы',production:'medicine',level:2,cost:20,seconds:7,ingredients:{meat:1},output:'broth',xp:6,batch:true},
- sharpen:{name:'Заточка оружия +7',production:'upgrade',level:1,cost:100,seconds:10,ingredients:{},upgrade:true,target:'melee',chance:80,prefix:'Заточенный',bonus:7,valueBonus:100,xp:10},
+ sharpen:{name:'Заточка оружия +7',production:'upgrade',level:1,cost:100,seconds:10,ingredients:{},upgrade:true,target:'melee',chance:80,prefix:'Заточенный',bonus:7,valueBonus:100,xp:10,supersededBy:'sharpEdge'},
  psct:{name:'ПСЦТ',production:'upgrade',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',excludedWeaponClasses:['shotgun'],chance:75,prefix:'ПСЦТ',bonus:20,accuracyBonus:-5,valueBonus:150,xp:15}
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
 export const MAX_PRODUCTION_LEVEL=13;
-export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5};
+export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7};
 export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780};
 export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
@@ -130,9 +161,10 @@ export const PLANNED_LOCATIONS=[
  {id:'tunnel-patrol',name:'Патрулирование тоннелей',area:'underground',icon:'map'},
  {id:'paveletskaya-caravan',name:'С караваном на Павелецкую',area:'underground',icon:'bag'},
  {id:'technopark',name:'Исследовать Технопарк',area:'underground',icon:'station'},
+ {id:'kolomenskaya-spiders',name:'Пауки в Тоннелях Коломенской',area:'underground',icon:'map',requiredLevel:6,unlockedBy:'technopark',unlockText:'Откроется после первого успешного прохождения Технопарка.'},
  {id:'station-surroundings',name:'Рыскать в окрестностях станции',area:'surface',icon:'map'},
- {id:'surface-shops',name:'Осмотреть магазины',area:'surface',icon:'shop'},
- {id:'zil',name:'Исследовать ЗИЛ',area:'surface',icon:'station'}
+ {id:'surface-shops',area:'surface'},
+ {id:'zil-tunnels',area:'surface'}
 ];
 
 export const PATROL={requiredLevel:2,enemy:{name:'упырь-разведчик',hp:150,evasion:40,accuracy:10,initiative:1,stealth:2,armor:10,thermalArmor:0,damageMin:40,damageMax:100,attackName:'физическая атака'},mission:{searches:2,searchDc:8,lootPerKill:true,seconds:20,baseXp:10,findXp:0,killXp:20,lootXp:0},loot:[{id:'ghoulHide',name:'Шкура упыря',chance:80},{id:'sharpClaws',name:'Острые когти',chance:60},{id:'ghoulMeat',name:'Мясо упыря',chance:50},{id:'toughLeather',name:'Прочная кожа',chance:10}]};
@@ -141,9 +173,9 @@ export const SURFACE={
  description:'Слыш, гляжу у тебя кишка не тонка, может на поверхность выйти хочешь? В длинные вылазки туда ходят только по двое, но если на 10 минут — можно и одному попробовать. Один фильтр защитит тебя от радиоактивной пыли на 20 минут, так что успей вовремя вернуться, и да, радиация там то 2 то 3 у входа, запасись чем-нибудь.',
  dog:{name:'Мутировавшая собака',hp:120,evasion:50,accuracy:10,damageMin:40,damageMax:70,armor:10,thermalArmor:0,stealth:1,initiative:1,attackName:'Укус'},
  tiers:[
-  {dc:8,text:'Кажется, в этом магазине ещё что-то осталось не разграбленным…',hidden:'Так, тут следы каких-то собак? Спрячусь-ка, а потом продолжим…',spotted:'Чёрт, собаки меня заметили… Ёпт, ствол где?',loot:[{item:'metalParts',chance:80},{item:'antiseptic',chance:40},{item:'strongTape',chance:25},{item:'intactBook',chance:10}]},
-  {dc:13,text:'О, кажется, вон там ещё несколько растерзанных трупов за углом… посмотрим.',hidden:'Ага, это Суслики постарались, пора валить, пока меня не заметили…',spotted:'Чёрт, это Суслики… Слышен вой одного из Стражей.',loot:[{item:'armorPlates',chance:80},{currency:'money',min:12,max:30,chance:40},{currency:'filters',chance:25},{item:'ak74',chance:10}]},
-  {dc:18,text:'О! Это, кажется, схрон сталкеров. Давай-ка заглянем. Проверю на ловушки…',loot:[{currency:'money',min:15,max:30,chance:80},{currency:'filters',min:1,max:2,chance:40},{item:'medicKit',chance:25},{item:'radiationCloak',chance:10}]}
+  {dc:8,text:'Кажется, в этом магазине ещё что-то осталось не разграбленным…',hidden:'Так, тут следы каких-то собак? Спрячусь-ка, а потом продолжим…',spotted:'Чёрт, собаки меня заметили… Ёпт, ствол где?',loot:[{item:'metalParts',chance:80},{item:'antiseptic',chance:60},{item:'strongTape',chance:20},{item:'intactBook',chance:10}]},
+  {dc:13,text:'О, кажется, вон там ещё несколько растерзанных трупов за углом… посмотрим.',hidden:'Ага, это Суслики постарались, пора валить, пока меня не заметили…',spotted:'Чёрт, это Суслики… Слышен вой одного из Стражей.',loot:[{item:'armorPlates',chance:80},{currency:'money',min:12,max:30,chance:40},{currency:'filters',min:1,max:2,chance:25},{item:'ak74',chance:5}]},
+  {dc:18,text:'О! Это, кажется, схрон сталкеров. Давай-ка заглянем. Проверю на ловушки…',loot:[{currency:'money',min:15,max:30,chance:60},{currency:'filters',min:1,max:2,chance:40},{item:'medicKit',chance:20},{item:'radiationCloak',chance:5}]}
  ]
 };
 export const CARAVAN={
@@ -158,8 +190,8 @@ export const TECHNOPARK={
  radiation:{min:0,max:3},
  seconds:35,
  description:'Тоннель за постом охраны ведёт на заброшенную станцию. Когда-то у неё был стеклянный потолок, наверное, это считалось современным. Теперь через дырки в потолке на станцию попадают снег, радиация и монстры Стражи. Их ещё называют «сусликами» из-за стойки, в которой они патрулируют территорию. Если не снять суслика первым выстрелом, он будет выть и призовёт своих собратьев, и придётся разобраться и с ними.',
- enemy:{name:'Страж',hp:210,evasion:45,stealth:2,initiative:2,accuracy:10,armor:17,thermalArmor:0,damageMin:30,damageMax:100,attackName:'Укус',rush:{accuracyBonus:10,min:50,max:120}},
- mission:{ambushDc:10,baseXp:20,findXp:0,killXp:15,lootXp:0,lootPerKill:true,finds:[{id:'metal',dc:8,alternateId:'cloth',primaryChance:50,minQty:2,maxQty:3},{id:'pipe',dc:14},{id:'sharpBlade',dc:19,xp:10}]},
+ enemy:{name:'Страж',experience:15,hp:210,evasion:45,stealth:2,initiative:2,accuracy:10,armor:17,thermalArmor:0,damageMin:30,damageMax:100,attackName:'Укус',rush:{accuracyBonus:10,min:50,max:120}},
+ mission:{ambushDc:10,ambushKillXp:10,baseXp:18,findXp:0,killXp:7,lootXp:0,lootPerKill:true,finds:[{id:'metal',dc:8,alternateId:'cloth',primaryChance:50,minQty:2,maxQty:3},{id:'pipe',dc:14},{id:'sharpBlade',dc:19,xp:10}]},
  loot:[{id:'leather',chance:100},{id:'fullLeather',chance:55},{id:'sharpClaws',chance:30},{id:'toughLeather',chance:10}]
 };
 export const patrolReady=()=>['initiative','stealth','armor','damageMin','damageMax'].every(key=>Number.isInteger(PATROL.enemy[key]));
@@ -329,6 +361,13 @@ LEVEL_PERKS.armored.maxPickLevel=5;
 
 // Interactive routes are enabled only after the first playable stage is described.
 export const INTERACTIVE_MISSIONS={
+ repairMaterials:{
+  name:'Поиск материалов для ремонта',filtersPerHero:1,minHeroes:1,maxHeroes:1,
+  radiation:2,entry:'search',
+  nodes:{search:{title:'Окрестности Технопарка',image:'./zil-exit.svg',
+   text:'У разбитого павильона виднеются листы металла и балки. Отмечаем, где лежат материалы, и возвращаемся доложить Смотрителю.',
+   choices:[{id:'reportMaterials',label:'Отметить материалы и вернуться',resolve:'repairMaterials'}]}}
+ },
   "zilRoute": {
     "name": "Открыть путь на ЗИЛ",
     "filtersPerHero": 3,
@@ -713,4 +752,30 @@ export const ACID_SPIDER={
  tactics:{normal:['web','main'],allHeroesEntangled:['main','main'],entangledTarget:'lowestCurrentHp',mainTarget:'firstUnentangledInFormation'},
 };
 
-export const ZIL_FUTURE_LOCATION={zilTunnels:{name:"Рыскать по тоннелям ЗИЛа",unlockedBy:"zilRoute",maxHeroes:1,playable:false}};
+export const ZIL_TUNNELS={
+ name:'Осмотреть тоннели ЗИЛ', unlockedBy:'zilRoute', requiredLevel:LOCATION_LEVELS.zilTunnels,
+ filtersPerHero:2, seconds:90, returnMoney:550, baseXp:36,
+ description:'На станции ЗИЛ у заброшенной дрезины приоткрыта дверь в служебный тоннель. За ней проход к складу. В тоннеле могут быть кислотные пауки или бандиты.',
+ spider:{name:'Кислотный паук',hp:200,armor:15,thermalArmor:5,accuracy:18,evasion:45,initiative:4,stealth:2,damageMin:40,damageMax:85,attackName:'Укус'},
+ bandits:[
+  {name:'Бандит-стрелок',hp:150,armor:10,thermalArmor:0,accuracy:10,evasion:40,initiative:2,stealth:2,damageMin:20,damageMax:65,attackName:'Пистоль',attackRange:3},
+  {name:'Бандит с монтировкой',hp:180,armor:15,thermalArmor:0,accuracy:15,evasion:35,initiative:2,stealth:2,damageMin:35,damageMax:80,attackName:'Удар монтировкой'}
+ ]
+};
+
+export const SURFACE_SHOPS={
+ name:'Осмотреть ближайшие магазины', unlockedBy:'surface', filtersPerHero:2, seconds:100,
+ description:'За разбитыми витринами торгового ряда видны продуктовый, хозяйственный и аптека. Ищи припасы и берегись собак, мародёров и растяжек.',
+ baseXp:0, dogXp:0, guardXp:0, dog:SURFACE.dog, dogMaxCount:3, enemyGroup:ZIL_TUNNELS.bandits,
+ tiers:[
+  {dc:8,text:'У разбитой витрины свежие собачьи следы.',hidden:'Герой проходит мимо стаи.',spotted:'Собаки замечают героя.',loot:[]},
+  {dc:13,text:'У витрин хозяйничают мародёры.',hidden:'Герой обходит мародёров через служебный вход.',spotted:'Двое мародёров перекрывают проход.',loot:[]},
+  {dc:18,text:'За дверью подсобки может быть растяжка.',loot:[]}
+ ],
+ bonusLoot:[{item:'electronicParts',chance:35}],
+ caches:[
+  {rollMax:40,name:'Продуктовый',xp:45,money:550,loot:{metalParts:2,strongTape:1}},
+  {rollMax:80,name:'Хозяйственный',xp:55,money:500,loot:{armorPlates:2,metalParts:1}},
+  {rollMax:100,name:'Аптека',xp:65,money:500,loot:{medicKit:2,strongTape:1}}
+ ]
+};
