@@ -58,7 +58,7 @@ export const ITEMS={
  awl:{name:'Шило',type:'weapon',combat:'melee',min:10,max:80,stack:false,value:800,icon:'knife',rarity:'rare',piercing:true,description:'Редкое оружие. Физический урон 10–80 + Сила × 10. Пробивающий: игнорирует защиту цели.'},
  fullLeather:{name:'Целая кожа',type:'resource',stack:true,value:80,icon:'leather',description:'Изготовлена из четырёх обрывков кожи. Материал для качественной кожанки; отдельный предмет от шкуры упыря.'},
  qualityJacket:{name:'Кожанка',type:'body',stack:false,value:220,armor:14,thermalArmor:10,icon:'jacket',description:'Поглощает 14 физического и 10 термического урона.'},
- pistol:{name:'Пистоль',type:'weapon',combat:'ranged',weaponClass:'pistol',min:10,max:50,stack:false,value:70,icon:'pistol',description:'Пистолет. Физический урон 10–50 без прибавки силы.'},
+ pistol:{name:'Пистолет ТТ',type:'weapon',combat:'ranged',weaponClass:'pistol',min:10,max:50,stack:false,value:70,icon:'pistol',description:'Пистолет. Физический урон 10–50 без прибавки силы.'},
  mr73:{name:'Револьвер MR-73',type:'weapon',combat:'ranged',weaponClass:'pistol',min:20,max:160,maxDistance:2,stack:false,value:760,icon:'pistol',description:'Пистолет. Физический урон 20–160. Работает на дистанциях 0–2. Штраф точности −15 п.п. за единицу дистанции.'},
  ghoulHide:{name:'Шкура упыря',type:'resource',stack:true,value:30,icon:'leather',description:'Шкура, добытая при патрулировании тоннелей.'},
  sharpClaws:{name:'Острые когти',type:'resource',stack:true,value:40,icon:'knife',description:'Трофей упыря-разведчика.'},
@@ -305,7 +305,18 @@ export const LEVEL_PERK_SCHEDULES={
  10:[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 };
 
+export const HOBBY_COST=200;
+export const HERO_HOBBIES={
+ gym:{attribute:'strength',options:{strength:'+1 Сила',endurance:'+10% к максимальному и текущему HP'}},
+ fitness:{attribute:'agility',options:{agility:'+1 Ловкость',accuracy:'+5 п.п. точности'}},
+ library:{attribute:'intelligence',options:{intelligence:'+1 Интеллект',experience:'+10% опыта героя'}},
+ meditation:{attribute:'perception',options:{perception:'+1 Восприятие',thermal:'+10 термического поглощения'}}
+};
 export const LEVEL_PERKS={
+ ...Object.fromEntries(Object.entries(HERO_HOBBIES).map(([id,hobby])=>['hobby-'+id,{
+  profession:'all',minLevel:4,repeatable:true,hobby:id,attributeBonus:hobby.attribute,
+  name:'Развитие · '+hobby.options[hobby.attribute],description:hobby.options[hobby.attribute]+' постоянно.'
+ } ])),
  'bandit-alert':{name:'Ухо востро',profession:'bandit',minLevel:2,repeatable:false,description:'За каждую единицу Восприятия: +4 п.п. уклонения и +4 п.п. точности ближнего оружия.'},
  'bandit-mark':{name:'Конкретно попал',profession:'bandit',minLevel:3,repeatable:false,description:'Против первого врага первого боя на локации или в вылазке: дополнительно Сила × 7 ближнего урона либо +10 стрелкового урона.'},
  'bandit-seasoned':{name:'Бывалый',profession:'bandit',minLevel:4,repeatable:false,description:'Один раз за бой входящий урон после защиты, который снял бы более 25% максимального HP, уменьшается вдвое.'},
@@ -360,6 +371,17 @@ for(const [profession,profile] of Object.entries(PROFESSIONS)){
 LEVEL_PERKS.armored.maxPickLevel=5;
 
 // Interactive routes are enabled only after the first playable stage is described.
+export const STATION_BUILD_SECONDS=180;
+export const STATION_BUILDINGS={
+ gym:{name:'Спортзал',cost:500,ingredients:{metalParts:10,springMechanism:5},bonus:'Открывает хобби на экране отдыха.'},
+ fitness:{name:'Фитнес-центр',cost:500,ingredients:{fullLeather:20,ghoulHide:20},bonus:'Открывает хобби на экране отдыха.'},
+ library:{name:'Библиотека',cost:400,ingredients:{cloth:10,intactBook:2},bonus:'Открывает хобби на экране отдыха.'},
+ meditation:{name:'Место для медитации',cost:450,ingredients:{fullLeather:20,rareMushrooms:4},bonus:'Открывает хобби на экране отдыха.'},
+ medicTent:{name:'Палатка медика',cost:500,ingredients:{cloth:10,dressingKit:3,medicKit:1},bonus:'Бесплатно восстанавливает 5% доступного максимума HP после каждой завершённой локации или вылазки. Доход 1–8 А в минуту, до 60 минут за цикл.'},
+ tradingPost:{name:'Торговый пост',role:'shekel',cost:750,ingredients:{metalParts:10,fullLeather:6},bonus:'Продажа предметов на 5 п.п. выгоднее.'},
+ housing:{name:'Улучшение жилья',role:'sova',cost:650,ingredients:{metalParts:10,fullLeather:10},bonus:'Общий инвентарь +5 ячеек.'},
+ laboratory:{name:'Своя лаборатория',role:'pin',cost:200,ingredients:{fullLeather:10,pipe:3,acid:2,rareMushrooms:2},bonus:'Шанс качества изготовления в Науке +5 п.п.'}
+};
 export const INTERACTIVE_MISSIONS={
  repairMaterials:{
   name:'Поиск материалов для ремонта',filtersPerHero:1,minHeroes:1,maxHeroes:1,
@@ -758,7 +780,7 @@ export const ZIL_TUNNELS={
  description:'На станции ЗИЛ у заброшенной дрезины приоткрыта дверь в служебный тоннель. За ней проход к складу. В тоннеле могут быть кислотные пауки или бандиты.',
  spider:{name:'Кислотный паук',hp:200,armor:15,thermalArmor:5,accuracy:18,evasion:45,initiative:4,stealth:2,damageMin:40,damageMax:85,attackName:'Укус'},
  bandits:[
-  {name:'Бандит-стрелок',hp:150,armor:10,thermalArmor:0,accuracy:10,evasion:40,initiative:2,stealth:2,damageMin:20,damageMax:65,attackName:'Пистоль',attackRange:3},
+  {name:'Бандит-стрелок',hp:150,armor:10,thermalArmor:0,accuracy:10,evasion:40,initiative:2,stealth:2,damageMin:20,damageMax:65,attackName:'Пистолет ТТ',attackRange:3},
   {name:'Бандит с монтировкой',hp:180,armor:15,thermalArmor:0,accuracy:15,evasion:35,initiative:2,stealth:2,damageMin:35,damageMax:80,attackName:'Удар монтировкой'}
  ]
 };

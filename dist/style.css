@@ -242,3 +242,5 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .interactive-stage-choices .scene-choice-explored{background:#222624;border-color:#525953;color:#b3b9b3}
 .interactive-stage-choices .scene-choice-explored:hover{border-color:#9da79e}
 .interactive-stage-choices .subtitle:empty{display:none}
+
+.btn.launch-missing-gear{background:#602d32;border-color:#e28483;color:#fff2ed;white-space:normal}.btn.launch-radiation{background:#d8f95a;border-color:#edff9c;color:#182206;white-space:normal}.btn.launch-missing-gear.launch-radiation{box-shadow:inset 0 0 0 2px #b83c45}

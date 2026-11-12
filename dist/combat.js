@@ -77,6 +77,11 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   let distance=Math.min(h.maxStartingDistance??3,distanceFromMargin(margin,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0)),initialDistance=distance;
   const opponents=(enemies??[r]).map((enemy,index)=>({...enemy,name:enemies?`${enemy.name} №${index+1}`:enemy.name,hp:enemy.hp,distance}));
   let enemyIndex=0;
+  const heroTargetIndex=()=>{
+    const personal=opponents.findIndex(enemy=>enemy.hp>0&&(!(caravan?.hp>0)||enemy.attackTarget==='hero'));
+    return personal>=0?personal:opponents.findIndex(enemy=>enemy.hp>0);
+  };
+  let darkGraspUsed=false;
   let shotCount=h.ambushCorrectionShots??0,lastShotTarget=shotCount?opponents[0]:null;
   if(!ambush)delete h.ambushCorrectionShots;
   const correctionFor=weapon=>{
@@ -110,7 +115,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(armor){padding=0;note('ватник',{turn,armor});}
     return armor;
   };
-  const grenadeItem=h.darkGrasp?false:grenade===true?'pipeGrenade':grenade;
+  const grenadeItem=grenade===true?'pipeGrenade':grenade;
   let burningHero=false;
   const blast=(target,agility,armor,base,dodgeDc)=>{
     const roll=random.int(1,20),dodged=roll+agility>dodgeDc;
@@ -133,12 +138,6 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const won=hp>0&&!groupAlive();
     return {won,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,killed:opponents.filter(enemy=>enemy.hp<=0).length};
   };
-  if(h.darkGrasp&&!ambush){
-    const base=random.int(20,80)*h.perception,target=blast(opponents[0].name??'крыса',opponents[0].agility??opponents[0].stealth,opponents[0].thermalArmor??0,base,14);
-    opponents[0].hp-=target.damage;ratHp=opponents[0].hp;triggerRage(0);
-    note('тёмная хватка',{base,perception:h.perception,targets:[target]});
-    if(!groupAlive())return finish(0);
-  }
   if(grenadeItem){
     const {min,max,dodgeDc,damageType='thermal'}=ITEMS[grenadeItem];
     const underfoot=random.int(1,100)<=(national.grenadeSelfChance??5),strong=random.int(1,100)<=10;
@@ -167,7 +166,8 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     }
   };
   for(let turn=1;turn<=config.trial.combatTurnLimit;turn++) {
-    if(heroTurn||opponents[enemyIndex].hp<=0)enemyIndex=opponents.findIndex(enemy=>enemy.hp>0);
+    if(heroTurn)enemyIndex=heroTargetIndex();
+    else if(opponents[enemyIndex].hp<=0)enemyIndex=opponents.findIndex(enemy=>enemy.hp>0);
     r=opponents[enemyIndex];
     ratHp=r.hp;
     distance=r.distance;
@@ -177,9 +177,18 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       note('огонь Молотова',{turn,targets});
       if(hp<=0||!groupAlive())return finish(turn);
       if(ratHp<=0){
-        enemyIndex=opponents.findIndex(enemy=>enemy.hp>0);
+        enemyIndex=heroTurn?heroTargetIndex():opponents.findIndex(enemy=>enemy.hp>0);
         r=opponents[enemyIndex];ratHp=r.hp;distance=r.distance;
       }
+    }
+    if(heroTurn&&!ambush&&h.darkGrasp&&!darkGraspUsed){
+      darkGraspUsed=true;
+      const base=random.int(20,80)*h.perception;
+      const target=blast(r.name??'крыса',r.agility??r.stealth,r.thermalArmor??0,base,14);
+      r.hp-=target.damage;ratHp=r.hp;triggerRage(turn);
+      note('тёмная хватка',{turn,base,perception:h.perception,targets:[target]});
+      if(!groupAlive())return finish(turn);
+      enemyIndex=heroTargetIndex();r=opponents[enemyIndex];ratHp=r.hp;distance=r.distance;
     }
     if(heroTurn&&!ambush&&h.regeneration&&hp>0&&hp<h.maxHp){const healing=Math.min(h.regeneration,h.maxHp-hp);hp+=healing;perkHealing+=healing;note('регенерация',{turn,healing,hp});}
     if(heroTurn&&!ambush&&!firstOwnTurnDone&&h.tauntFirstTurn){r.accuracy+=10;r.evasion-=20;note('жаргон',{turn,target:r.name});}
@@ -195,7 +204,12 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const openingTurn=heroTurn&&!ambush&&!h.openingExtraAttackSpent;
     if(openingTurn)h.openingExtraAttackSpent=true;
     if(reloadTurn&&!weapon) { /* The reload consumes the hero's turn. */ }
-    else if(heroTurn&&(!weapon||((ambush||distance>0)&&!inRange(weapon,distance)))) note('ожидание',{turn,actor:'герой',distance,reason:ambush||distance>0?'Нет оружия для этой дистанции':'Нет основного оружия'});
+    else if(heroTurn&&(!weapon||((ambush||distance>0)&&!inRange(weapon,distance)))){
+      if(!ambush&&distance>0&&(main||h.weapons?.ranged)){
+        distance--;
+        note('сближение',{turn,actor:'герой',targetName:r.name,distance});
+      }else note('ожидание',{turn,actor:'герой',distance,reason:ambush||distance>0?'Нет оружия для этой дистанции':'Нет основного оружия'});
+    }
     else if(heroTurn&&!ambush&&weaponJammed(weapon,random))note('заклинило',{turn,weapon:weapon.item});
     else if(!heroTurn&&distance>(r.attackRange??0)&&!rush) { distance--; note('сближение',{turn,actor:r.name??'крыса',distance}); }
     else {
@@ -344,7 +358,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
       if(trace)events.push({type:'упыри каравана',count});
     }
     const canThrow=m.grenadePolicy!=='first-and-final'||i===0||m.finalEnemy&&i===scoutCount;
-    const grenade=config.hero.darkGrasp||!canThrow?false:tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
+    const grenade=!canThrow?false:tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
     if(grenade==='pipeGrenade')grenades--;
     if(grenade==='molotov')molotovs--;
     if(grenade==='tinGrenade')tinGrenades--;
@@ -513,7 +527,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
   const group=dog?null:location.enemyGroup;
   const count=group?.length??random.int(2,dog?(location.dogMaxCount??4):3);
   const enemy=dog?location.dog:group?.[0]??TECHNOPARK.enemy;
-  const grenade=config.hero.darkGrasp?false:tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
+  const grenade=tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
   if(grenade==='pipeGrenade')grenades--;
   if(grenade==='molotov')molotovs--;
     if(grenade==='tinGrenade')tinGrenades--;
