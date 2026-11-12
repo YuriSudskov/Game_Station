@@ -29,7 +29,7 @@ export function keeperQuestView(state){
  return {...KEEPER_QUESTS[quest.stage],...quest,progress};
 }
 export const stationBuildingLimit=s=>2+2*Number(Boolean(s.completedLocations?.technoparkRoof))+2*Number(Boolean(s.completedLocations?.kolomenskaya));
-export const stationBuildingCount=s=>Object.keys(STATION_BUILDINGS).filter(id=>s.stationBuildings?.[id]||s.stationConstruction?.[id]).length;
+export const stationBuildingCount=s=>Object.keys(STATION_BUILDINGS).filter(id=>!STATION_BUILDINGS[id].role&&(s.stationBuildings?.[id]||s.stationConstruction?.[id])).length;
 const hasBuilding=(s,id)=>s?.stationBuildings?.[id]===true;
 export function stationBuildingCost(s,id){
  const discount=getHeroes(s).filter(h=>!h.dead).reduce((best,h)=>Math.min(best,h.nationalityBonuses?.buildingPercent??0),0);
@@ -68,6 +68,12 @@ function advanceStationConstruction(s,now){
  let changed=false;
  for(const [id,job] of Object.entries(s.stationConstruction??{})){
   if(!ready(job,now))continue;
+  if(job.demolition){
+   delete s.stationConstruction[id];
+   addHistory(s,'Снесено: '+STATION_BUILDINGS[id].name+'.',job.endsAt);
+   changed=true;
+   continue;
+  }
   (s.stationBuildings??={})[id]=true;
   if(id==='medicTent')s.medicTentBuiltAt=job.endsAt;
   delete s.stationConstruction[id];
@@ -687,7 +693,7 @@ export function advanceSeries(state,now=Date.now()){
     if(job.location==='rest'&&(worker.hp>=effectiveMaxHp(worker)||state.money<100)){stopSeries(job,worker.hp>=effectiveMaxHp(worker)?'Здоровье полное':'Не хватает A на отдых');break;}
     job.run=makeRun(state,worker,job.location,at,job.seeds[job.completed],false);job.phase='running';job.startedAt=at;job.endsAt=job.run.endsAt;continue;
    }
-   const run=job.run,e=run.result;job.completed++;job.reports.push(clone(run));
+   const run=job.run,e=run.result;job.completed++;const report=clone(run);job.reports.push(report);
    if(run.kind!=='rest')spendStrengthBonus(worker);
    if(isCombatRun(run)&&!e.alive){for(const key of ['level','xp','maxHp','extraPerkChoices','nationalityPerkMilestones','weaponFamiliarity','rangedWeaponFamiliarity'])worker[key]=clone(job.initial[key]??(key==='nationalityPerkMilestones'?{}:0));finishStimulant(worker,run);worker.maxHp=heroMaximumHp(worker);worker.stimulants=0;worker.dead=true;worker.hp=0;worker.bandages=0;worker.dressingKits=0;worker.medicKits=0;worker.grenades=0;worker.molotovs=0;worker.tinGrenades=0;job.loot={};job.money=0;job.filters=0;job.nationalityBonus=0;job.xp=0;stopSeries(job,'Герой погиб. Весь результат серии потерян');break;}
    if(run.kind==='rest')worker.hp=Math.min(effectiveMaxHp(worker),worker.hp+run.healing);
@@ -697,7 +703,7 @@ export function advanceSeries(state,now=Date.now()){
     if(isCombatRun(run)){worker.hp=e.hp;worker.bandages=e.bandagesRemaining;worker.dressingKits=e.dressingKitsRemaining??0;worker.medicKits=e.medicKitsRemaining??0;worker.grenades=e.grenadesRemaining??0;worker.molotovs=e.molotovsRemaining??0;worker.tinGrenades=e.tinGrenadesRemaining??0;}
    }
    const nationalBonus=nationalityClaimBonus(worker,run);job.nationalityBonus=(job.nationalityBonus??0)+nationalBonus;job.money+=nationalBonus;
-   finishStimulant(worker,run);if(worker.mark==='regeneration')worker.hp=effectiveMaxHp(worker);if(run.kind!=='rest')healAtMedicTent(state,worker,at);if(job.completed>=job.total)stopSeries(job,'Все прохождения завершены');
+   finishStimulant(worker,run);if(worker.mark==='regeneration')worker.hp=effectiveMaxHp(worker);if(run.kind!=='rest')report.medicTentHealing=healAtMedicTent(state,worker,at);if(job.completed>=job.total)stopSeries(job,'Все прохождения завершены');
    else if(worker.hp/effectiveMaxHp(worker)<job.threshold/100&&job.location!=='rest')stopSeries(job,`Здоровье ниже ${job.threshold}%`);
    else if(job.location==='rest'&&worker.hp>=effectiveMaxHp(worker))stopSeries(job,'Здоровье полное');
    else {job.phase='break';job.startedAt=at;job.endsAt=at+3000;}
@@ -1289,7 +1295,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   h.hp=Math.min(h.hp,effectiveMaxHp(h));
   addHistory(s,`${h.name}: Облучён (${h.radiation}).`,now);
  }
- if(job.kind!=='series')finishStimulant(h,job);if(!h.dead&&h.mark==='regeneration'&&job.kind!=='rest')h.hp=effectiveMaxHp(h);if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}if(job.kind!=='series'&&job.kind!=='rest'){const healed=healAtMedicTent(s,h,job.endsAt);if(healed)addHistory(s,'Палатка медика · '+h.name+': +'+Math.round(healed*10)/10+' HP.',now);}recordKeeperProgress(s,h,job);const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface','zilTunnels','surfaceShops'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
+ if(job.kind!=='series')finishStimulant(h,job);h.hp=Math.min(h.hp,effectiveMaxHp(h));if(!h.dead&&h.mark==='regeneration'&&job.kind!=='rest')h.hp=effectiveMaxHp(h);if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}if(job.kind!=='series'&&job.kind!=='rest'){const healed=healAtMedicTent(s,h,job.endsAt);if(healed)addHistory(s,'Палатка медика · '+h.name+': +'+Math.round(healed*10)/10+' HP.',now);}recordKeeperProgress(s,h,job);const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface','zilTunnels','surfaceShops'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
  h.lastCompletedLocation=completedLocation;
  const firstRatAlarm=completedLocation==='help'&&(job.special&&job.result?.alive||job.kind==='series'&&job.reports.some(run=>run.kind==='help'&&run.special&&run.result?.alive));
  if(firstRatAlarm&&!s.specialFirstRewards?.help){
@@ -1440,12 +1446,34 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   addHistory(s,'Палатка медика: получено '+income.money/10+' А.',now);
   break;
  }
+ case 'demolishStationBuilding':{
+  const id=action.building,job=s.stationConstruction?.[id];
+  requireThat(stationBuildingAvailable(s,id)&&(hasBuilding(s,id)||job&&!job.demolition),'Эту постройку нельзя снести.');
+  if(s.stationBuildings)delete s.stationBuildings[id];
+  (s.stationConstruction??={})[id]={startedAt:now,endsAt:now+STATION_BUILD_SECONDS*1000,demolition:true};
+  if(id==='medicTent'){
+   delete s.medicTentIncome;
+   delete s.medicTentBuiltAt;
+  }
+  for(const hero of getHeroes(s)){
+   const series=hero.job?.kind==='series'?hero.job:null;
+   for(const member of [hero,series?.worker,series?.initial]){
+    if(member?.hobby?.id!==id)continue;
+    const scale=member.hobby.option==='endurance'?1.1:1;
+    delete member.hobby;
+    member.maxHp=heroMaximumHp(member);
+    member.hp=Math.min(effectiveMaxHp(member),member.hp/scale);
+   }
+  }
+  addHistory(s,'Начат снос: '+STATION_BUILDINGS[id].name+'.',now);
+  break;
+ }
  case 'startStationBuilding':{
   const id=action.building;
   requireThat(stationBuildingAvailable(s,id),'Эта постройка пока недоступна.');
   requireThat(!s.stationBuildings?.[id]&&!s.stationConstruction?.[id],'Эта постройка уже занята.');
-  requireThat(stationBuildingCount(s)<stationBuildingLimit(s),'Нет свободных мест для построек.');
   const building=STATION_BUILDINGS[id];
+  requireThat(building.role||stationBuildingCount(s)<stationBuildingLimit(s),'Нет свободных мест для построек.');
   pay(s,stationBuildingCost(s,id));
   for(const [item,qty] of Object.entries(building.ingredients))removeItem(s,item,qty);
   (s.stationConstruction??={})[id]={startedAt:now,endsAt:now+STATION_BUILD_SECONDS*1000};
