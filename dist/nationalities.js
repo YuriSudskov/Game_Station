@@ -500,7 +500,7 @@ export const NATIONALITIES={
   "afroamerican_explorer": {
     "id": "afroamerican_explorer",
     "nationality": "Афроамериканец",
-    "male": "Кофий",
+    "male": "Ачол",
     "female": "Наоми",
     "description": "Физическое поглощение +15. Проверки поиска добычи +1.",
     "restriction": "Интеллект -1",
@@ -913,6 +913,319 @@ export const NATIONALITIES={
       "hpPerLevel": 15,
       "accuracy": -5,
       "supplyLimit": -3
+    }
+  },
+  "nigeria_tracker": {
+    "id": "nigeria_tracker",
+    "nationality": "Нигерия: следопыт",
+    "male": "Кофе",
+    "female": "Н-нека",
+    "description": "Сила, Ловкость и Восприятие +1. Максимум HP +40 и ещё +10 за уровень после первого. Защита РАД +2.",
+    "restriction": "Интеллект −2. Точность огнестрельного оружия −10 п.п. получаемый опыт -10%",
+    "startDescription": "Нет",
+    "headwear": "wrap",
+    "bonuses": {
+      "attributes": {
+        "strength": 1,
+        "agility": 1,
+        "perception": 1,
+        "intelligence": -2
+      },
+      "hp": 40,
+      "hpPerLevel": 10,
+      "radiationProtection": 2,
+      "firearmAccuracy": -10,
+      "xpPenalty": 10
+    }
+  },
+  "poland_risk": {
+    "id": "poland_risk",
+    "nationality": "Польша: рисковый",
+    "male": "Петро",
+    "female": "Зофья",
+    "description": "Восприятие +1. Шанс критического попадания +5 п.п.",
+    "restriction": "Интеллект −1. Шанс уронить гранату под ноги — 10%.",
+    "startDescription": "Нет",
+    "headwear": "cap",
+    "bonuses": {
+      "attributes": {
+        "perception": 1,
+        "intelligence": -1
+      },
+      "criticalBonus": 5,
+      "grenadeSelfChance": 10
+    }
+  },
+  "indigenous_scout": {
+    "id": "indigenous_scout",
+    "nationality": "Потомок коренных американцев: разведчик",
+    "male": "Такая",
+    "female": "Айяна",
+    "description": "Уклонение +5 п.п. Обнаружение ловушек +2. Уклонение от гранат +2 к броску.",
+    "restriction": "Огнестрельное оружие: −5 п.п. точности.",
+    "startDescription": "Трубная граната ×1",
+    "headwear": "feathers",
+    "bonuses": {
+      "evasion": 5,
+      "trapBonus": 2,
+      "grenadeDodge": 2,
+      "firearmAccuracy": -5,
+      "startItems": [
+        {
+          "item": "pipeGrenade",
+          "qty": 1
+        }
+      ]
+    }
+  },
+  "soviet_veteran": {
+    "id": "soviet_veteran",
+    "nationality": "Советский ветеран",
+    "male": "Григорий",
+    "female": "Зинаида",
+    "description": "Первый полученный урон в каждом бою уменьшается на 15. Точность оружия +5 п.п.",
+    "restriction": "Инициатива −4",
+    "startDescription": "ТТ +1",
+    "headwear": "ushanka",
+    "bonuses": {
+      "firstDamageReduction": 15,
+      "accuracy": 5,
+      "initiative": -4,
+      "startItems": [
+        {
+          "item": "pistol",
+          "qty": 1
+        }
+      ]
+    }
+  },
+  "yakut_hunter": {
+    "id": "yakut_hunter",
+    "nationality": "Якутия: охотник",
+    "male": "Айтал",
+    "female": "Сардана",
+    "description": "Проверки скрытности и ловушек +2. Винтовки и дробовики: +5 п.п. точности. Максимум HP +30.",
+    "restriction": "Покупка у НПЦ на 10% дороже.",
+    "startDescription": "Нет",
+    "headwear": "fur",
+    "bonuses": {
+      "stealthBonus": 2,
+      "trapBonus": 2,
+      "longGunAccuracy": 5,
+      "hp": 30,
+      "buyPercent": 10
+    }
+  },
+  "france_charmer": {
+    "id": "france_charmer",
+    "nationality": "Франция: обаятельный",
+    "male": "Люк",
+    "female": "Жюли",
+    "description": "Покупка у NPC −10%. Кулдаун возвращения торговцев −20%.",
+    "restriction": "Точность оружия −5 п.п.",
+    "startDescription": "Нет",
+    "headwear": "beret",
+    "bonuses": {
+      "buyPercent": -10,
+      "merchantCooldownReduction": 20,
+      "accuracy": -5
+    }
+  },
+  "france_marksman": {
+    "id": "france_marksman",
+    "nationality": "Франция: стрелок",
+    "male": "Пьер",
+    "female": "Селин",
+    "description": "Автоматы и винтовки у него: +5 п.п. точности и +10 урона.",
+    "restriction": "Пистолеты и ближнее оружие: −10 п.п. точности.",
+    "startDescription": "Нет",
+    "headwear": "kepi",
+    "bonuses": {
+      "rifleAutomaticAccuracy": 5,
+      "rifleAutomaticDamage": 10,
+      "pistolMeleeAccuracy": -10
+    }
+  },
+  "roma_trader": {
+    "id": "roma_trader",
+    "nationality": "Рома: торговец",
+    "male": "Милан",
+    "female": "Рада",
+    "description": "Уклонение +5 п.п. Покупка −10%, продажа +10%.",
+    "restriction": "Проверки поиска добычи −1. Получаемый опыт -15%",
+    "startDescription": "Нет",
+    "headwear": "fedora",
+    "bonuses": {
+      "evasion": 5,
+      "buyPercent": -10,
+      "salePercent": 10,
+      "lootBonus": -1,
+      "xpPenalty": 15
+    }
+  },
+  "roma_finder": {
+    "id": "roma_finder",
+    "nationality": "Рома: находчивый",
+    "male": "Даниэль",
+    "female": "Людмила",
+    "description": "Ловкость +1. После успешной боевой вылазки 20% шанс дополнительно принести один предмет из обычной добычи её локации.",
+    "restriction": "Восприятие −1.",
+    "startDescription": "Нет",
+    "headwear": "bandana",
+    "bonuses": {
+      "attributes": {
+        "agility": 1,
+        "perception": -1
+      },
+      "extraLootChance": 20
+    }
+  },
+  "swiss_precise": {
+    "id": "swiss_precise",
+    "nationality": "Швейцария: точный",
+    "male": "Леон",
+    "female": "Урсула",
+    "description": "Точность +5 п.п. A от успешной вылазки +10%, минимум +1 A.",
+    "restriction": "Уклонение −7 п.п.",
+    "startDescription": "30 A",
+    "headwear": "flatcap",
+    "bonuses": {
+      "accuracy": 5,
+      "questMoneyPercent": 10,
+      "minimumExpeditionBonus": true,
+      "evasion": -7,
+      "startMoney": 300
+    }
+  },
+  "estonia_delayed": {
+    "id": "estonia_delayed",
+    "nationality": "Эстония: невозмутимый",
+    "male": "Март",
+    "female": "Кадри",
+    "description": "Первый полученный урон в каждом бою уменьшается на 25% и применяется после следующего собственного хода героя или при завершении боя.",
+    "restriction": "Инициатива -10. Интеллект −1.",
+    "startDescription": "Нет",
+    "headwear": "beanie",
+    "bonuses": {
+      "delayFirstDamage": true,
+      "initiative": -10,
+      "attributes": {
+        "intelligence": -1
+      }
+    }
+  },
+  "japan_scientist": {
+    "id": "japan_scientist",
+    "nationality": "Япония: учёный",
+    "male": "Кэндзо",
+    "female": "Юки",
+    "description": "Шанс успеха Науки +5 п.п. Одно дополнительное очко перка при найме.",
+    "restriction": "Сила −1.",
+    "startDescription": "Дополнительное очко перка ×1",
+    "headwear": "cap",
+    "bonuses": {
+      "success": {
+        "science": 5
+      },
+      "extraPerks": 1,
+      "attributes": {
+        "strength": -1
+      }
+    }
+  },
+  "japan_samurai": {
+    "id": "japan_samurai",
+    "nationality": "Япония: самурай",
+    "male": "Харуто",
+    "female": "Акико",
+    "description": "Уклонение +5 п.п. Ближнее оружие: +20 урона.",
+    "restriction": "Огнестрельное оружие: −10 п.п. точности.",
+    "startDescription": "Нет",
+    "headwear": "headband",
+    "bonuses": {
+      "evasion": 5,
+      "meleeDamage": 20,
+      "firearmAccuracy": -10
+    }
+  },
+  "japan_ninja": {
+    "id": "japan_ninja",
+    "nationality": "Япония: ниндзя",
+    "male": "Рэн",
+    "female": "Хана",
+    "description": "Уклонение вплотную +10 п.п. Проверки скрытности +2. Первая атака вплотную в каждом бою: +10–40 урона.",
+    "restriction": "Огнестрельное оружие: −10 п.п. точности. Получаемый опыт -10%",
+    "startDescription": "Нет",
+    "headwear": "hood",
+    "bonuses": {
+      "closeEvasion": 10,
+      "stealthBonus": 2,
+      "firstCloseDamage": true,
+      "firearmAccuracy": -10,
+      "xpPenalty": 10
+    }
+  },
+  "armenia_connected": {
+    "id": "armenia_connected",
+    "nationality": "Армения: знакомый всем",
+    "male": "Арам",
+    "female": "Анаит",
+    "description": "Отношение торговцев растёт в 2 раза быстрее, торговцы получают +20% опыта",
+    "restriction": "Уклонение −5 п.п.",
+    "startDescription": "нож ка-бар",
+    "headwear": "flatcap",
+    "bonuses": {
+      "merchantRelationBonus": 100,
+      "merchantXpBonus": 20,
+      "evasion": -5,
+      "startItems": [
+        {
+          "item": "kaBar",
+          "qty": 1
+        }
+      ]
+    }
+  },
+  "chechen_wrestler": {
+    "id": "chechen_wrestler",
+    "nationality": "Чечня: борец",
+    "male": "Аслан",
+    "female": "Мадина",
+    "description": "Сила +1. Ловкость +1. Точность ближнего оружия +5 п.п. Первое попадание вплотную в каждом бою заменяется броском с прогиба: 20–60 + Сила × 10 урона. Цель пропускает следующий ход.",
+    "restriction": "Интеллект −1. Восприятие −1. получаемый опыт -10%",
+    "startDescription": "Нет",
+    "headwear": "fur",
+    "bonuses": {
+      "attributes": {
+        "strength": 1,
+        "agility": 1,
+        "intelligence": -1,
+        "perception": -1
+      },
+      "meleeAccuracy": 5,
+      "firstCloseThrow": true,
+      "xpPenalty": 10
+    }
+  },
+  "kabarda_negotiator": {
+    "id": "kabarda_negotiator",
+    "nationality": "Кабардин: переговорщик",
+    "male": "Тимур",
+    "female": "Зарина",
+    "description": "Покупка у НПЦ −10%, продажа у НПЦ +10%",
+    "restriction": "Проверки обнаружения ловушек −2.",
+    "startDescription": "кожанка",
+    "headwear": "fur",
+    "bonuses": {
+      "buyPercent": -10,
+      "salePercent": 10,
+      "trapBonus": -2,
+      "startItems": [
+        {
+          "item": "qualityJacket",
+          "qty": 1
+        }
+      ]
     }
   }
 };

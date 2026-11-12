@@ -195,17 +195,21 @@ export function merchantRobberyLoot(state,id){return [...clone(state[id]?.visit?
 export const merchantBribeCost=(state,id)=>Math.max(1,state[id]?.level??1)*300;
 export function buyerPrice(item,qty=1,merchant='yuras',state=null){requireThat(Number.isInteger(ITEMS[typeof item==='string'?item:item.item]?.value),'Цена предмета ещё не задана.');const price=roundRatio(itemValue(item)*qty,MERCHANTS[merchant].buyPercent);return roundRatio(price,tradePercent(state,'salePercent'));}
 export function tradeRelationDelta(modifier,role){const benefit=role==='seller'?modifier:-modifier;return benefit===-15?-1:benefit===15?2:benefit>=10?1:0;}
-export function merchantCooldown(state,id,level=state?.[id]?.level??1,relation=state?.[id]?.relation??0){return Math.round(MERCHANTS[id].cooldown*1.5**(Math.max(1,Math.min(10,level))-1)*(1-.03*Math.max(-10,Math.min(20,relation))));}
+function merchantNationalityBonus(state,key){
+ return state?getHeroes(state).filter(hero=>!hero.dead).reduce((sum,hero)=>sum+(hero.nationalityBonuses?.[key]??0),0):0;
+}
+export function merchantCooldown(state,id,level=state?.[id]?.level??1,relation=state?.[id]?.relation??0){return Math.round(MERCHANTS[id].cooldown*1.5**(Math.max(1,Math.min(10,level))-1)*(1-.03*Math.max(-10,Math.min(20,relation)))*Math.max(0,1-merchantNationalityBonus(state,'merchantCooldownReduction')/100));}
 export function tradeQuote(item,qty,modifier,role,merchant='yuras',state=null){
  const npc=state?.[merchant]??{level:1,xp:0,relation:0};
  const currentRelation=Math.max(-10,Math.min(20,npc.relation??0));
- const relation=Math.max(-10,Math.min(20,currentRelation+tradeRelationDelta(modifier,role)));
+ const delta=tradeRelationDelta(modifier,role);
+ const relation=Math.max(-10,Math.min(20,currentRelation+(delta>0?roundRatio(delta,100+merchantNationalityBonus(state,'merchantRelationBonus')):delta)));
  const base=role==='buyer'?buyerPrice(item,qty,merchant,state):merchant==='duren'
   ? roundRatio(itemValue(item)*qty,tradePercent(state,'buyPercent'))
   : sellerPrice(item,qty,state);
  const relationFactor=200+(role==='seller'?-currentRelation:currentRelation);
  const price=roundRatio(base,(100+modifier)*relationFactor,20000);
- const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier],xp=price/10*effect.xp*(1+.03*relation),preview={level:npc.level??1,xp:npc.xp??0};gainMerchantXp(preview,xp);
+ const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier],xp=price/10*effect.xp*(1+.03*relation)*(1+merchantNationalityBonus(state,'merchantXpBonus')/100),preview={level:npc.level??1,xp:npc.xp??0};gainMerchantXp(preview,xp);
  const shekelPrice=role==='seller'&&item?.currency==='shekel'?Math.max(1,Math.ceil(price/shekelRate(state??{}))):null;
  return {price,shekelPrice,xp,relation,nextLevel:preview.level,cooldown:Math.round(merchantCooldown(state,merchant,preview.level,relation)*effect.cooldown)};
 }
@@ -216,6 +220,7 @@ function strengthHpBonus(hero){
 }
 function refreshNationalityBalance(hero){
  if(!hero)return;const nation=NATIONALITIES[hero.nationalityId];
+ if(hero.nationalityId==='afroamerican_explorer'&&hero.name==='Кофий')hero.name=nation.male;
  if(!nation?.balanceRevision||(hero.nationalityBalanceRevision??0)>=nation.balanceRevision)return;
  const previousMax=effectiveMaxHp(hero),previousHp=hero.hp;
  hero.nationalityBonuses=clone(nation.bonuses);hero.nationalityBalanceRevision=nation.balanceRevision;
@@ -256,6 +261,12 @@ export function restartGame(state,now=Date.now(),random=Math.random){
  fresh.restartAvailableAt=now+RESTART_COOLDOWN_MS;
  fresh.startingMoney=restartQuote(state).money;fresh.money=fresh.startingMoney;fresh.inheritedRebirths=inheritedRebirths(state);fresh.tutorialSeen=clone(state.tutorialSeen??{});fresh.unlockedProfessions=Object.keys(PROFESSIONS).filter(id=>professionUnlocked(state,id));if(state.recipeLevelOrder==='desc')fresh.recipeLevelOrder='desc';return fresh;}
 export const nextHireRebirth=s=>s.shekelFreeHire?{stars:1}:s.inheritedRebirths?.[0];
+export const hireNationalityRerollCost=s=>roundRatio(hireCost(s),10*((s.hireNationalityRerolls??0)+1));
+export function canRerollHireNationalities(s){
+ const offered=new Set((s.nationalityOffers?.hire??[]).map(offer=>offer.id));
+ const used=new Set(s.usedNationalities??[]);
+ return offered.size>0&&Object.keys(NATIONALITIES).some(id=>!used.has(id)&&!offered.has(id));
+}
 export function hireCost(s,nationalityId=null){if(s.shekelFreeHire)return 0;const count=getHeroes(s).filter(hero=>!hero.dead).length;return (count===0?500:1500*2**(count-1))+(NATIONALITIES[nationalityId]?.bonuses.hireCost??0);}
 export function heroTitle(hero){const profession=PROFESSIONS[hero.profession??'saboteur']?.name??'Сталкер',perk=PERKS[hero.startPerk??hero.perk]?.shortName??PERKS[hero.startPerk??hero.perk]?.name;return `${hero.name}${perk?', '+perk.toLocaleLowerCase('ru-RU'):','} ${profession.toLocaleLowerCase('ru-RU')}${rebirthStars(hero)?' '+ '★'.repeat(rebirthStars(hero)):''}`;}
 export const rebirthStars=hero=>Math.max(0,Math.min(5,Math.trunc(hero?.rebirths??0)));
@@ -394,7 +405,7 @@ function paySideJob(state,hero,firstLevel,now){
  addHistory(state,`${hero.name}: «Халтурка», +${reward/10} A.`,now);
 }
 export function nationalityMoneyBonus(hero,money=0){return hero.nationalityBonuses?.questMoneyPercent>0?Math.max(10,roundRatio(money,hero.nationalityBonuses.questMoneyPercent)):0;}
-export function nationalityClaimBonus(hero,job){if(!job||job.kind==='series')return 0;const n=hero.nationalityBonuses??{};if(n.safeMoneyBase&&job.kind!=='rest'&&job.result?.alive!==false&&(job.result?.minimumHp??hero.hp)>=(job.startMaxHp??effectiveMaxHp(hero))*2/3)return n.safeMoneyBase+(job.claimLevel??hero.level)*n.safeMoneyLevel;if(hero.nationalityBonuses?.combatMoneyBase&&job.result?.alive&&(job.result.killed??0)>0)return hero.nationalityBonuses.combatMoneyBase+(job.claimLevel??hero.level)*hero.nationalityBonuses.combatMoneyLevel;if(isCombatRun(job)&&!job.result.alive)return 0;const hasReward=job.kind==='rest'?job.healing>0&&hero.hp<effectiveMaxHp(hero):(job.result.xp??0)>0||(job.result.money??0)>0||Object.values(job.result.loot).some(q=>q>0);return hasReward?nationalityMoneyBonus(hero,job.result?.money??0):0;}
+export function nationalityClaimBonus(hero,job){if(!job||job.kind==='series')return 0;const n=hero.nationalityBonuses??{};if(n.minimumExpeditionBonus&&job.kind!=='rest'&&job.result?.alive!==false)return nationalityMoneyBonus(hero,job.result?.money??0);if(n.safeMoneyBase&&job.kind!=='rest'&&job.result?.alive!==false&&(job.result?.minimumHp??hero.hp)>=(job.startMaxHp??effectiveMaxHp(hero))*2/3)return n.safeMoneyBase+(job.claimLevel??hero.level)*n.safeMoneyLevel;if(hero.nationalityBonuses?.combatMoneyBase&&job.result?.alive&&(job.result.killed??0)>0)return hero.nationalityBonuses.combatMoneyBase+(job.claimLevel??hero.level)*hero.nationalityBonuses.combatMoneyLevel;if(isCombatRun(job)&&!job.result.alive)return 0;const hasReward=job.kind==='rest'?job.healing>0&&hero.hp<effectiveMaxHp(hero):(job.result.xp??0)>0||(job.result.money??0)>0||Object.values(job.result.loot).some(q=>q>0);return hasReward?nationalityMoneyBonus(hero,job.result?.money??0):0;}
 export function claimBonus(hero,job){if((hero.perk!=='greedy'&&!hasLevelPerk(hero,'greedy'))||!job)return 0;let level=hero.level,hasReward=false;
  if(job.kind==='series'){if(job.worker.dead)return 0;level=job.worker.level;hasReward=job.xp>0||job.money>0||Object.values(job.loot).some(q=>q>0)||job.location==='rest'&&job.completed>0;}
  else if(job.kind==='rest')hasReward=job.healing>0&&hero.hp<effectiveMaxHp(hero);
@@ -504,9 +515,9 @@ export function heroConfig(s,hero=s.hero,location=hero?.job?.location??hero?.job
  if(chosen.perk==='engineer-shooter')c.hero.rangedAccuracyBonus=5;
  if(chosen.perk==='engineer-armorer')c.hero.physicalArmorBonus=(c.hero.physicalArmorBonus??0)+10;
 }
-Object.assign(c.hero,{nationality:clone(h.nationalityBonuses??{}),medicineBonus:h.nationalityBonuses?.medicineBonus??0});c.hero.initiative+=h.nationalityBonuses?.initiative??0;c.hero.evasion+=h.nationalityBonuses?.evasion??0;c.hero.accuracy+=h.hobby?.option==='accuracy'?5:0;c.hero.accuracy-=ITEMS[h.body]?.accuracyPenalty??0;c.hero.maxHp=effectiveMaxHp(h);c.hero.currentHp=h.hp;c.hero.evasionBonusCap=ITEMS[h.body]?.evasionBonusCap;c.hero.ricochet=itemRicochet({item:h.body,...h.bodyDetails});c.hero.autoStimulator=Boolean(h.body&&hasAutoStimulator(h.bodyDetails));c.hero.missionTimePenaltyPercent=ITEMS[h.body]?.missionTimePenaltyPercent??0;c.hero.regeneration=h.mark==='regeneration'?3:0;c.hero.darkGrasp=h.mark==='darkGrasp';c.hero.firstHitArmor=h.body?firstHitArmor(h.bodyDetails):0;c.hero.armor=(h.body?itemArmor({...h.bodyDetails,item:h.body}):0)+(c.hero.physicalArmorBonus??0);c.hero.thorns=itemThorns(h.bodyDetails);c.hero.thermalArmor=(h.body?itemThermalArmor({item:h.body,...h.bodyDetails}):0)+(c.hero.thermalArmorBonus??0);c.hero.radiationProtection=itemRadiationProtection({item:h.body,...h.bodyDetails})+itemRadiationProtection({item:h.accessory,...h.accessoryDetails});c.hero.armor+=h.nationalityBonuses?.armor??0;c.hero.thermalArmor+=(h.nationalityBonuses?.thermalArmor??0)+(h.hobby?.option==='thermal'?10:0);c.hero.radiationProtection+=(h.nationalityBonuses?.radiationProtection??0)+(h.levelPerks??[]).reduce((sum,choice)=>sum+(LEVEL_PERKS[choice.perk]?.radiationProtectionBonus??0),0);c.hero.meleeAccuracyBonus=(ITEMS[h.body]?.meleeAccuracyBonus??0)+(h.nationalityBonuses?.meleeAccuracy??0)+(c.hero.earMeleeAccuracy??0);c.hero.meleeDamageBonus=(c.hero.meleeDamageBonus??0)+(h.nationalityBonuses?.meleeDamage??0);c.hero.rangedAccuracyBonus=(c.hero.rangedAccuracyBonus??0);c.hero.pistolDamageBonus=h.nationalityBonuses?.pistolDamage??0;const weapon=ITEMS[h.weapon];const spec=(item,details,familiarity=0)=>{
+Object.assign(c.hero,{nationality:clone(h.nationalityBonuses??{}),medicineBonus:h.nationalityBonuses?.medicineBonus??0});c.hero.initiative+=h.nationalityBonuses?.initiative??0;c.hero.evasion+=h.nationalityBonuses?.evasion??0;c.hero.accuracy+=h.hobby?.option==='accuracy'?5:0;c.hero.accuracy-=ITEMS[h.body]?.accuracyPenalty??0;c.hero.maxHp=effectiveMaxHp(h);c.hero.currentHp=h.hp;c.hero.evasionBonusCap=ITEMS[h.body]?.evasionBonusCap;c.hero.ricochet=itemRicochet({item:h.body,...h.bodyDetails});c.hero.autoStimulator=Boolean(h.body&&hasAutoStimulator(h.bodyDetails));c.hero.missionTimePenaltyPercent=ITEMS[h.body]?.missionTimePenaltyPercent??0;c.hero.regeneration=h.mark==='regeneration'?3:0;c.hero.darkGrasp=h.mark==='darkGrasp';c.hero.firstHitArmor=h.body?firstHitArmor(h.bodyDetails):0;c.hero.armor=(h.body?itemArmor({...h.bodyDetails,item:h.body}):0)+(c.hero.physicalArmorBonus??0);c.hero.thorns=itemThorns(h.bodyDetails);c.hero.thermalArmor=(h.body?itemThermalArmor({item:h.body,...h.bodyDetails}):0)+(c.hero.thermalArmorBonus??0);c.hero.radiationProtection=itemRadiationProtection({item:h.body,...h.bodyDetails})+itemRadiationProtection({item:h.accessory,...h.accessoryDetails});c.hero.armor+=h.nationalityBonuses?.armor??0;c.hero.thermalArmor+=(h.nationalityBonuses?.thermalArmor??0)+(h.hobby?.option==='thermal'?10:0);c.hero.radiationProtection+=(h.nationalityBonuses?.radiationProtection??0)+(h.levelPerks??[]).reduce((sum,choice)=>sum+(LEVEL_PERKS[choice.perk]?.radiationProtectionBonus??0),0);c.hero.meleeAccuracyBonus=(ITEMS[h.body]?.meleeAccuracyBonus??0)+(h.nationalityBonuses?.meleeAccuracy??0)+(c.hero.earMeleeAccuracy??0);c.hero.meleeDamageBonus=(c.hero.meleeDamageBonus??0)+(h.nationalityBonuses?.meleeDamage??0);c.hero.rangedAccuracyBonus=(c.hero.rangedAccuracyBonus??0);c.hero.pistolDamageBonus=h.nationalityBonuses?.pistolDamage??0;c.hero.criticalChance+=(c.hero.nationality.criticalBonus??0);c.hero.stealthCheckBonus=(c.hero.stealthCheckBonus??0)+(c.hero.nationality.stealthBonus??0);const weapon=ITEMS[h.weapon];const spec=(item,details,familiarity=0)=>{
  if(!item)return null;
- const {combat,weaponClass,min,max,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,bayonet,closeAccuracyBonus}=ITEMS[item];
+ const {combat,weaponClass,secondaryWeaponClass,min,max,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,bayonet,closeAccuracyBonus}=ITEMS[item];
  const upgrades=details?.upgrades??[];
  const heavyAccuracy=weaponClass==='heavy'?(c.hero.heavyAccuracyBonus??0):0;
  const bonuses=(type,range)=>upgrades.filter(u=>!bayonet||(RECIPES[u.recipe]?.target??'melee')===type)
@@ -514,7 +525,7 @@ Object.assign(c.hero,{nationality:clone(h.nationalityBonuses??{}),medicineBonus:
    min:out.min+(u.minBonus??0),max:out.max+(u.maxBonus??0),
    bonus:out.bonus+(u.bonus??0),accuracyBonus:out.accuracyBonus+(u.accuracyBonus??0)
   }),{min:range.min+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)+heavyAccuracy});
- return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
+ return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,secondaryWeaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
   bayonet:bayonet?{item,type:'melee',isBayonet:true,...bonuses('melee',bayonet)}:null};
 };c.hero.heavyAmmo=h.heavyAmmo??0;c.hero.weapons={main:spec(h.weapon,h.weaponDetails,h.weaponFamiliarity??0),ranged:spec(h.rangedWeapon,h.rangedWeaponDetails,h.rangedWeaponFamiliarity??0)};if(heroHasDualWield(h)&&c.hero.weapons.ranged?.type==='melee'){c.hero.dualWield=true;c.hero.dualWieldAccuracyPenalty=10;c.hero.weapons.ranged.noStrength=true;}c.hero.weaponType=weapon?.combat??'melee';c.hero.weaponMin=weapon?.min??10;c.hero.weaponMax=weapon?.max??30;c.hero.weaponBonus=(h.weaponDetails?.upgrades??[]).reduce((sum,u)=>sum+(u.bonus??0),0);if(h.wounds>0){c.hero.accuracy-=10; // Separate percentile penalty is not stacked until rules are clarified.
  c.hero.checkPenalty=2;c.hero.initiative-=2;
@@ -644,6 +655,14 @@ function spendStrengthBonus(hero){
 }
 function locationXpPenalty(heroLevel,kind){return Math.min(100,10*Math.max(0,heroLevel-(LOCATION_LEVELS[kind]??1)-2));}
 export function locationExperience(xp,heroLevel,kind){return Math.max(1,roundRatio(xp,100-locationXpPenalty(heroLevel,kind)));}
+function ordinaryLocationLoot(kind,result){
+ const common={mission:CONFIG.loot,patrol:PATROL.loot,caravan:CARAVAN.loot,technopark:TECHNOPARK.loot};
+ if(common[kind])return common[kind].map(entry=>entry.id);
+ if(kind==='surfaceShops')return [...new Set([...SURFACE_SHOPS.caches.flatMap(cache=>Object.keys(cache.loot)),...SURFACE_SHOPS.bonusLoot.map(entry=>entry.item)])];
+ if(kind==='surface')return [...new Set(SURFACE.tiers.flatMap(tier=>tier.loot.map(entry=>entry.item??entry.id)).filter(Boolean))];
+ if(kind==='zilTunnels')return Object.keys(result.loot);
+ return [];
+}
 function makeRun(s,hero,kind,at,seed,allowSpecial=true){
  startStimulant(hero,kind);const config=heroConfig(s,hero,kind),run=createRun(s,hero,kind,at,seed,allowSpecial,config);
  if(heavyAmmoWeapon(hero)&&run.result){
@@ -651,6 +670,15 @@ function makeRun(s,hero,kind,at,seed,allowSpecial=true){
   run.result.heavyAmmoSpent=(hero.heavyAmmo??0)-config.hero.heavyAmmo;
  }run.claimLevel=hero.level;run.startMaxHp=effectiveMaxHp(hero);if(run.result)run.result.minimumHp=Math.min(hero.hp,run.result.hp??hero.hp,run.result.minimumHp??Infinity,...(run.result.battles??[]).map(b=>b.minimumHp??b.hp));if(hero.activeStimulant)run.stimulant=true;if(run.result?.alive!==false&&run.result){const n=hero.nationalityBonuses??{};if((run.result.money??0)>0){const combat=(run.result.battles?.length??0)>0;run.result.money=roundRatio(run.result.money,100+(n.questMoneyPercent<0?n.questMoneyPercent:0)+(combat?0:n.noncombatMoneyPercent??0));}}
  if(run.result&&run.result.alive!==false){
+  const chance=hero.nationalityBonuses?.extraLootChance??0;
+  if(chance&&isCombatJob(kind)){
+   const random=rng(seed^0x9e3779b9),pool=ordinaryLocationLoot(kind,run.result);
+   if(pool.length&&random.int(1,100)<=chance){
+    const item=pool[random.int(0,pool.length-1)];
+    run.result.loot[item]=(run.result.loot[item]??0)+1;
+    (run.result.events??=[]).push({type:'дополнительная добыча',item});
+   }
+  }
   if(hero.mark==='regeneration'){
    const before=run.result.hp??hero.hp;run.result.hp=effectiveMaxHp({...hero,radiation:(hero.radiation??0)+(run.result.radiation??0)});
    (run.result.events??=[]).push({type:'восстановление метки',healing:Math.max(0,run.result.hp-before),hp:run.result.hp});
@@ -1220,10 +1248,10 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   if(choice.resolve==='leftTrap'){
    if(active.leftTrapResolved){active.history.push({node:active.node,next:'leftStash'});active.node='leftStash';break;}
    const target=s.heroes.find(h=>h.id===(active.formation?.front??active.heroIds[0]));requireThat(target&&!target.dead,'Передний герой недоступен.');const h=heroConfig(s,target,'surface').hero,rolls=rng(Math.floor(random()*4294967296)),events=[];
-   h.perceptionRerollUsed=Boolean(active.perceptionRerolls?.[target.id]);const check=perceptionCheck(h,rolls,h.perception+(h.perceptionCheckBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),13,{events});if(h.perceptionRerollUsed)(active.perceptionRerolls??={})[target.id]=true;
+   h.perceptionRerollUsed=Boolean(active.perceptionRerolls?.[target.id]);const check=perceptionCheck(h,rolls,h.perception+(h.perceptionCheckBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.nationality?.trapBonus??0)-(h.checkPenalty??0),13,{events});if(h.perceptionRerollUsed)(active.perceptionRerolls??={})[target.id]=true;
    active.leftTrapResolved=true;active.lastChecks=[{heroId:target.id,name:target.name,attribute:'Обнаружение ловушки',...check,dc:13}];
    if(check.success){active.loot??={};active.loot.molotov=(active.loot.molotov??0)+1;events.push({type:'событие отряда',text:'О, ловушка найдена! Молотов добавлен к добыче.'});}
-   else for(let tick=1;tick<=2&&target.hp>0;tick++){const roll=rolls.int(1,20),agility=h.agility-(h.checkPenalty??0),dodged=roll+agility>ITEMS.molotov.dodgeDc,raw=rolls.int(ITEMS.molotov.min,ITEMS.molotov.max),armor=h.thermalArmor+(tick===1?(h.firstHitArmor??0):0),damage=Math.max(1,raw*(dodged?.5:1)-armor);target.hp=Math.max(0,target.hp-damage);events.push({type:'событие отряда',text:target.name+': огонь Молотова '+tick+' — уворот '+roll+' + '+agility+' против 13; '+damage+' термического урона, '+target.hp+' HP.'});}
+   else for(let tick=1;tick<=2&&target.hp>0;tick++){const roll=rolls.int(1,20),agility=h.agility+(h.nationality?.grenadeDodge??0)-(h.checkPenalty??0),dodged=roll+agility>ITEMS.molotov.dodgeDc,raw=rolls.int(ITEMS.molotov.min,ITEMS.molotov.max),armor=h.thermalArmor+(tick===1?(h.firstHitArmor??0):0),damage=Math.max(1,raw*(dodged?.5:1)-armor);target.hp=Math.max(0,target.hp-damage);events.push({type:'событие отряда',text:target.name+': огонь Молотова '+tick+' — уворот '+roll+' + '+agility+' против 13; '+damage+' термического урона, '+target.hp+' HP.'});}
    const combat={kind:'trap',heroes:active.heroIds.map(id=>{const hero=s.heroes.find(h=>h.id===id);return {...heroConfig(s,hero,'surface').hero,id,name:hero.name,hp:hero.hp,dead:hero.hp<=0};}),enemies:[],events,status:'victory',order:[],nextNode:'leftStash',experience:0,lootClaimed:true,heroIds:[...active.heroIds]};active.pendingCombat=combat;active.history.push({node:active.node,next:'leftStash',check});
    if(target.hp<=0){target.dead=true;combat.status='running';updatePartyCasualties(combat);if(combat.status==='defeat')finishLostInteractiveMission(s,active,'defeat',now);}else prepareInteractiveRecovery(s);break;
   }
@@ -1245,6 +1273,13 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   const from=active.node;active.node=choice.resolve==='stealth'?(success?'bridge':'guardBattle'):(success?'sewerHatch':'alleyDeadEnd');
   active.lastChecks=checks;(active.history??=[]).push({node:from,choice:choice.id,seed,checks,next:active.node});
   if(active.node==='guardBattle'){const fighters=heroes.map(hero=>({...heroConfig(s,hero,'surface').hero,id:hero.id,name:hero.name,hp:hero.hp,dead:hero.dead,grenades:hero.grenades??0,molotovs:hero.molotovs??0,tinGrenades:hero.tinGrenades??0}));active.pendingCombat={...preparePartyCombat(fighters,Array.from({length:5},()=>clone(TECHNOPARK.enemy)),rolls),heroIds:[...active.heroIds],nextNode:'bridge'};}
+  break;
+ }
+ case 'rerollHireNationalities':{
+  requireThat(canRerollHireNationalities(s),'Других национальностей для переброса нет.');
+  pay(s,hireNationalityRerollCost(s));
+  prepareNationalityOffers(s,random,'hire',true);
+  s.hireNationalityRerolls=(s.hireNationalityRerolls??0)+1;
   break;
  }
  case 'prepareNationalities':{prepareNationalityOffers(s,random,action.target??'hire');break;}
@@ -1296,7 +1331,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   break;
  }
  case 'chooseLevelPerk':{const hero=idleHero(s,true),slots=availablePerkLevels(hero),perk=LEVEL_PERKS[action.perk];requireThat(slots.length,'Нет доступного выбора перка.');requireThat(levelPerkOptions(hero).some(p=>p.id===action.perk),'Этот перк недоступен.');if(slots[0]===null)hero.extraPerkChoices--;hero.levelPerks=[...(hero.levelPerks??[]),{level:slots[0],perk:action.perk,pickedAtLevel:hero.level}];if(perk.attributeBonus){hero.maxHp=heroMaximumHp(hero);hero.hp=Math.min(hero.hp,effectiveMaxHp(hero));}if(action.perk==='hunter-familiarity')gainFamiliarity(hero);if(perk.maxHpBonus)hero.maxHp+=perk.maxHpBonus;if(perk.clearsRadiation)hero.radiation=0;if(action.perk==='enduring')hero.maxHp+=30;if(perk.hpBonus){hero.maxHp+=perk.hpBonus;hero.hp=Math.min(effectiveMaxHp(hero),hero.hp+perk.hpBonus);}if(action.perk==='engineer-side-job')paySideJob(s,hero,hero.level,now);addHistory(s,`${hero.name}: выбран перк «${perk.name}».`,now);break;}
- case 'hire':{const profession=action.profession??'saboteur',p=PROFESSIONS[profession];requireThat(professionUnlocked(s,profession),profession==='hunter'?'Охотник открывается после знакомства с Дурнем.':profession==='bandit'?'Бандит открывается после знакомства с Пиками или Червями.':'Эта профессия пока недоступна для найма.');requireThat(p.startReady!==false,'Стартовое снаряжение и точность инженера ещё не заданы.');requireThat(p.perks.includes(action.perk),'Выбери стартовый перк этой профессии.');const offer=action.nationalityId?nationalityOffer(s,action,'hire'):null;const identity=offer?{...NATIONALITIES[offer.id],name:NATIONALITIES[offer.id][offer.gender],gender:offer.gender}:action.identity?IDENTITIES[action.identity]:null;requireThat(!action.identity||identity,'Выбери имя и национальность.');pay(s,hireCost(s,action.nationalityId));const inheritance=s.shekelFreeHire?nextHireRebirth(s):s.inheritedRebirths?.shift(),number=s.heroes.length+1,maxHp=120+30*p.strength+(identity?.bonuses?.hp??0);const hero={id:uid(),profession,identityId:action.identity??null,gender:identity?.gender??'male',headwear:identity?.headwear??null,nationality:identity?.nationality??null,nationalityBonuses:clone(identity?.bonuses??{}),name:identity?.name??(number===1?p.name:`${p.name} №${number}`),level:1,xp:0,maxHp,hp:maxHp,perk:action.perk,startPerk:action.perk,weapon:p.weapon,rangedWeapon:p.rangedWeapon??null,body:null,bandages:0,dead:false,wounds:0,job:null};if(offer)applyNationality(s,hero,action,'hire');hero.weaponDetails={origin:'start'};if(s.playerRole==='sova'&&profession==='saboteur')hero.rewardPerkUnlocks=['dual-wield'];if(inheritance){hero.rebirths=inheritance.stars;const choices=action.inheritanceAttributes??[];requireThat(Array.isArray(choices)&&choices.length===inheritance.stars,'Выбери параметр за каждую унаследованную звезду.');hero.rebirthAttributes={};for(const key of choices){requireThat(['strength','agility','intelligence','perception'].includes(key),'Выбери параметр наследования.');requireThat(heroAttributes(hero)[key]<10,'Параметр уже достиг максимума 10.');hero.rebirthAttributes[key]=(hero.rebirthAttributes[key]??0)+1;}hero.maxHp=heroMaximumHp(hero);hero.hp=hero.maxHp;}hero.maxHp=heroMaximumHp(hero);hero.hp=effectiveMaxHp(hero);s.heroes.push(hero);s.shekelFreeHire=false;s.hero=hero;s.selectedHeroId=hero.id;addHistory(s,`${hero.name} (${p.name}) принят на станцию.`,now);break;}
+ case 'hire':{const profession=action.profession??'saboteur',p=PROFESSIONS[profession];requireThat(professionUnlocked(s,profession),profession==='hunter'?'Охотник открывается после знакомства с Дурнем.':profession==='bandit'?'Бандит открывается после знакомства с Пиками или Червями.':'Эта профессия пока недоступна для найма.');requireThat(p.startReady!==false,'Стартовое снаряжение и точность инженера ещё не заданы.');requireThat(p.perks.includes(action.perk),'Выбери стартовый перк этой профессии.');const offer=action.nationalityId?nationalityOffer(s,action,'hire'):null;const identity=offer?{...NATIONALITIES[offer.id],name:NATIONALITIES[offer.id][offer.gender],gender:offer.gender}:action.identity?IDENTITIES[action.identity]:null;requireThat(!action.identity||identity,'Выбери имя и национальность.');pay(s,hireCost(s,action.nationalityId));const inheritance=s.shekelFreeHire?nextHireRebirth(s):s.inheritedRebirths?.shift(),number=s.heroes.length+1,maxHp=120+30*p.strength+(identity?.bonuses?.hp??0);const hero={id:uid(),profession,identityId:action.identity??null,gender:identity?.gender??'male',headwear:identity?.headwear??null,nationality:identity?.nationality??null,nationalityBonuses:clone(identity?.bonuses??{}),name:identity?.name??(number===1?p.name:`${p.name} №${number}`),level:1,xp:0,maxHp,hp:maxHp,perk:action.perk,startPerk:action.perk,weapon:p.weapon,rangedWeapon:p.rangedWeapon??null,body:null,bandages:0,dead:false,wounds:0,job:null};if(offer)applyNationality(s,hero,action,'hire');hero.weaponDetails={origin:'start'};if(s.playerRole==='sova'&&profession==='saboteur')hero.rewardPerkUnlocks=['dual-wield'];if(inheritance){hero.rebirths=inheritance.stars;const choices=action.inheritanceAttributes??[];requireThat(Array.isArray(choices)&&choices.length===inheritance.stars,'Выбери параметр за каждую унаследованную звезду.');hero.rebirthAttributes={};for(const key of choices){requireThat(['strength','agility','intelligence','perception'].includes(key),'Выбери параметр наследования.');requireThat(heroAttributes(hero)[key]<10,'Параметр уже достиг максимума 10.');hero.rebirthAttributes[key]=(hero.rebirthAttributes[key]??0)+1;}hero.maxHp=heroMaximumHp(hero);hero.hp=hero.maxHp;}hero.maxHp=heroMaximumHp(hero);hero.hp=effectiveMaxHp(hero);s.heroes.push(hero);s.hireNationalityRerolls=0;s.shekelFreeHire=false;s.hero=hero;s.selectedHeroId=hero.id;addHistory(s,`${hero.name} (${p.name}) принят на станцию.`,now);break;}
  case 'setRepeatPreferences':{requireThat(h,'Сначала выбери героя.');const {location,total,threshold}=action;requireThat(['mission','help','rest','patrol','technopark','caravan','surface','zilTunnels','surfaceShops'].includes(location),'Нет такой локации.');requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([50,30,15].includes(threshold),'Выбери порог здоровья.');h.repeatPreferences={...h.repeatPreferences,[location]:{total,threshold}};break;}
  case 'startSeries':{const hero=idleHero(s),kind=action.location,total=action.total,threshold=action.threshold;requireThat(['mission','patrol','help','technopark','caravan','surface','zilTunnels','surfaceShops'].includes(kind),'Нет такой локации.');requireFreeLocation(s,kind);requireThat(!activeSpecialLocation(s,kind),'Особую локацию можно пройти только один раз за появление.');requireLocationLevel(hero,kind);requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([50,30,15].includes(threshold),'Выбери порог здоровья.');requireThat(hero.hp/effectiveMaxHp(hero)>=threshold/100,'Здоровье уже ниже выбранного порога.');const seeds=Array.from({length:total},()=>Math.floor(random()*4294967296)),worker=clone(hero);worker.job=null;const run=makeRun(s,worker,kind,now,seeds[0]);hero.repeatPreferences={...hero.repeatPreferences,[kind]:{total,threshold}};hero.job={kind:'series',location:kind,total,threshold,seeds,worker,initial:clone(worker),run,phase:'running',completed:0,loot:{},money:0,nationalityBonus:0,xp:0,reports:[],startedAt:now,endsAt:run.endsAt};addHistory(s,`Серия: ${locationName(kind)}, ${total} прохождений.`,now);break;}
  case 'stopSeries':{requireThat(h?.job?.kind==='series'&&h.job.phase==='break','Прервать можно только во время передышки.');stopSeries(h.job,'Остановлено игроком');break;}
@@ -1807,11 +1842,15 @@ export function nationalityOffer(state,action,target='hire'){
  const offer=state.nationalityOffers?.[target]?.find(o=>o.id===action.nationalityId);
  requireThat(offer&&NATIONALITIES[offer.id]&&!(state.usedNationalities??[]).includes(offer.id),'Этот вариант национальности недоступен. Открой выбор заново.');return offer;
 }
-export function prepareNationalityOffers(state,random=Math.random,target='hire'){
+export function prepareNationalityOffers(state,random=Math.random,target='hire',reroll=false){
  state.nationalityOffers??={};const used=new Set(state.usedNationalities??[]);
- const previous=state.nationalityOffers[target];if(previous?.length&&previous.every(o=>NATIONALITIES[o.id]&&!used.has(o.id)))return previous;
+ const previous=state.nationalityOffers[target];if(!reroll&&previous?.length&&previous.every(o=>NATIONALITIES[o.id]&&!used.has(o.id)))return previous;
  const pool=Object.keys(NATIONALITIES).filter(id=>!used.has(id));
  for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+ if(reroll){
+  const previousIds=new Set((previous??[]).map(offer=>offer.id));
+  pool.sort((a,b)=>Number(previousIds.has(a))-Number(previousIds.has(b)));
+ }
  return state.nationalityOffers[target]=pool.slice(0,5).map(id=>({id,gender:random()<.5?'male':'female'}));
 }
 function applyNationality(state,hero,action,target){

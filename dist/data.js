@@ -1,6 +1,6 @@
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
- velocipedel:{name:'Велосипедель',type:'weapon',combat:'ranged',weaponClass:'heavy',damageType:'physical',min:20,max:140,shots:6,shotPenalty:30,rangedSlotOnly:true,usesHeavyAmmo:true,stack:false,value:1400,rarity:'rare',icon:'velocipedel',description:'Тяжёлый дробовик. Очередь из 6 выстрелов на любой дистанции, −30 п.п. точности. Каждый выстрел расходует один патрон.'},
+ velocipedel:{name:'Велосипедель',type:'weapon',combat:'ranged',weaponClass:'heavy',secondaryWeaponClass:'shotgun',damageType:'physical',min:20,max:140,shots:6,shotPenalty:30,rangedSlotOnly:true,usesHeavyAmmo:true,stack:false,value:1400,rarity:'rare',icon:'velocipedel',description:'Тяжёлый дробовик. Очередь из 6 выстрелов на любой дистанции, −30 п.п. точности. Каждый выстрел расходует один патрон.'},
  slugShotgun:{name:'Убойник',type:'weapon',combat:'ranged',weaponClass:'shotgun',damageType:'physical',min:30,max:170,maxDistance:3,stack:false,value:1500,icon:'shotgun',description:'Дробовик. 30–170 физического урона. Дистанция 0–3, один выстрел за ход.'},
  ppsh:{name:'ПП Шпагина',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:10,max:110,maxDistance:1,shots:10,shotPenalty:25,jamChance:10,stack:false,value:2500,icon:'smg',description:'10–110 физического урона, дистанция 0–1. Очередь из 10 выстрелов, каждый со штрафом −25 п.п. точности. Шанс заклинить в начале хода — 10%.'},
  nailGun:{name:'Гвоздемёт',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:30,max:160,maxDistance:2,shots:3,shotPenalty:20,stack:false,value:2000,icon:'rifle',description:'30–160 физического урона, дистанция 0–2. Очередь из 3 выстрелов, каждый со штрафом −20 п.п. точности.'},
@@ -791,6 +791,7 @@ export const ZIL_TUNNELS={
 
 export const SURFACE_SHOPS={
  name:'Осмотреть ближайшие магазины', unlockedBy:'surface', filtersPerHero:2, seconds:100,
+ trapItem:'tinGrenade', radiationMax:4,
  description:'За разбитыми витринами торгового ряда видны продуктовый, хозяйственный и аптека. Ищи припасы и берегись собак, мародёров и растяжек.',
  baseXp:0, dogXp:0, guardXp:0, dog:SURFACE.dog, dogMaxCount:3, enemyGroup:ZIL_TUNNELS.bandits,
  tiers:[
@@ -798,7 +799,7 @@ export const SURFACE_SHOPS={
   {dc:13,text:'У витрин хозяйничают мародёры.',hidden:'Герой обходит мародёров через служебный вход.',spotted:'Двое мародёров перекрывают проход.',loot:[]},
   {dc:18,text:'За дверью подсобки может быть растяжка.',loot:[]}
  ],
- bonusLoot:[{item:'electronicParts',chance:35}],
+ bonusLoot:[{item:'electronicParts',chance:35},{item:'intactBook',chance:10}],
  caches:[
   {rollMax:40,name:'Продуктовый',xp:45,money:550,loot:{metalParts:2,strongTape:1}},
   {rollMax:80,name:'Хозяйственный',xp:55,money:500,loot:{armorPlates:2,metalParts:1}},

@@ -23,6 +23,7 @@ export function decidePartyCasualty(combat,decision){
  if(combat.status!=='casualty'||!combat.casualtyDecision)throw Error('Сейчас нет выбора после потери героя.');
  if(!['escape','fight'].includes(decision))throw Error('Выбери: сбежать или продолжить бой.');
  combat.events.push({type:'потеря отряда',text:decision==='escape'?'Вы отступаете, оставив поверженного товарища.':'Вы остаётесь и сражаетесь до последнего.'});
+ if(decision==='escape')for(const hero of combat.heroes){applyDelayedDamage(combat,hero);if(hero.hp<=0)hero.dead=true;}
  combat.status=decision==='escape'?'escaped':'running';delete combat.casualtyDecision;return combat.status;
 }
 
@@ -50,11 +51,31 @@ export function partyHeroTarget(hero,combat){
 export function partyBattleExperience(combat){return combat.enemies.filter(e=>e.hp<=0).reduce((xp,e)=>xp+(e.experience??TECHNOPARK.enemy.experience),0);}
 export const formatPartyLogText=text=>String(text).replace(/-?\d+\.\d+/g,value=>Number(value).toLocaleString('ru-RU',{maximumFractionDigits:1,useGrouping:false}));
 function say(c,text){c.events.push({type:'событие отряда',turn:c.round,text:formatPartyLogText(text)});}
-function armorDamage(c,target,raw,type,random,piercing=false){
+function applyDelayedDamage(combat,hero){
+ if(!hero.delayedDamage)return;
+ hero.hp=Math.max(0,hero.hp-hero.delayedDamage);
+ say(combat,`${hero.name}: отложенный урон ${hero.delayedDamage}.`);
+ delete hero.delayedDamage;
+}
+function armorDamage(c,target,raw,type,random,piercing=false,preview=false){
  let armor=piercing?0:type==='thermal'?(target.thermalArmor??0):(target.armor??0);
  if(!piercing&&target.firstHitArmor&&!target.paddingSpent){armor+=target.firstHitArmor;target.paddingSpent=true;say(c,target.name+': ватник слетает.');}
  let damage=damageAfterArmor(raw,armor);
  if(target.halveHeavyHit&&!target.heavyHitUsed&&damage>target.maxHp*.25){damage/=2;target.heavyHitUsed=true;}
+ if(preview)return damage;
+ return applyPartyDamage(c,target,damage,random);
+}
+function applyPartyDamage(c,target,damage,random){
+ const nationality=target.nationality;
+ if(!target.firstDamageTaken&&(nationality?.delayFirstDamage||nationality?.firstDamageReduction)){
+  target.firstDamageTaken=true;
+  if(nationality.delayFirstDamage){
+   target.delayedDamage=damage*.75;
+   say(c,`${target.name}: ${target.delayedDamage} урона отложено.`);
+   return 0;
+  }
+  damage=Math.max(0,damage-nationality.firstDamageReduction);
+ }
  target.hp=Math.max(0,target.hp-damage);
  if(target.emergencyHeal&&!target.emergencyHealUsed&&target.hp<target.maxHp*.3){target.emergencyHealUsed=true;target.hp=Math.min(target.maxHp,target.hp+nationalityHealing(target,30+7*target.strength));say(c,target.name+': Живучий Уб восстанавливает здоровье.');}
  const auto=applyAutoStimulator({hero:target},random,target.hp,target);
@@ -68,12 +89,20 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false){
  const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);let damage=0;
  if(hero&&weapon.type==='ranged'){actor.firstRangedSpent=true;actor.correctionShots=actor.correctionTarget===target.id?(actor.correctionShots??0)+1:1;actor.correctionTarget=target.id;}
  if(hero&&weapon.type==='melee')actor.firstMeleeSpent=true;if(hit&&!hero){target.woundedInBattle=true;const n=target.nationality??{};target.berserkDamage=Math.min(n.berserkCap??0,(target.berserkDamage??0)+(n.berserkOnHit??0));}if(hit&&!hero)(actor.hurtHeroIds??=[]).push(target.id);
- if(hit)for(let n=0;n<(weapon.damageRolls??1);n++){
-  let raw=random.int(weapon.min,weapon.max)+(stats?stats.bonus-stats.damagePenalty:0);raw*=stats?.damageMultiplier??1;if(critical)raw*=1.5;
+ const closeBonus=hero&&distance===0&&!actor.firstCloseAttackSpent&&actor.nationality?.firstCloseDamage?random.int(10,40):0;
+ if(hero&&distance===0)actor.firstCloseAttackSpent=true;
+ const wrestlingThrow=hero&&hit&&distance===0&&actor.nationality?.firstCloseThrow&&!actor.throwUsed;
+ const aggregate=!hero&&(target.nationality?.firstDamageReduction||target.nationality?.delayFirstDamage);
+ if(wrestlingThrow){
+  actor.throwUsed=true;target.skipNextTurn=true;
+  damage=armorDamage(c,target,random.int(20,60)+actor.strength*10,'physical',random);
+ }else if(hit)for(let n=0;n<(weapon.damageRolls??1);n++){
+  let raw=random.int(weapon.min,weapon.max)+(stats?stats.bonus-stats.damagePenalty:0)+(n===0?closeBonus:0);raw*=stats?.damageMultiplier??1;if(critical)raw*=1.5;
   if(critical&&!hero)raw*=1-(target.nationality?.criticalDamageReductionPercent??0)/100;
-  damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing);
+  damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate);
  }
- say(c,`${actor.name} → ${target.name}: ${weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':'промах'}.`);
+ if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
+ say(c,`${actor.name} → ${target.name}: ${wrestlingThrow?'бросок с прогиба':weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':'промах'}.`);
  if(hit&&weapon.type==='melee'&&target.thorns){
   const reflected=random.int(target.thorns.min,target.thorns.max);
   actor.hp=Math.max(0,actor.hp-reflected);
@@ -90,7 +119,7 @@ function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=n
  const living=opponents.filter(target=>target.hp>0&&(!grenadeTargets||grenadeTargets.includes(target.id)));
  const targets=actor.kind==='bandit'&&underfoot?[]:dark?(darkTarget?[darkTarget]:[]):living;
  if(underfoot||repeat&&actor.burningSelf)targets.push(actor);
- for(const target of targets){const dodge=random.int(1,20)+(target.agility??target.stealth??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
+ for(const target of targets){const dodge=random.int(1,20)+(target.agility??target.stealth??0)+(dark?0:target.nationality?.grenadeDodge??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
  if(item==='molotov'&&!repeat){actor.burningRound=c.round+1;actor.burningSelf=underfoot;actor.burningTargets=grenadeTargets;}
 }
 function tryHeroGrenade(combat,hero,random){
@@ -128,10 +157,17 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   if(updatePartyCasualties(combat)!=='running')return combat;
  }
  for(let count=0;count<maxActors;count++){
-  if(!combat.enemies.some(e=>e.hp>0)){combat.status='victory';combat.experience=partyBattleExperience(combat);return combat;}
-  if(combat.actorIndex>=combat.order.length&&!combat.pendingActor){combat.actorIndex=0;combat.round++;}if(combat.round>300){combat.status='limit';say(combat,'Бой остановлен: достигнут предел 300 раундов.');return combat;}
+  if(combat.status!=='running')return combat;
+  if(!combat.enemies.some(e=>e.hp>0)){
+   for(const member of combat.heroes)applyDelayedDamage(combat,member);
+   if(updatePartyCasualties(combat)!=='running')return combat;
+   combat.status='victory';combat.experience=partyBattleExperience(combat);return combat;}
+  if(combat.actorIndex>=combat.order.length&&!combat.pendingActor){combat.actorIndex=0;combat.round++;}if(combat.round>300){for(const member of combat.heroes)applyDelayedDamage(combat,member);if(updatePartyCasualties(combat)!=='running')return combat;combat.status='limit';say(combat,'Бой остановлен: достигнут предел 300 раундов.');return combat;}
   const entry=combat.pendingActor??combat.order[combat.actorIndex++];
   const hero=entry.side==='hero',actor=(hero?combat.heroes:combat.enemies).find(x=>x.id===entry.id);if(!actor||actor.hp<=0)continue;
+  const applyAfterTurn=hero&&actor.delayedDamage>0;
+  try{
+  if(!hero&&actor.skipNextTurn){delete actor.skipNextTurn;say(combat,actor.name+': пропуск хода после броска с прогиба.');continue;}
   if(hero){
    if(actor.burningRound&&combat.round>=actor.burningRound){delete actor.burningRound;blast(combat,actor,'molotov',random,true,null,actor.burningTargets);delete actor.burningTargets;}
    if(actor.hp<=0){if(updatePartyCasualties(combat)!=='running')return combat;continue;}
@@ -220,6 +256,10 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    else{const rush=distance===1?actor.rush:null;shot(combat,actor,target,{name:rush?'Рывок':actor.attackName??'Укус',type:'melee',min:rush?.min??actor.damageMin,max:rush?.max??actor.damageMax,accuracyBonus:rush?.accuracyBonus??0,damageType:actor.damageType??'physical'},distance,random);if(rush)target.distances[actor.id]=0;target.enemyOpeningDone=true;}
   }
   if(updatePartyCasualties(combat)!=='running')return combat;
+  }finally{
+   if(applyAfterTurn){applyDelayedDamage(combat,actor);if(combat.status==='running')updatePartyCasualties(combat);}
+  }
+  if(combat.status!=='running')return combat;
  }
  return combat;
 }
