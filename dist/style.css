@@ -244,3 +244,18 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .interactive-stage-choices .subtitle:empty{display:none}
 
 .btn.launch-missing-gear{background:#602d32;border-color:#e28483;color:#fff2ed;white-space:normal}.btn.launch-radiation{background:#d8f95a;border-color:#edff9c;color:#182206;white-space:normal}.btn.launch-missing-gear.launch-radiation{box-shadow:inset 0 0 0 2px #b83c45}
+
+.alexey-card.card{padding:10px 12px}
+.alexey-heading{gap:8px}
+.alexey-heading .npc-portrait{width:34px;height:40px}
+.alexey-heading h3{font-size:15px;margin:0}
+.alexey-heading .subtitle{margin:2px 0 0}
+.alexey-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:6px;margin-top:7px}
+.alexey-actions .btn,.station-building-card .btn{min-height:36px;padding:6px 9px;font-size:12px;margin:0}
+.station-building-card.card{padding:10px 12px;margin-top:6px}
+.station-building-card .note,.station-building-card .ingredients{margin:5px 0}
+.medic-tent-income{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;margin-top:5px}
+.medic-tent-income progress{width:100%;grid-column:1;grid-row:2;accent-color:var(--green)}
+.medic-tent-income .btn{width:auto;grid-column:2;grid-row:1 / span 2}
+.hero-equipment-alert{display:inline-flex;vertical-align:middle;margin-inline-start:4px;color:#ef7777}
+.hero-equipment-alert .icon{width:13px;height:13px}

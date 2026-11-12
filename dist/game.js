@@ -274,6 +274,7 @@ export function craftExperience(recipe,productionLevel,qty=1,qualityXp=0){
  return Math.max(1,roundRatio((recipe.xp??0)*qty+qualityXp,percent));
 }
 export function craftQualityXp(job){
+ if(job.rolledQualityUnits!=null)return job.rolledQualityUnits*10;
  if(!job.outputs?.length)return 0;
  const equipment=['weapon','body','accessory'].includes(ITEMS[job.outputs[0].item]?.type);
  const qualityUnits=equipment
@@ -397,7 +398,22 @@ export const shelfCost=s=>20*(s.shelves.length-STARTING_SHELVES+1)*10;
 export function canReceive(s,entries){const inventory=clone(s.inventory);for(const e of entries)if(e.item!=='gasMaskFilter')addToInventory(inventory,e.item,e.qty,e);return inventory.length<=Math.max(inventoryCapacity(s),s.inventory.length);}
 function receive(s,entries){requireThat(canReceive(s,entries),'В инвентаре не хватает места. Освободи ячейки и вернись за результатом.');for(const e of entries)if(e.item==='gasMaskFilter')s.filters=(s.filters??0)+e.qty;else addToInventory(s.inventory,e.item,e.qty,e);}
 export function maxCraftQuantity(s,recipeId){const r=RECIPES[recipeId],p=r&&s.productions[r.production];if(!r?.batch||r.upgrade||!p||p.job||p.level<r.level)return 0;return Math.max(0,Math.min(1000,r.cost>0?Math.floor(s.money/r.cost):1000,...Object.entries(r.ingredients).map(([item,n])=>Math.floor(countItem(s,item)/n))));}
-function removeItem(s,item,qty){requireThat(Number.isInteger(qty)&&qty>0,'Неверное количество.');requireThat(countItem(s,item)>=qty,'Не хватает предметов.');let remaining=qty;for(const row of s.inventory.filter(x=>x.item===item)){const take=Math.min(remaining,row.qty);row.qty-=take;remaining-=take;if(!remaining)break;}s.inventory=s.inventory.filter(x=>x.qty>0);}
+function removeItem(s,item,qty,craftMode=null){
+ requireThat(Number.isInteger(qty)&&qty>0,'Неверное количество.');
+ const rows=s.inventory.filter(row=>row.item===item&&(craftMode!=='auto'||itemQuality(row)===0)),consumed=[];
+ requireThat(rows.reduce((total,row)=>total+row.qty,0)>=qty,'Не хватает предметов.');
+ if(craftMode==='manual')rows.sort((a,b)=>itemQuality(b)-itemQuality(a));
+ let remaining=qty;
+ for(const row of rows){
+  const take=Math.min(remaining,row.qty);
+  if(craftMode)consumed.push({...row,qty:take});
+  row.qty-=take;
+  remaining-=take;
+  if(!remaining)break;
+ }
+ s.inventory=s.inventory.filter(row=>row.qty>0);
+ return consumed;
+}
 function removeRow(s,id,qty=1){const row=s.inventory.find(x=>x.uid===id);requireThat(row&&Number.isInteger(qty)&&qty>0&&row.qty>=qty,'Предмета уже нет или не хватает количества.');row.qty-=qty;s.inventory=s.inventory.filter(x=>x.qty>0);}
 const pay=(s,cost)=>{requireThat(s.money>=cost,'Не хватает патронов.');s.money-=cost;s.totalSpent+=cost;};
 function idleHero(s,allowRest=false){requireThat(s.hero,'Сначала найми сталкера.');requireThat(!s.hero.dead,'Сначала восстанови сталкера.');requireThat(!s.hero.job||allowRest&&s.hero.job.kind==='rest','Сталкер занят. Сначала получи результат.');return s.hero;}
@@ -698,9 +714,26 @@ export function grenadeSummary(job){
 export function reportTurnCount(run){if(!isCombatRun(run))return 0;const battles=run.result?.battles;return Array.isArray(battles)&&battles.every(b=>Number.isInteger(b.turns))?battles.reduce((sum,b)=>sum+b.turns,0):null;}
 export function seriesTurnCount(job){const counts=(job.reports??[]).map(reportTurnCount);return counts.some(n=>n===null)?null:counts.reduce((sum,n)=>sum+n,0);}
 export function ready(job,now=Date.now()){return Boolean(job&&(job.kind==='series'?job.phase==='done':now>=job.endsAt));}
-function startCraftRun(s,recipeId,qty,now,random){
+function startCraftRun(s,recipeId,qty,now,random,mode='manual'){
  const recipe=RECIPES[recipeId];
- const rarityRank=Math.max(itemRarityRank({item:recipe.output}),ingredientRarity(s,recipe,qty));pay(s,recipe.cost*qty);for(const [item,count]of Object.entries(recipe.ingredients))removeItem(s,item,count*qty);const job={recipe:recipeId,productionLevel:s.productions[recipe.production].level,qty,startedAt:now,endsAt:now+recipe.seconds*qty*1000};
+ const equipment=['weapon','body','accessory'].includes(ITEMS[recipe.output]?.type);
+ const inherited=Array(qty).fill(0);
+ let rarityRank=itemRarityRank({item:recipe.output});
+ pay(s,recipe.cost*qty);
+ for(const [item,count] of Object.entries(recipe.ingredients)){
+  const consumed=removeItem(s,item,count*qty,mode);
+  const gearIngredient=['weapon','body','accessory'].includes(ITEMS[item]?.type);
+  let unit=0;
+  for(const row of consumed){
+   rarityRank=Math.max(rarityRank,itemRarityRank(row));
+   if(!equipment||!gearIngredient)continue;
+   for(let n=0;n<row.qty;n++,unit++){
+    const index=Math.floor(unit/count);
+    inherited[index]=Math.max(inherited[index],itemQuality(row));
+   }
+  }
+ }
+ const job={recipe:recipeId,productionLevel:s.productions[recipe.production].level,qty,startedAt:now,endsAt:now+recipe.seconds*qty*1000};
  if(recipe.chance!=null){
   const chance=upgradeChance(s,recipeId);
   let successes=0;
@@ -711,11 +744,15 @@ function startCraftRun(s,recipeId,qty,now,random){
  const successes=job.successes??qty;
  job.qualityChance=qualityPercent;
  job.qualitySuccesses=0;
+ job.rolledQualityUnits=0;
  job.outputs=[];
  for(let i=0;i<successes;i++){
-  const quality=rollQuality(qualityPercent,random);
-  if(quality)job.qualitySuccesses++;
-  const equipment=['weapon','body','accessory'].includes(ITEMS[recipe.output]?.type);
+  const rolledQuality=rollQuality(qualityPercent,random);
+  if(rolledQuality>inherited[i]){
+   job.qualitySuccesses++;
+   job.rolledQualityUnits+=rolledQuality;
+  }
+  const quality=Math.max(rolledQuality,inherited[i]);
   const item={origin:'crafted',rarity:RARITIES[rarityRank],item:recipe.output,qty:equipment?1:(recipe.outputQty??1)+quality,...(equipment&&quality?{quality}:{}),...(equipment&&recipe.level>=6?{requiredHeroLevel:5*Math.floor((recipe.level-1)/5)}:{})};
   const group=job.outputs.find(row=>itemQuality(row)===itemQuality(item));
   if(group)group.qty+=item.qty;else job.outputs.push(item);
@@ -729,7 +766,7 @@ export function autoRecipeAvailable(s,id){
 export function maxAutoQuantity(s,id){
  if(!autoRecipeAvailable(s,id))return 0;
  const r=RECIPES[id];
- return Math.max(0,Math.min(r.cost?Math.floor(s.money/r.cost):Infinity,...Object.entries(r.ingredients).map(([item,qty])=>Math.floor(countItem(s,item)/qty))));
+ return Math.max(0,Math.min(r.cost?Math.floor(s.money/r.cost):Infinity,...Object.entries(r.ingredients).map(([item,qty])=>Math.floor(s.inventory.reduce((total,row)=>total+(row.item===item&&itemQuality(row)===0?row.qty:0),0)/qty))));
 }
 export const autoProductionSeconds=(recipe,qty)=>recipe.seconds*qty+2*Math.max(0,qty-1);
 export const autoProductionBusy=(s,id)=>Boolean(s.autoProduction&&!s.autoProduction.done&&RECIPES[s.autoProduction.recipe].production===id);
@@ -743,7 +780,7 @@ export function advanceAutoProduction(s,now,random){
    if(now<job.nextAt)break;
    changed=true;
    if(maxAutoQuantity(s,job.recipe)<1){job.done=true;job.reason='resources';break;}
-   job.run=startCraftRun(s,job.recipe,1,job.nextAt,random);
+   job.run=startCraftRun(s,job.recipe,1,job.nextAt,random,'auto');
   }
   if(now<job.run.endsAt)break;
   changed=true;
@@ -1397,7 +1434,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
  case 'discard':{const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');removeRow(s,row.uid,action.qty??1);break;}
  case 'claimMedicTentIncome':{
   const income=s.medicTentIncome;
-  requireThat(hasBuilding(s,'medicTent')&&income?.minutes===MEDIC_TENT_MINUTES,'Доход палатки ещё накапливается.');
+  requireThat(hasBuilding(s,'medicTent')&&(income?.money??0)>0,'Палатка пока не принесла дохода.');
   s.money+=income.money;
   s.medicTentIncome={startedAt:now,minutes:0,money:0};
   addHistory(s,'Палатка медика: получено '+income.money/10+' А.',now);
@@ -1422,7 +1459,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   requireThat(!s.productions[recipe.production].job,'Это производство занято.');
   requireThat(Number.isSafeInteger(qty)&&qty>0&&qty<=maxAutoQuantity(s,id),'Выбери доступное количество повторов.');
   requireThat(Array.isArray(keep)&&keep.every(q=>Number.isInteger(q)&&q>=1&&q<=4),'Выбери качество от +1 до +4.');
-  s.autoProduction={recipe:id,total:qty,keep:[...new Set(keep)],startedAt:now,endsAt:now+autoProductionSeconds(recipe,qty)*1000,completed:0,money:0,xp:0,items:[],run:startCraftRun(s,id,1,now,random)};
+  s.autoProduction={recipe:id,total:qty,keep:[...new Set(keep)],startedAt:now,endsAt:now+autoProductionSeconds(recipe,qty)*1000,completed:0,money:0,xp:0,items:[],run:startCraftRun(s,id,1,now,random,'auto')};
   break;
  }
  case 'stopAutoProduction':{

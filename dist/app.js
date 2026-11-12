@@ -67,11 +67,11 @@ function radiationReport(job){
  return dose?`<p class="note radiation-status">Получено облучение +${dose} РАД.</p>`:'';
 }
 function health(h){const maxHp=effectiveMaxHp(h),blocked=(h.maxHp-maxHp)/h.maxHp*100;return `<div class="health-label"><span>ЗДОРОВЬЕ${h.radiation?` · <b class="radiation-status">Облучён (${h.radiation})</b>`: ''}</span><span>${num(Math.min(h.hp,maxHp))} / ${num(maxHp)}</span></div><div class="hpbar ${h.hp<maxHp*.3?'low':''}" style="--radiation-blocked:${blocked}%"><i style="width:${Math.max(0,Math.min(h.hp,maxHp)/h.maxHp*100)}%"></i></div>`;}
-function heroSummary(h=state.hero){
+function heroSummary(h=state.hero,showEquipmentAlerts=false){
  if(!h)return `<div class="empty-hero"><div class="portrait dim"></div><div><h3>Станции нужны сталкеры</h3><p>Выбери профессию, имя, национальность и стартовый перк.</p>${btn('Нанять за 50 A','hireModal')}</div></div>`;
  const ref=`data-hero="${esc(h.id)}"`,shownHp=h.job?.kind==='series'?h.job.worker.hp:isCombatJob(h.job?.kind)&&ready(h.job)?h.job.result.hp:h.hp;
  const task=h.job?.kind==='interactive'?`<div class="hero-task">${esc(INTERACTIVE_MISSIONS[h.job.mission]?.name??'Вылазка')}</div>`:h.job&&!ready(h.job)?`<div class="hero-task"><span>${h.job.kind==='rest'?icon('rest'):icon('map')}${h.job.kind==='series'?(h.job.phase==='break'?'Передышка':locationName(h.job.location)):h.job.kind==='rest'?'Отдых':h.job.kind==='help'?'Помогать на станции':locationName(h.job.kind)}</span><strong data-until="${h.job.endsAt}">${sec(h.job.endsAt)} сек.</strong></div><div class="progress"><i data-progress="${h.job.startedAt},${h.job.endsAt}" style="width:${Math.min(100,(Date.now()-h.job.startedAt)/(h.job.endsAt-h.job.startedAt)*100)}%"></i></div>`:'';
- return `<div class="row">${heroPortrait(h)}<div class="grow"><div class="row between"><h3>${esc(heroTitle(h))}</h3><span class="pill">Ур. ${h.level}</span></div><p class="statusline ${h.job?'busy':''} ${h.dead?'red':''}">${heroStatus(h)}</p></div></div>${health({...h,...(h.job?.kind==='series'?h.job.worker:{}),radiation:(h.radiation??0)+(ready(h.job)?jobRadiation(h.job):0),hp:shownHp})}${heroExperienceBar(h)}${radiationBlocksMissions(h)?'<p class="note radiation-status">Сильное облучение. Чтобы отправить героя, сними радиацию.</p>':''}${task}${h.job?.kind==='series'&&h.job.phase==='break'?btn('Прервать и получить','stopSeries',ref,'full secondary'):''}<div class="button-row hero-actions">${h.awaitingBurial?btn('Похоронить достойно','buryHero',ref,'full secondary') :(btn('Статы и снаряжение','heroStats',ref,'secondary')+(h.job?(h.job.kind==='interactive'?btn('Продолжить вылазку','zilRoute',ref,'mission-start'):ready(h.job)?btn('Получить результат','heroJob',ref,firstLocationResult(h)?'first-result':''):h.job.kind==='rest'?btn('Еда и отдых','restMenu',ref,'ghost')+btn('Прервать отдых','interruptRest',ref,'secondary'):''):h.dead?(h.missingOnMission?'<span class="pill bad">Восстановление пока невозможно</span>':btn('Восстановить','reviveModal',ref,'danger')):btn('Отдых','restMenu',ref,needsAdventureRecovery(h)?'rest-required':'ghost')+btn('Выбрать локацию','selectHero',ref+(radiationBlocksMissions(h)||needsAdventureRecovery(h)?' disabled':''),'mission-start')))}</div>`;
+ return `<div class="row">${heroPortrait(h)}<div class="grow"><div class="row between"><h3>${esc(heroTitle(h))}${showEquipmentAlerts&&!h.weapon?'<span class="hero-equipment-alert" title="Нет основного оружия" role="img" aria-label="Нет основного оружия">'+icon('gun')+'</span>':''}${showEquipmentAlerts&&!h.body?'<span class="hero-equipment-alert" title="Нет основной брони" role="img" aria-label="Нет основной брони">'+icon('jacket')+'</span>':''}</h3><span class="pill">Ур. ${h.level}</span></div><p class="statusline ${h.job?'busy':''} ${h.dead?'red':''}">${heroStatus(h)}</p></div></div>${health({...h,...(h.job?.kind==='series'?h.job.worker:{}),radiation:(h.radiation??0)+(ready(h.job)?jobRadiation(h.job):0),hp:shownHp})}${heroExperienceBar(h)}${radiationBlocksMissions(h)?'<p class="note radiation-status">Сильное облучение. Чтобы отправить героя, сними радиацию.</p>':''}${task}${h.job?.kind==='series'&&h.job.phase==='break'?btn('Прервать и получить','stopSeries',ref,'full secondary'):''}<div class="button-row hero-actions">${h.awaitingBurial?btn('Похоронить достойно','buryHero',ref,'full secondary') :(btn('Статы и снаряжение','heroStats',ref,'secondary')+(h.job?(h.job.kind==='interactive'?btn('Продолжить вылазку','zilRoute',ref,'mission-start'):ready(h.job)?btn('Получить результат','heroJob',ref,firstLocationResult(h)?'first-result':''):h.job.kind==='rest'?btn('Еда и отдых','restMenu',ref,'ghost')+btn('Прервать отдых','interruptRest',ref,'secondary'):''):h.dead?(h.missingOnMission?'<span class="pill bad">Восстановление пока невозможно</span>':btn('Восстановить','reviveModal',ref,'danger')):btn('Отдых','restMenu',ref,needsAdventureRecovery(h)?'rest-required':'ghost')+btn('Выбрать локацию','selectHero',ref+(radiationBlocksMissions(h)||needsAdventureRecovery(h)?' disabled':''),'mission-start')))}</div>`;
 }
 function heroExperienceBar(h){
  const cap=heroLevelCap(h),atCap=h.level>=cap;
@@ -175,9 +175,14 @@ function autoProductionButton(){
  if(job.done)return btn('Получить результат · '+money(job.money)+' А','alexeyWorkshop','','primary location-first');
  return btn(`Прогресс · <span data-until="${job.endsAt}">${sec(job.endsAt)} сек.</span>`,'alexeyWorkshop','','secondary');
 }
+function medicTentClaimButton(label='Забрать доход'){
+ const income=state.medicTentIncome;
+ const ready=(income?.money??0)>0;
+ return btn(label+(ready?' · '+money(income.money)+' А':''),'claimMedicTentIncome',ready?'':'disabled','full secondary');
+}
 function medicTentIncome(){
  const {minutes=0,money:amount=0}=state.medicTentIncome??{};
- return `<p class="note">Доход палатки · ${minutes} / ${MEDIC_TENT_MINUTES} мин. · ${money(amount)} А</p><progress value="${minutes}" max="${MEDIC_TENT_MINUTES}"></progress>${btn('Забрать доход','claimMedicTentIncome',minutes<MEDIC_TENT_MINUTES?'disabled':'','full secondary')}`;
+ return `<div class="medic-tent-income"><p class="note">Доход · ${minutes} / ${MEDIC_TENT_MINUTES} мин. · ${money(amount)} А</p><progress value="${minutes}" max="${MEDIC_TENT_MINUTES}"></progress>${medicTentClaimButton()}</div>`;
 }
 function stationBuildingsPage(){
  const header=pageHead('Алексей Иваныч','Постройки на станции','',btn('К станции','nav','data-view="station"','secondary'));
@@ -187,11 +192,11 @@ function stationBuildingsPage(){
   const materials=Object.entries(b.ingredients);
   const affordable=state.money>=cost&&materials.every(([item,qty])=>countItem(state,item)>=qty);
   const label=used>=limit?'Нет свободных мест':!affordable?'Не хватает ресурсов':'Построить';
-  return `<article class="card"><h3>${esc(b.name)}</h3><p class="note">${esc(b.bonus)}</p>${built?'<span class="pill">Построено</span>'+(id==='medicTent'?medicTentIncome():''):job?jobMeter(job):`<div class="ingredients">${materials.map(([item,qty])=>`<span class="ingredient ${countItem(state,item)>=qty?'ok':'missing'}">${esc(ITEMS[item].name)}: ${countItem(state,item)} / ${qty}</span>`).join('')}<span class="ingredient ${state.money>=cost?'ok':'missing'}">${money(cost)} А</span></div>${btn(label,'startStationBuilding',`data-building="${id}" ${!affordable||used>=limit?'disabled':''}`,'secondary')}`}</article>`;
+  return `<article class="card station-building-card"><h3>${esc(b.name)}</h3><p class="note">${esc(b.bonus)}</p>${built?'<span class="pill">Построено</span>'+(id==='medicTent'?medicTentIncome():''):job?jobMeter(job):`<div class="ingredients">${materials.map(([item,qty])=>`<span class="ingredient ${countItem(state,item)>=qty?'ok':'missing'}">${esc(ITEMS[item].name)}: ${countItem(state,item)} / ${qty}</span>`).join('')}<span class="ingredient ${state.money>=cost?'ok':'missing'}">${money(cost)} А</span></div>${btn(label,'startStationBuilding',`data-building="${id}" ${!affordable||used>=limit?'disabled':''}`,'secondary')}`}</article>`;
  }).join('')}`;
 }
 function alexeyCard(){
- return state.alexeyMet?`<div class="card"><div class="row">${npcPortrait('alexey')}<div><h3>Алексей Иваныч</h3><p class="subtitle">Начальник производства · Союз станций</p></div></div><div class="spacer"></div><div class="quick-grid">${autoProductionButton()}${btn('Постройки на станции','stationBuildings','','secondary')}</div></div>`:'';
+ return state.alexeyMet?`<div class="card alexey-card"><div class="row alexey-heading">${npcPortrait('alexey')}<div><h3>Алексей Иваныч</h3><p class="subtitle">Начальник производства · Союз станций</p></div></div><div class="alexey-actions">${autoProductionButton()}${btn('Постройки на станции','stationBuildings','','secondary')}${state.stationBuildings?.medicTent?medicTentClaimButton('Доход палатки'):''}</div></div>`:'';
 }
 function restartButton(classes){
  const label='Всё сначала · Попытка №'+restartAttempt(state);
@@ -203,7 +208,7 @@ function station(){return pageHead('Под землёй есть жизнь','А
 function heroes(){
  const all=getHeroes(state),h=state.hero,busy=Boolean(h?.job);
  let content=pageHead('Люди за стенами станции','Сталкеры','Каждый занят своим делом. Станция продолжает жить.');
- const cards=all.map(hero=>`<article class="card hero-card ${rebirthAppearance(hero)} ${hero.id===state.selectedHeroId?'selected':''}" data-hero-card="${esc(hero.id)}">${heroSummary(hero)}</article>`).join('');
+ const cards=all.map(hero=>`<article class="card hero-card ${rebirthAppearance(hero)} ${hero.id===state.selectedHeroId?'selected':''}" data-hero-card="${esc(hero.id)}">${heroSummary(hero,true)}</article>`).join('');
  const hireCard=`<div class="card hire-card"><div class="row between"><div><h3>${all.length?'Ещё один сталкер':'Первый сталкер'}</h3><p class="subtitle">Профессия · имя и национальность · перк</p></div>${icon('heroes')}</div><div class="spacer"></div>${btn(`Нанять · ${money(hireCost(state))} A`,'hireModal',state.money<hireCost(state)?'disabled':'','full secondary')}</div>`;
 
  return content+`<div class="hero-list-layout"><section class="hero-list"><div class="section-title"><h2>На станции: ${all.length}</h2><span>${all.filter(x=>x.job).length} ЗАНЯТО</span></div>${cards}${hireCard}</section></div>`;
@@ -375,8 +380,25 @@ const KEEPER_TUTORIAL={
 };
 
 const pages={stationBuildings:stationBuildingsPage,autoProduction:autoProductionPage,station,heroes,inventory,production:productionPage,shop,surface:surfacePage};
-function render(){const h=state.hero;const alerts={heroes:getHeroes(state).some(x=>ready(x.job)),production:Object.values(state.productions).some(p=>ready(p.job)),shop:Object.keys(MERCHANTS).some(id=>state[id]?.visit)||state.shelves.some(x=>ready(x))};root.innerHTML=`<div class="app-shell"><header class="topbar"><a class="brand" href="#" data-action="nav" data-view="station"><img src="./mark.svg" alt=""><div><b>СТАНЦИЯ</b><span>АВТОЗАВОДСКАЯ</span></div></a><div class="topright"><span class="saved">${storageWorks?'Сохранено':'Нет сохранения'}</span><span class="balance" aria-label="${money(state.money)} патронов">${icon('ammo')}<span>${money(state.money)} A</span></span><span class="balance filter-balance" title="Фильтры для противогаза" aria-label="${state.filters} фильтров для противогаза">${icon('filter')}<span>${num(state.filters)}</span></span><button class="iconbutton" data-action="about" aria-label="О прототипе и сохранении">${icon('info')}</button></div></header><main class="screen">${pages[view]()}</main><div class="footer-note">АВТОЗАВОДСКАЯ · ОБНОВЛЕНО ${CHANGELOG[0].date.split('-').reverse().join('.')}</div></div><nav class="nav" aria-label="Основное меню">${[['station','station','Станция'],['production','tool','Производство'],['inventory','bag','Инвентарь'],['shop','shop','Ларёк'],['heroes','heroes','Герои'],...(state.completedLocations.surface?[['surface','map','Поверхность']]:[])].map(([id,ic,title])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(ic)}<span class="nav-label">${title}${alerts[id]?'<i class="dot"></i>':''}</span></button>`).join('')}</nav>`;const map=root.querySelector('.surface-map-scroll');if(map)map.scrollLeft=map.scrollWidth*.65-map.clientWidth/2;renderModal();}
-function show(type,data={}){modal={type,...data};const map=root.querySelector('.surface-map-scroll');if(map)map.scrollLeft=map.scrollWidth*.65-map.clientWidth/2;renderModal();}
+let lastScreenMarkup='',lastScreenView;
+function screenMarkupKey(html){
+ return html.replace(/(<[^>]+\bdata-until="[^"]+"[^>]*>)[^<]*/g,'$1').replace(/(<[^>]+\bdata-progress="[^"]+"[^>]*?) style="[^"]*"/g,'$1');
+}
+function render(){const h=state.hero;const alerts={heroes:getHeroes(state).some(x=>ready(x.job)),production:Object.values(state.productions).some(p=>ready(p.job)),shop:Object.keys(MERCHANTS).some(id=>state[id]?.visit)||state.shelves.some(x=>ready(x))};const html=`<div class="app-shell"><header class="topbar"><a class="brand" href="#" data-action="nav" data-view="station"><img src="./mark.svg" alt=""><div><b>СТАНЦИЯ</b><span>АВТОЗАВОДСКАЯ</span></div></a><div class="topright"><span class="saved">${storageWorks?'Сохранено':'Нет сохранения'}</span><span class="balance" aria-label="${money(state.money)} патронов">${icon('ammo')}<span>${money(state.money)} A</span></span><span class="balance filter-balance" title="Фильтры для противогаза" aria-label="${state.filters} фильтров для противогаза">${icon('filter')}<span>${num(state.filters)}</span></span><button class="iconbutton" data-action="about" aria-label="О прототипе и сохранении">${icon('info')}</button></div></header><main class="screen">${pages[view]()}</main><div class="footer-note">АВТОЗАВОДСКАЯ · ОБНОВЛЕНО ${CHANGELOG[0].date.split('-').reverse().join('.')}</div></div><nav class="nav" aria-label="Основное меню">${[['station','station','Станция'],['production','tool','Производство'],['inventory','bag','Инвентарь'],['shop','shop','Ларёк'],['heroes','heroes','Герои'],...(state.completedLocations.surface?[['surface','map','Поверхность']]:[])].map(([id,ic,title])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(ic)}<span class="nav-label">${title}${alerts[id]?'<i class="dot"></i>':''}</span></button>`).join('')}</nav>`;
+ const key=screenMarkupKey(html);
+ if(key!==lastScreenMarkup){
+  const sameView=lastScreenView===view;
+  const x=window.scrollX,y=window.scrollY;
+  const mapLeft=sameView?root.querySelector('.surface-map-scroll')?.scrollLeft:undefined;
+  root.innerHTML=html;
+  lastScreenMarkup=key;
+  lastScreenView=view;
+  const map=root.querySelector('.surface-map-scroll');
+  if(map)map.scrollLeft=mapLeft??(map.scrollWidth*.65-map.clientWidth/2);
+  if(sameView&&(window.scrollX!==x||window.scrollY!==y))window.scrollTo({left:x,top:y,behavior:'instant'});
+ }
+ renderModal();}
+function show(type,data={}){modal={type,...data};renderModal();}
 function close(){if(modal?.type==='welcome'){state.welcomeSeen=true;save();}modal=null;lastModalRender=null;overlay.innerHTML='';document.body.style.overflow='';}
 function zilSceneShell(active, body, sceneKey){
  const party = active.heroIds.map(id=>getHeroes(state).find(hero=>hero.id===id)).filter(Boolean);
@@ -399,11 +421,11 @@ function modalShell(title,body,{details='',sceneKey=null}={}){
  const html=`<div class="backdrop"><section class="modal${result?' job-result':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head${details?' zil-scene-head':''}"><div><h2>${title}</h2>${details}</div><button class="iconbutton" data-action="close" aria-label="Закрыть">${icon('close')}</button></div><div class="modal-body">${body}</div></section></div>`;
  const previous=overlay.querySelector('.modal');
  const sameWindow=previous&&lastModalRender?.modal===modal&&lastModalRender.heroId===state.selectedHeroId&&lastModalRender.sceneKey===sceneKey;
- if(sameWindow&&lastModalRender.html===html)return;
+ if(sameWindow&&lastModalRender.html===screenMarkupKey(html))return;
  const scrollTop=sameWindow?previous.scrollTop:0;
  overlay.innerHTML=html;
  overlay.querySelector('.modal').scrollTop=scrollTop;
- lastModalRender={modal,heroId:state.selectedHeroId,sceneKey,html};
+ lastModalRender={modal,heroId:state.selectedHeroId,sceneKey,html:screenMarkupKey(html)};
  document.body.style.overflow='hidden';
 }
 function renderModal(){if(!modal&&KEEPER_TUTORIAL[view]&&!state.tutorialSeen?.[view]){state.tutorialSeen??={};state.tutorialSeen[view]=true;save();modal={type:'tutorial',screen:view};}if(!modal&&state.completedLocations.surface&&!state.surfaceWelcomeSeen){modal={type:'surfaceWelcome'};}if(modal?.type==='surfaceWelcome'&&!state.surfaceWelcomeSeen){state.surfaceWelcomeSeen=true;save();}if(!modal){overlay.innerHTML='';document.body.style.overflow='';return;}const h=state.hero;
@@ -726,7 +748,7 @@ document.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-hol
 function stopHold(){if(hold)clearTimeout(hold.timer);hold=null;}
 document.addEventListener('pointerup',stopHold);document.addEventListener('pointercancel',stopHold);document.addEventListener('pointermove',e=>{if(hold&&(Math.abs(e.clientX-hold.x)>12||Math.abs(e.clientY-hold.y)>12))stopHold();});document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-hold]'))e.preventDefault();});document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
 let previousReady='';
-function tick(){const visited=visit(state),advanced=advanceSeries(state);if(visited||advanced){save();render();}const jobs=[...getHeroes(state).map(x=>x.job),...Object.values(state.productions).map(p=>p.job),...state.shelves].filter(Boolean);const key=jobs.map(x=>`${x.endsAt}:${ready(x)}`).join('|')+':'+Boolean(restartCooldownRemaining(state));if(key!==previousReady&&!hold){previousReady=key;render();}document.querySelectorAll('[data-until]').forEach(el=>{const at=Number(el.dataset.until);el.textContent=ready({endsAt:at})?(el.dataset.readyLabel??'Готово'):`${sec(at)} сек.`;});document.querySelectorAll('[data-progress]').forEach(el=>{const [start,end]=el.dataset.progress.split(',').map(Number);el.style.width=`${Math.min(100,(Date.now()-start)/(end-start)*100)}%`;});}
+function tick(){const visited=visit(state),advanced=advanceSeries(state);if(visited||advanced){save();previousReady=null;}const jobs=[...getHeroes(state).map(x=>x.job),...Object.values(state.productions).map(p=>p.job),...state.shelves].filter(Boolean);const key=jobs.map(x=>`${x.endsAt}:${ready(x)}`).join('|')+':'+Boolean(restartCooldownRemaining(state));if(key!==previousReady&&!hold){previousReady=key;render();}document.querySelectorAll('[data-until]').forEach(el=>{const at=Number(el.dataset.until);const label=ready({endsAt:at})?(el.dataset.readyLabel??'Готово'):`${sec(at)} сек.`;if(el.textContent!==label)el.textContent=label;});document.querySelectorAll('[data-progress]').forEach(el=>{const [start,end]=el.dataset.progress.split(',').map(Number);el.style.width=`${Math.min(100,(Date.now()-start)/(end-start)*100)}%`;});}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick();});window.addEventListener('pagehide',save);save();render();setInterval(tick,500);
 
 
