@@ -1,5 +1,6 @@
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ velocipedel:{name:'Велосипедель',type:'weapon',combat:'ranged',weaponClass:'heavy',damageType:'physical',min:20,max:140,shots:6,shotPenalty:30,rangedSlotOnly:true,usesHeavyAmmo:true,stack:false,value:1400,rarity:'rare',icon:'velocipedel',description:'Тяжёлый дробовик. Очередь из 6 выстрелов на любой дистанции, −30 п.п. точности. Каждый выстрел расходует один патрон.'},
  slugShotgun:{name:'Убойник',type:'weapon',combat:'ranged',weaponClass:'shotgun',damageType:'physical',min:30,max:170,maxDistance:3,stack:false,value:1500,icon:'shotgun',description:'Дробовик. 30–170 физического урона. Дистанция 0–3, один выстрел за ход.'},
  ppsh:{name:'ПП Шпагина',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:10,max:110,maxDistance:1,shots:10,shotPenalty:25,jamChance:10,stack:false,value:2500,icon:'smg',description:'10–110 физического урона, дистанция 0–1. Очередь из 10 выстрелов, каждый со штрафом −25 п.п. точности. Шанс заклинить в начале хода — 10%.'},
  nailGun:{name:'Гвоздемёт',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:30,max:160,maxDistance:2,shots:3,shotPenalty:20,stack:false,value:2000,icon:'rifle',description:'30–160 физического урона, дистанция 0–2. Очередь из 3 выстрелов, каждый со штрафом −20 п.п. точности.'},
@@ -272,6 +273,7 @@ export const PROFESSIONS={
 };
 
 export const IDENTITIES={ivan:{name:'Иван',nationality:'Русский'},hans:{name:'Ганс',nationality:'Немец'},izya:{name:'Изя',nationality:'Еврей'}};
+Object.assign(PROFESSIONS.heavy,{available:true,startReady:true,combatReady:true,weapon:'crowbar',accuracy:8,perks:['armored','burst-fire','tough-cookie','sharp']});
 Object.assign(PROFESSIONS.assault,{available:true,combatReady:true,weapon:'kaBar',accuracy:8,perks:['burst-fire','tough-cookie','quick-orders','sharp']});
 Object.assign(PROFESSIONS.saboteur,{perks:['melee-evasion','evasion','initiative','double-strike'],weapon:'knife',accuracy:10,evasionBonus:2.5,combatReady:true});
 Object.assign(PROFESSIONS.engineer,{available:true,requiredRosterLevel:1,perks:[],weapon:null,accuracy:null,evasionBonus:0,combatReady:false});
@@ -379,7 +381,7 @@ export const STATION_BUILDINGS={
  meditation:{name:'Место для медитации',cost:450,ingredients:{fullLeather:20,rareMushrooms:4},bonus:'Открывает хобби на экране отдыха.'},
  medicTent:{name:'Палатка медика',cost:500,ingredients:{cloth:10,dressingKit:3,medicKit:1},bonus:'Бесплатно восстанавливает 5% доступного максимума HP после каждой завершённой локации или вылазки. Доход 1–8 А в минуту, до 60 минут за цикл.'},
  tradingPost:{name:'Торговый пост',role:'shekel',cost:750,ingredients:{metalParts:10,fullLeather:6},bonus:'Продажа предметов на 5 п.п. выгоднее.'},
- housing:{name:'Улучшение жилья',role:'sova',cost:650,ingredients:{metalParts:10,fullLeather:10},bonus:'Общий инвентарь +5 ячеек.'},
+ housing:{name:'Улучшение жилья',role:'sova',cost:650,ingredients:{metalParts:10,fullLeather:10},bonus:'Открывает развитие станции метро и 20 мест для жителей. Общий инвентарь +4 ячейки.'},
  laboratory:{name:'Своя лаборатория',role:'pin',cost:200,ingredients:{fullLeather:10,pipe:3,acid:2,rareMushrooms:2},bonus:'Шанс качества изготовления в Науке +5 п.п.'}
 };
 export const INTERACTIVE_MISSIONS={

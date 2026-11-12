@@ -259,3 +259,46 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .medic-tent-income .btn{width:auto;grid-column:2;grid-row:1 / span 2}
 .hero-equipment-alert{display:inline-flex;vertical-align:middle;margin-inline-start:4px;color:#ef7777}
 .hero-equipment-alert .icon{width:13px;height:13px}
+
+.btn.trading-post-entry{margin:6px 0;min-height:38px;padding:6px 12px}
+.trading-post,.trading-post-actions{display:grid;gap:8px}
+.trading-post .card{padding:10px 12px;margin:0}
+.trading-post-status{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
+.trading-post-wallet{gap:8px}
+.trading-post-wallet .role-portrait{width:33px;height:40px}
+.trading-post-status dl{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0}
+.trading-post-status dt,.trading-post-production small{color:var(--muted);font-size:12px}
+.trading-post-status dd{margin:2px 0 0;font-size:13px}
+.trading-post-production h3,.trading-post-production .note{margin:0}
+.trading-post-order{display:grid;grid-template-columns:minmax(70px,1fr) minmax(0,1.3fr) auto;align-items:end;gap:6px;margin-top:4px}
+.trading-post-order .note{align-self:end;padding-bottom:7px;font-size:12px;overflow-wrap:anywhere}
+.trading-post-running{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px}
+.trading-post-production.card{padding-block:8px}
+.trading-post-order .hero-select-label{margin:0}
+.trading-post-order input.hero-select,.trading-post-order .btn{margin:2px 0 0;min-height:34px;padding:5px 7px;font-size:12px}
+.station-leader.shekel-quest-alert{border-color:#efc866;box-shadow:0 0 10px #eebc595c}
+.shekel-quest-alert .role-portrait{border-color:#efc866}
+.shekel-quest-alert small{color:#ffe099}
+.shekel-reward-options{display:grid;gap:16px;margin-top:10px}
+.shekel-reward-options .btn{margin:0}
+
+.trading-post-upgrades{display:grid;gap:6px}
+.trading-post-upgrades .recipe-card+.recipe-card{margin-top:0}
+.trading-post-upgrade{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px;text-align:left;width:100%}
+.trading-post-upgrade .recipe-icon{width:34px;height:34px}
+.trading-post-upgrade .recipe-icon>.icon{width:19px;height:19px}
+.trading-post-upgrade-copy{display:grid;gap:2px;min-width:0}
+.trading-post-upgrade-copy strong{font-size:13px;line-height:1.25}
+.trading-post-upgrade-copy small{color:var(--muted);font-size:11px}
+.trading-post-upgrade>.mono{font-size:12px;white-space:nowrap}
+.trading-post-cooldown{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trading-post-cooldown h3{margin:0;font-size:14px}
+
+.btn.trading-post-entry-ready{background:#d5e98a;border-color:#e5f2ad;color:#1c2914;box-shadow:0 0 0 2px #d5e98444}
+.duren-map-target{left:55.9%;top:6%}
+
+.surface-map-controls{display:flex;gap:6px;margin:6px 0}
+.surface-map-controls .btn{min-height:34px;padding:5px 10px}
+.surface-map-overview .surface-map-canvas{min-width:0}
+.surface-map-overview .surface-map-target{width:clamp(22px,5vw,32px);height:clamp(22px,5vw,32px);font-size:14px}
+.card.npc-quest-ready{border-color:var(--gold2);box-shadow:0 0 8px #e5cc8540}

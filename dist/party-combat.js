@@ -130,6 +130,8 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(!target)continue;
    }if(actor.firstEnemyFocus&&!actor.focusBattleUsed){actor.focusTarget=target.id;actor.focusBattleUsed=true;}const distance=actor.distances[target.id]??0,main=actor.weapons?.main;
    let weapon=distance===0?(main??actor.weapons?.ranged):main?.type==='ranged'&&distance<=weaponMaxDistance(actor,main)?main:actor.weapons?.ranged;
+   const heavy=actor.weapons?.ranged;
+   if(heavy?.usesHeavyAmmo)weapon=actor.heavyAmmo>0?heavy:(weapon===heavy?null:weapon);
    if(actor.reloading){
     actor.reloading=false;
     weapon=distance===0?actor.reloadWeapon?.bayonet:null;
@@ -156,7 +158,12 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
    else if(actor.dualWield&&distance===0&&actor.weapons?.ranged?.type==='melee')sequence=sequence.flatMap(w=>[w,{...actor.weapons.ranged,noStrength:true}]);
    if(!actor.ownTurnDone&&actor.nationality?.openingExtraAttack)sequence.push(weapon);
-   for(const w of sequence){if(target.hp<=0)break;shot(combat,actor,target,w,distance,random,true);}
+   if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min(weapon.shots,actor.heavyAmmo));
+   for(const w of sequence){
+    if(target.hp<=0)break;
+    if(w.usesHeavyAmmo){if(!actor.heavyAmmo)break;actor.heavyAmmo--;}
+    shot(combat,actor,target,w,distance,random,true);
+   }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);
    actor.ownTurnDone=true;
   }else if(actor.webAttack){

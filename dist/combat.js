@@ -196,6 +196,8 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const reloadTurn=heroTurn&&reloading;
     let weapon=distance===0?(main??h.weapons?.ranged):inRange(main,distance)?main:h.weapons?.ranged;
     if(ambush)weapon=inRange(main,distance)?main:h.weapons?.ranged;
+    const heavy=h.weapons?.ranged;
+    if(heavy?.usesHeavyAmmo)weapon=h.heavyAmmo>0?heavy:(weapon===heavy?null:weapon);
     if(reloadTurn){
       reloading=false;
       const target=reloadWeapon??main;reloadWeapon=null;weapon=distance===0?target.bayonet:null;
@@ -222,9 +224,9 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       if(openingTurn&&national.openingExtraAttack)primaryAttacks++;
       const offhand=heroTurn&&!ambush&&distance===0&&h.dualWield?h.weapons?.ranged:null;
       const cowboy=heroTurn&&!ambush&&dualPistolsActive(h);const sequence=cowboy?[main,h.weapons.ranged].filter(w=>inRange(w,distance)):Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();if(cowboy&&openingTurn&&national.openingExtraAttack)sequence.push(weapon);
-      const attacks=sequence.length;
+      const attacks=heroTurn&&weapon.usesHeavyAmmo?Math.min(sequence.length,weapon.shots,h.heavyAmmo):sequence.length;
       for(let attack=1;attack<=attacks;attack++){
-        if(heroTurn)weapon=sequence[attack-1];else if(!escortTarget)evasion=defense(distance);
+        if(heroTurn){weapon=sequence[attack-1];if(weapon.usesHeavyAmmo)h.heavyAmmo--;}else if(!escortTarget)evasion=defense(distance);
         const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush,targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage,firstRanged,correctionBonus:correctionFor(weapon),focusDamageBonus:focusFor(weapon),hp}):null;
         const accuracy=heroTurn?attackStats.accuracy+(woundBonus?national.battleWoundAccuracy:0)+(firstMelee&&weapon.type==='melee'?(national.firstMeleeAccuracy??0):0):r.accuracy+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(rageTriggered?(rageTurns>0?10:-10):0);
         const armor=heroTurn?(weapon.piercing?0:r.armor):escortTarget?caravan.armor:h.armor;
