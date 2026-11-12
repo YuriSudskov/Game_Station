@@ -121,7 +121,7 @@
 
 .portrait.bobrov span{position:absolute;top:2px;right:5px;z-index:1;color:#e3524c;font-size:23px;line-height:1}
 
-.radiation-status{color:#9eff4f}.hpbar{position:relative}.hpbar::after{content:"";position:absolute;inset:0 0 0 auto;width:var(--radiation-blocked,0%);background:#9eff4f}
+.radiation-status{color:#9eff4f}.hpbar{position:relative}.hpbar::after{content:"";position:absolute;inset:0 var(--radiation-right,0%) 0 auto;width:var(--radiation-blocked,0%);background:#9eff4f}
 
 .welcome-copy{display:grid;gap:12px;margin-bottom:18px}
 .equipment{gap:8px}
@@ -302,3 +302,8 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .surface-map-overview .surface-map-canvas{min-width:0}
 .surface-map-overview .surface-map-target{width:clamp(22px,5vw,32px);height:clamp(22px,5vw,32px);font-size:14px}
 .card.npc-quest-ready{border-color:var(--gold2);box-shadow:0 0 8px #e5cc8540}
+
+.hp-stimulant{position:absolute;inset-block:0;background:#76cef2}
+.hp-stimulant-label{color:#76cef2}
+.hero-stats-navigation{margin-bottom:10px}
+.hero-stats-navigation .btn{min-width:44px;min-height:38px;padding:5px 10px}

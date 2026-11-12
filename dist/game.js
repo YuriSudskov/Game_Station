@@ -278,7 +278,7 @@ export function equipmentRequiredLevel(row){
  return Math.max(row?.requiredHeroLevel??0,5*Math.floor((recipeLevel-1)/5));
 }
 export const canUseEquipment=(hero,row)=>hero.level>=equipmentRequiredLevel(row);
-export function itemName(row){const item=ITEMS[row.item],quality=itemQuality(row),prefixes=(row.upgrades??[]).map(u=>u.prefix);const auto=prefixes.includes('Авто-');return [...prefixes.filter(prefix=>prefix!=='Авто-'),(auto?'Авто-':'')+item.name].join(' ')+(quality?' +'+quality:'');}
+export function itemName(row){const item=ITEMS[row.item],quality=itemQuality(row),prefixes=(row.upgrades??[]).map(u=>u.prefix==='Остро заточенный'?'Острый':u.prefix);const auto=prefixes.includes('Авто-');return [...prefixes.filter(prefix=>prefix!=='Авто-'),(auto?'Авто-':'')+item.name].join(' ')+(quality?' +'+quality:'');}
 export function upgradeValueBonus(recipe){return recipe?.upgrade?(recipe.valueBonus??recipe.cost??0):0;}
 export function itemValue(row){if(typeof row==='string')return ITEMS[row]?.value;return ITEMS[row.item].value*(1+itemQuality(row))+(row.upgrades??[]).reduce((n,u)=>n+(u.valueBonus??upgradeValueBonus(RECIPES[u.recipe])),0);}
 export function itemArmor(row){return (ITEMS[row.item].armor??0)+7*itemQuality(row)+(row.upgrades??[]).reduce((n,u)=>n+(u.armorBonus??0),0);}
@@ -486,6 +486,15 @@ export function availablePerkLevels(hero){const chosen=new Set((hero.levelPerks?
 export function levelPerkOptions(hero){return Object.entries(LEVEL_PERKS).filter(([id,p])=>(p.profession==='all'||p.profession===(hero.profession??'saboteur'))&&!p.legacy&&(!p.hobby||(hero.hobby?.id===p.hobby&&!(hero.levelPerks??[]).some(entry=>LEVEL_PERKS[entry.perk]?.hobby&&entry.pickedAtLevel===hero.level)))&&hero.level>=p.minLevel&&hero.level<=(p.maxPickLevel??Infinity)&&(!p.rewardRole||(hero.rewardPerkUnlocks??[]).includes(id))&&id!==(hero.startPerk??hero.perk)&&(p.repeatable||!(hero.levelPerks??[]).some(x=>x.perk===id))).map(([id,p])=>({id,...p}));}
 const levelPerkHpBonus=h=>(h.levelPerks??[]).reduce((hp,{perk})=>hp+(perk==='enduring'?30:(LEVEL_PERKS[perk]?.hpBonus??0)+(LEVEL_PERKS[perk]?.maxHpBonus??0)),0);
 export const hasAutoStimulator=row=>Boolean(row?.upgrades?.some(upgrade=>RECIPES[upgrade.recipe]?.autoHeal));
+function hasHeavyGunner(hero){
+ return hero?.profession==='heavy'&&(hero.perk==='heavy-gunner'||hero.levelPerks?.some(choice=>choice.perk==='heavy-gunner'));
+}
+export function canEquipMainWeapon(hero,item){
+ return !item.rangedSlotOnly||(item.weaponClass==='heavy'&&hasHeavyGunner(hero));
+}
+export function heavyAmmoWeapon(hero){
+ return [ITEMS[hero?.rangedWeapon],ITEMS[hero?.weapon]].find(item=>item?.usesHeavyAmmo);
+}
 export function heroConfig(s,hero=s.hero,location=hero?.job?.location??hero?.job?.kind??null){const h={...hero};for(const slot of ['weapon','rangedWeapon','body','accessory'])if(h[slot]&&!canUseEquipment(h,{...h[slot+'Details'],item:h[slot]})){h[slot]=null;h[slot+'Details']=null;}const p=PROFESSIONS[h.profession??'saboteur'],base=clone(CONFIG);Object.assign(base.hero,heroAttributes(h),{strength:heroEffectiveStrength(h),initiative:heroAttributes(h).agility,accuracy:5*rebirthStars(h)+(p.accuracy??0)+1.25*Math.max(0,(h.level??1)-1)+(h.nationalityBonuses?.accuracy??0)+(h.activeStimulant&&h.activeStimulant!=='cardioStimulator'?5*(h.nationalityBonuses?.stimulantPercent?1.5:1):0),pistolDamageBonus:h.nationalityBonuses?.pistolDamage??0,evasion:35+7.5*heroAttributes(h).agility+(p.evasionBonus??0)+5*rebirthStars(h)});let c=withStarterPerk(base,h.perk,h.level);for(const id of new Set((h.levelPerks??[]).map(x=>LEVEL_PERKS[x.perk]?.starterEffect).filter(Boolean))){if(id!==h.perk)c=withStarterPerk(c,id,h.level);}c.hero.perk=h.perk;for(const chosen of h.levelPerks??[]){const development=LEVEL_PERKS[chosen.perk];c.hero.evasion+=development?.evasionBonus??0;c.hero.physicalArmorBonus=(c.hero.physicalArmorBonus??0)+(development?.physicalArmorBonus??0);c.hero.thermalArmorBonus=(c.hero.thermalArmorBonus??0)+(development?.thermalArmorBonus??0);if(chosen.perk==='favorite-close'){c.hero.closeAccuracyBonus=(c.hero.closeAccuracyBonus??0)+5;c.hero.closeDamageBonus=(c.hero.closeDamageBonus??0)+5;}if(chosen.perk==='quick-reaction'){c.hero.initiative+=2;c.hero.evasion+=3;}if(chosen.perk==='samurai')c.hero.meleeDamageBonus=(c.hero.meleeDamageBonus??0)+4*Math.max(0,h.level-chosen.pickedAtLevel+1);
  if(chosen.perk==='hunter-correction'){c.hero.correctionStep=3;c.hero.correctionMax=15;}if(chosen.perk==='hunter-falcon-eye')c.hero.perceptionReroll=true;if(chosen.perk==='hunter-distance'){c.hero.initialPerceptionBonus=2;c.hero.maxStartingDistance=4;}
  if(chosen.perk==='bandit-alert'){c.hero.evasion+=4*c.hero.perception;c.hero.earMeleeAccuracy=4*c.hero.perception;}if(chosen.perk==='bandit-mark')c.hero.firstEnemyFocus=true;if(chosen.perk==='bandit-seasoned')c.hero.halveHeavyHit=true;if(chosen.perk==='bandit-rampage'){c.hero.desperation=true;c.hero.lowHealthEvasionBonus=5;}
@@ -499,11 +508,12 @@ Object.assign(c.hero,{nationality:clone(h.nationalityBonuses??{}),medicineBonus:
  if(!item)return null;
  const {combat,weaponClass,min,max,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,bayonet,closeAccuracyBonus}=ITEMS[item];
  const upgrades=details?.upgrades??[];
+ const heavyAccuracy=weaponClass==='heavy'?(c.hero.heavyAccuracyBonus??0):0;
  const bonuses=(type,range)=>upgrades.filter(u=>!bayonet||(RECIPES[u.recipe]?.target??'melee')===type)
   .reduce((out,u)=>({
    min:out.min+(u.minBonus??0),max:out.max+(u.maxBonus??0),
    bonus:out.bonus+(u.bonus??0),accuracyBonus:out.accuracyBonus+(u.accuracyBonus??0)
-  }),{min:range.min+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)});
+  }),{min:range.min+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)+heavyAccuracy});
  return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
   bayonet:bayonet?{item,type:'melee',isBayonet:true,...bonuses('melee',bayonet)}:null};
 };c.hero.heavyAmmo=h.heavyAmmo??0;c.hero.weapons={main:spec(h.weapon,h.weaponDetails,h.weaponFamiliarity??0),ranged:spec(h.rangedWeapon,h.rangedWeaponDetails,h.rangedWeaponFamiliarity??0)};if(heroHasDualWield(h)&&c.hero.weapons.ranged?.type==='melee'){c.hero.dualWield=true;c.hero.dualWieldAccuracyPenalty=10;c.hero.weapons.ranged.noStrength=true;}c.hero.weaponType=weapon?.combat??'melee';c.hero.weaponMin=weapon?.min??10;c.hero.weaponMax=weapon?.max??30;c.hero.weaponBonus=(h.weaponDetails?.upgrades??[]).reduce((sum,u)=>sum+(u.bonus??0),0);if(h.wounds>0){c.hero.accuracy-=10; // Separate percentile penalty is not stacked until rules are clarified.
@@ -636,7 +646,7 @@ function locationXpPenalty(heroLevel,kind){return Math.min(100,10*Math.max(0,her
 export function locationExperience(xp,heroLevel,kind){return Math.max(1,roundRatio(xp,100-locationXpPenalty(heroLevel,kind)));}
 function makeRun(s,hero,kind,at,seed,allowSpecial=true){
  startStimulant(hero,kind);const config=heroConfig(s,hero,kind),run=createRun(s,hero,kind,at,seed,allowSpecial,config);
- if(ITEMS[hero.rangedWeapon]?.usesHeavyAmmo&&run.result){
+ if(heavyAmmoWeapon(hero)&&run.result){
   run.result.heavyAmmoRemaining=config.hero.heavyAmmo;
   run.result.heavyAmmoSpent=(hero.heavyAmmo??0)-config.hero.heavyAmmo;
  }run.claimLevel=hero.level;run.startMaxHp=effectiveMaxHp(hero);if(run.result)run.result.minimumHp=Math.min(hero.hp,run.result.hp??hero.hp,run.result.minimumHp??Infinity,...(run.result.battles??[]).map(b=>b.minimumHp??b.hp));if(hero.activeStimulant)run.stimulant=true;if(run.result?.alive!==false&&run.result){const n=hero.nationalityBonuses??{};if((run.result.money??0)>0){const combat=(run.result.battles?.length??0)>0;run.result.money=roundRatio(run.result.money,100+(n.questMoneyPercent<0?n.questMoneyPercent:0)+(combat?0:n.noncombatMoneyPercent??0));}}
@@ -716,7 +726,7 @@ function settleHeavyAmmo(state,hero,result,now){
  if(result?.heavyAmmoRemaining==null||hero.dead)return null;
  hero.heavyAmmo=result.heavyAmmoRemaining;
  const missing=Math.max(0,(hero.heavyAmmoTarget??0)-hero.heavyAmmo);
- const spent=result.heavyAmmoSpent??0,weapon=ITEMS[hero.rangedWeapon];
+ const spent=result.heavyAmmoSpent??0,weapon=heavyAmmoWeapon(hero);
  if(!weapon?.usesHeavyAmmo||(!spent&&(!hero.autoHeavyReload||!missing)))return null;
  const report={weapon:weapon.name,spent,loaded:0,failed:false};
  if(hero.autoHeavyReload&&missing){
@@ -727,7 +737,7 @@ function settleHeavyAmmo(state,hero,result,now){
    report.loaded=missing;
   }
  }
- addHistory(state,weapon.name+' · потрачено '+spent+' · перезаряжено '+report.loaded+(report.failed?' · не хватило А':''),now);
+ if(report.loaded||report.failed)addHistory(state,weapon.name+' · перезаряжено '+report.loaded+(report.failed?' · не хватило А':''),now);
  return report;
 }
 function stopSeries(job,reason){job.phase='done';job.reason=reason;}
@@ -1544,7 +1554,7 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
  case 'loadHeavyAmmo':
  case 'toggleHeavyReload':{
   const hero=idleHero(s,true);
-  requireThat(ITEMS[hero.rangedWeapon]?.usesHeavyAmmo,'Сначала экипируй тяжёлое оружие.');
+  requireThat(heavyAmmoWeapon(hero),'Сначала экипируй тяжёлое оружие.');
   if(action.type==='toggleHeavyReload'){
    hero.autoHeavyReload=!hero.autoHeavyReload;
    hero.heavyAmmoTarget=Math.max(hero.heavyAmmoTarget??0,hero.heavyAmmo??0);
@@ -1556,13 +1566,13 @@ export function act(state,action,now=Date.now(),random=Math.random){const s=norm
   }
   break;
  }
- case 'equip':{const hero=idleHero(s,true);const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const item=ITEMS[row.item];requireThat(canUseEquipment(hero,row),`Требуется ${equipmentRequiredLevel(row)}-й уровень героя.`);requireThat(['body','weapon','accessory'].includes(item.type),'Этот предмет нельзя надеть.');requireThat(!action.slot||['main','ranged'].includes(action.slot),'Неверный слот.');const key=item.type==='accessory'?'accessory':item.type==='body'?'body':action.slot==='main'?'weapon':action.slot==='ranged'?'rangedWeapon':item.combat==='ranged'?'rangedWeapon':'weapon';requireThat(key!=='rangedWeapon'||item.combat==='ranged'||heroHasDualWield(hero)&&item.combat==='melee','В дополнительный слот можно только дистанционное оружие.');requireThat(!item.rangedSlotOnly||key==='rangedWeapon','Это оружие можно надеть только в дополнительный слот.');const target=item.twoSlots?'weapon':key;
+ case 'equip':{const hero=idleHero(s,true);const row=s.inventory.find(x=>x.uid===action.uid);requireThat(row,'Предмета уже нет.');const item=ITEMS[row.item];requireThat(canUseEquipment(hero,row),`Требуется ${equipmentRequiredLevel(row)}-й уровень героя.`);requireThat(['body','weapon','accessory'].includes(item.type),'Этот предмет нельзя надеть.');requireThat(!action.slot||['main','ranged'].includes(action.slot),'Неверный слот.');const key=item.type==='accessory'?'accessory':item.type==='body'?'body':action.slot==='main'?'weapon':action.slot==='ranged'?'rangedWeapon':item.combat==='ranged'?'rangedWeapon':'weapon';requireThat(key!=='rangedWeapon'||item.combat==='ranged'||heroHasDualWield(hero)&&item.combat==='melee','В дополнительный слот можно только дистанционное оружие.');requireThat(key==='rangedWeapon'||canEquipMainWeapon(hero,item),'Это оружие можно надеть только в дополнительный слот.');const target=item.twoSlots?'weapon':key;
  const displaced=item.twoSlots?['weapon','rangedWeapon']:key==='rangedWeapon'&&ITEMS[hero.weapon]?.twoSlots?['weapon',key]:[key];
  removeRow(s,row.uid,1);
  receive(s,displaced.filter(slot=>hero[slot]).map(slot=>({...hero[slot+'Details'],item:hero[slot],qty:1})));
  for(const slot of displaced){hero[slot]=null;hero[slot+'Details']=null;if(['weapon','rangedWeapon'].includes(slot))hero[slot+'Familiarity']=0;}
  hero[target]=row.item;hero[target+'Details']={...clone(row),qty:1};break;}
- case 'moveWeapon':{const hero=idleHero(s,true);requireThat(['main','ranged'].includes(action.slot),'Неверный слот.');const from=action.slot==='main'?'weapon':'rangedWeapon',to=from==='weapon'?'rangedWeapon':'weapon',moving=hero[from],familiarity=hero[from+'Familiarity']??0,previousFamiliarity=hero[to+'Familiarity']??0,details=clone(hero[from+'Details']??null);requireThat(moving,'Слот пуст.');requireThat(to!=='weapon'||!ITEMS[moving]?.rangedSlotOnly,'Это оружие можно надеть только в дополнительный слот.');requireThat(!ITEMS[hero.weapon]?.twoSlots,'Это оружие занимает оба слота.');requireThat(to!=='rangedWeapon'||ITEMS[moving].combat==='ranged'||heroHasDualWield(hero)&&ITEMS[moving].combat==='melee','В дополнительный слот можно только дистанционное оружие.');const previous=hero[to],previousDetails=clone(hero[to+'Details']??null),swap=previous&&!ITEMS[previous].rangedSlotOnly&&(from==='weapon'||ITEMS[previous].combat==='ranged'||heroHasDualWield(hero));if(previous&&!swap)receive(s,[{...previousDetails,item:previous,qty:1}]);hero[to]=moving;hero[to+'Details']=details;hero[from]=swap?previous:null;hero[from+'Details']=swap?previousDetails:null;hero[to+'Familiarity']=familiarity;hero[from+'Familiarity']=swap?previousFamiliarity:0;break;}
+ case 'moveWeapon':{const hero=idleHero(s,true);requireThat(['main','ranged'].includes(action.slot),'Неверный слот.');const from=action.slot==='main'?'weapon':'rangedWeapon',to=from==='weapon'?'rangedWeapon':'weapon',moving=hero[from],familiarity=hero[from+'Familiarity']??0,previousFamiliarity=hero[to+'Familiarity']??0,details=clone(hero[from+'Details']??null);requireThat(moving,'Слот пуст.');requireThat(to!=='weapon'||canEquipMainWeapon(hero,ITEMS[moving]),'Это оружие можно надеть только в дополнительный слот.');requireThat(!ITEMS[hero.weapon]?.twoSlots,'Это оружие занимает оба слота.');requireThat(to!=='rangedWeapon'||ITEMS[moving].combat==='ranged'||heroHasDualWield(hero)&&ITEMS[moving].combat==='melee','В дополнительный слот можно только дистанционное оружие.');const previous=hero[to],previousDetails=clone(hero[to+'Details']??null),swap=previous&&(from==='weapon'?canEquipMainWeapon(hero,ITEMS[previous]):ITEMS[previous].combat==='ranged'||heroHasDualWield(hero));if(previous&&!swap)receive(s,[{...previousDetails,item:previous,qty:1}]);hero[to]=moving;hero[to+'Details']=details;hero[from]=swap?previous:null;hero[from+'Details']=swap?previousDetails:null;hero[to+'Familiarity']=familiarity;hero[from+'Familiarity']=swap?previousFamiliarity:0;break;}
  case 'unequipWeapon':{const hero=idleHero(s,true),key=action.slot==='ranged'?'rangedWeapon':'weapon';requireThat(hero[key],'Слот оружия пуст.');receive(s,[{...hero[key+'Details'],item:hero[key],qty:1}]);hero[key]=null;hero[key+'Details']=null;hero[key+'Familiarity']=0;break;}
  case 'unequipAccessory':{const hero=idleHero(s,true);requireThat(hero.accessory,'Дополнительный слот пуст.');receive(s,[{...hero.accessoryDetails,item:hero.accessory,qty:1}]);hero.accessory=null;hero.accessoryDetails=null;break;}
  case 'unequipBody':{const hero=idleHero(s,true);requireThat(hero.body,'Броня не надета.');receive(s,[{...hero.bodyDetails,item:hero.body,qty:1}]);hero.body=null;hero.bodyDetails=null;break;}

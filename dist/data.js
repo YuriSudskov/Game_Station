@@ -97,7 +97,7 @@ export const RECIPES={
  beamHammer:{name:'Молот из двутавра',production:'melee',level:9,cost:500,seconds:80,xp:100,ingredients:{steel:3,pipe:2},output:'beamHammer'},
  weaponGrade:{name:'Улучшение оружия схемой',production:'upgrade',level:7,cost:400,seconds:40,xp:80,ingredients:{weaponUpgradePlan:1},upgrade:true,target:'weapon',raisesQuality:true},
  tinGrenade:{name:'Граната «Жестянка»',production:'upgrade',level:8,cost:60,seconds:20,xp:25,ingredients:{strongTape:1,metal:5},output:'tinGrenade',batch:true},
- sharpEdge:{name:'Заточка ближнего оружия +20',production:'upgrade',level:9,cost:300,seconds:30,xp:60,ingredients:{metalParts:1},upgrade:true,target:'melee',chance:65,prefix:'Остро заточенный',bonus:20,replaces:'sharpen'},
+ sharpEdge:{name:'Заточка ближнего оружия +20',production:'upgrade',level:9,cost:300,seconds:30,xp:60,ingredients:{metalParts:1},upgrade:true,target:'melee',chance:65,prefix:'Острый',bonus:20,replaces:'sharpen'},
  spikedArmor:{name:'Шипованная броня',production:'science',level:8,cost:0,seconds:30,xp:45,ingredients:{strongTape:1,sharpClaws:8},upgrade:true,target:'body',chance:60,prefix:'Шипованная',thorns:{min:20,max:40}},
  armorGrade:{name:'Улучшение брони схемой',production:'science',level:9,cost:500,seconds:60,xp:80,ingredients:{armorUpgradePlan:1},upgrade:true,target:'body',raisesQuality:true},
  metalMediumArmor:{name:'Средний металлический доспех',production:'armor',level:7,cost:150,seconds:75,ingredients:{armorPlates:3,metalParts:4},output:'metalMediumArmor',xp:70},
@@ -273,12 +273,13 @@ export const PROFESSIONS={
 };
 
 export const IDENTITIES={ivan:{name:'Иван',nationality:'Русский'},hans:{name:'Ганс',nationality:'Немец'},izya:{name:'Изя',nationality:'Еврей'}};
-Object.assign(PROFESSIONS.heavy,{available:true,startReady:true,combatReady:true,weapon:'crowbar',accuracy:8,perks:['armored','burst-fire','tough-cookie','sharp']});
+Object.assign(PROFESSIONS.heavy,{available:true,startReady:true,combatReady:true,weapon:'crowbar',accuracy:8,perks:['armored','burst-fire','tough-cookie','sharp','heavy-gunner']});
 Object.assign(PROFESSIONS.assault,{available:true,combatReady:true,weapon:'kaBar',accuracy:8,perks:['burst-fire','tough-cookie','quick-orders','sharp']});
 Object.assign(PROFESSIONS.saboteur,{perks:['melee-evasion','evasion','initiative','double-strike'],weapon:'knife',accuracy:10,evasionBonus:2.5,combatReady:true});
 Object.assign(PROFESSIONS.engineer,{available:true,requiredRosterLevel:1,perks:[],weapon:null,accuracy:null,evasionBonus:0,combatReady:false});
 
 Object.assign(PERKS,{
+ 'heavy-gunner':{name:'Тяжёлый стрелок',description:'Тяжёлое оружие можно экипировать в основной слот. +5 п.п. точности с тяжёлым оружием в любом слоте.'},
  armored:{name:'Бронированный',description:'Постоянно +5 к поглощению физического и +5 к поглощению термического урона.'},
  greedy:{name:'Жадный',description:'При получении награды за успешное задание дополнительно приносит A по уровню героя. За серию — один раз при общем получении.'},
  gunsmith:{name:'Оружейник',qualityProductions:['upgrade','engineering'],description:'+5 п.п. к шансу качества изготовления предметов оружейного дела и будущей Инженерии за каждого инженера с этим перком, максимум 100%. На улучшения выбранных предметов не действует.'},
@@ -371,6 +372,7 @@ for(const [profession,profile] of Object.entries(PROFESSIONS)){
 
 // Remains a creation perk; later choices use the repeatable general defense perk.
 LEVEL_PERKS.armored.maxPickLevel=5;
+LEVEL_PERKS['heavy-gunner'].maxPickLevel=1;
 
 // Interactive routes are enabled only after the first playable stage is described.
 export const STATION_BUILD_SECONDS=180;

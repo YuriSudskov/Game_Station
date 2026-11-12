@@ -39,7 +39,7 @@ export function beginPartyRecovery(combat){
  delete combat.casualtyDecision;
  return combat;
 }
-import {heroAttackStats,evasionAtDistance,hits,damageAfterArmor,weaponMaxDistance,dualPistolsActive,distanceFromMargin,nationalityHealing,perceptionCheck,weaponJammed,applyAutoStimulator} from './combat.js';
+import {canThrowGrenade,heroAttackStats,evasionAtDistance,hits,damageAfterArmor,weaponMaxDistance,dualPistolsActive,distanceFromMargin,nationalityHealing,perceptionCheck,weaponJammed,applyAutoStimulator} from './combat.js';
 import {ITEMS,TECHNOPARK} from './data.js';
 
 // A hero keeps a target until it falls; personal attackers take priority.
@@ -80,18 +80,30 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false){
   say(c,target.name+': шипы наносят '+reflected+' урона противнику '+actor.name+'.');
  }
  if(!hero&&hit&&(target.battleStartHp??target.maxHp)-target.hp>=target.maxHp*.2)target.woundAccuracyActive=true;
- if(!hero&&!hit&&!counter&&distance===0&&target.hp>0&&actor.hp>0&&target.nationality?.counterOnMiss&&!target.counterUsed){const w=target.weapons?.main;if(w){target.counterUsed=true;shot(c,target,actor,w,0,random,true,true);}}
+ if(!hero&&!hit&&!counter&&distance===0&&target.hp>0&&actor.hp>0&&target.nationality?.counterOnMiss&&!target.counterUsed){const w=target.weapons?.main;if(w&&(!w.usesHeavyAmmo||target.heavyAmmo>0)){if(w.usesHeavyAmmo)target.heavyAmmo--;target.counterUsed=true;shot(c,target,actor,w,0,random,true,true);}}
  return hit;
 }
-function blast(c,actor,item,random,repeat=false,darkTarget=null){
+function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=null){
  const dark=item==='darkGrasp',spec=dark?{min:20,max:80,dodgeDc:14}:ITEMS[item],underfoot=!dark&&!repeat&&random.int(1,100)<=(actor.nationality?.grenadeSelfChance??5),strong=!dark&&!repeat&&random.int(1,100)<=10;
  const base=(random.int(spec.min,spec.max)+(dark?0:actor.nationality?.grenadeDamage??0))*(dark?actor.perception:1)*(strong?1.5:1);
  const opponents=actor.kind==='bandit'?c.heroes:c.enemies;
- const living=opponents.filter(target=>target.hp>0);
+ const living=opponents.filter(target=>target.hp>0&&(!grenadeTargets||grenadeTargets.includes(target.id)));
  const targets=actor.kind==='bandit'&&underfoot?[]:dark?(darkTarget?[darkTarget]:[]):living;
  if(underfoot||repeat&&actor.burningSelf)targets.push(actor);
  for(const target of targets){const dodge=random.int(1,20)+(target.agility??target.stealth??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
- if(item==='molotov'&&!repeat){actor.burningRound=c.round+1;actor.burningSelf=underfoot;}
+ if(item==='molotov'&&!repeat){actor.burningRound=c.round+1;actor.burningSelf=underfoot;actor.burningTargets=grenadeTargets;}
+}
+function tryHeroGrenade(combat,hero,random){
+ if(hero.grenadeThrown||hero.hp<=0)return false;
+ const targets=combat.enemies.filter(enemy=>enemy.hp>0&&canThrowGrenade(hero.distances[enemy.id],hero.strength)).map(enemy=>enemy.id);
+ if(!targets.length)return false;
+ const supply=[['tinGrenades','tinGrenade'],['molotovs','molotov'],['grenades','pipeGrenade']].find(([key])=>hero[key]>0);
+ if(!supply)return false;
+ const [key,item]=supply;
+ hero[key]--;
+ hero.grenadeThrown=true;
+ blast(combat,hero,item,random,false,null,targets);
+ return true;
 }
 export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  if(!['pending','running'].includes(combat.status))return combat;
@@ -103,7 +115,11 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   combat.openingIndex=0;
  }
  if(combat.openingIndex!=null){
-  for(;combat.openingIndex<combat.heroes.length;){const h=combat.heroes[combat.openingIndex++];if(h.hp<=0||!combat.enemies.some(e=>e.hp>0))continue;if(h.tinGrenades>0){h.tinGrenades--;blast(combat,h,'tinGrenade',random);}else if(h.molotovs>0){h.molotovs--;blast(combat,h,'molotov',random);}else if(h.grenades>0){h.grenades--;blast(combat,h,'pipeGrenade',random);}if(updatePartyCasualties(combat)!=='running')return combat;}delete combat.openingIndex;
+  while(combat.openingIndex<combat.heroes.length){
+   const hero=combat.heroes[combat.openingIndex++];
+   if(tryHeroGrenade(combat,hero,random)&&updatePartyCasualties(combat)!=='running')return combat;
+  }
+  delete combat.openingIndex;
  }
  for(const enemy of combat.enemies){
   if(enemy.kind!=='bandit'||enemy.hp<=0||!enemy.grenades)continue;
@@ -117,10 +133,12 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   const entry=combat.pendingActor??combat.order[combat.actorIndex++];
   const hero=entry.side==='hero',actor=(hero?combat.heroes:combat.enemies).find(x=>x.id===entry.id);if(!actor||actor.hp<=0)continue;
   if(hero){
-   if(actor.burningRound&&combat.round>=actor.burningRound){delete actor.burningRound;blast(combat,actor,'molotov',random,true);}
+   if(actor.burningRound&&combat.round>=actor.burningRound){delete actor.burningRound;blast(combat,actor,'molotov',random,true,null,actor.burningTargets);delete actor.burningTargets;}
    if(actor.hp<=0){if(updatePartyCasualties(combat)!=='running')return combat;continue;}
    if(actor.regeneration){const healed=Math.min(actor.regeneration,actor.maxHp-actor.hp);actor.hp+=healed;if(healed)say(combat,actor.name+': реген +'+healed+' = '+actor.hp);}
    if(actor.entangled){const roll=random.int(1,20),success=roll+actor.strength>13;if(success)actor.entangled=false;say(combat,`${actor.name}: освобождение ${roll} + ${actor.strength} против 13 — ${success?'успех':'опутан'}, ход потрачен.`);continue;}
+   if(tryHeroGrenade(combat,actor,random)&&updatePartyCasualties(combat)!=='running')return combat;
+   if(actor.hp<=0)continue;
    let target=partyHeroTarget(actor,combat);
    if(!target)continue;
    if(actor.darkGrasp&&!actor.darkGraspUsed){
@@ -131,7 +149,8 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    }if(actor.firstEnemyFocus&&!actor.focusBattleUsed){actor.focusTarget=target.id;actor.focusBattleUsed=true;}const distance=actor.distances[target.id]??0,main=actor.weapons?.main;
    let weapon=distance===0?(main??actor.weapons?.ranged):main?.type==='ranged'&&distance<=weaponMaxDistance(actor,main)?main:actor.weapons?.ranged;
    const heavy=actor.weapons?.ranged;
-   if(heavy?.usesHeavyAmmo)weapon=actor.heavyAmmo>0?heavy:(weapon===heavy?null:weapon);
+   if(heavy?.usesHeavyAmmo&&actor.heavyAmmo>0)weapon=heavy;
+   if(weapon?.usesHeavyAmmo&&!(actor.heavyAmmo>0))weapon=weapon===main&&!heavy?.usesHeavyAmmo&&(distance===0||heavy?.type==='ranged'&&distance<=weaponMaxDistance(actor,heavy))?heavy:null;
    if(actor.reloading){
     actor.reloading=false;
     weapon=distance===0?actor.reloadWeapon?.bayonet:null;
@@ -158,10 +177,10 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
    else if(actor.dualWield&&distance===0&&actor.weapons?.ranged?.type==='melee')sequence=sequence.flatMap(w=>[w,{...actor.weapons.ranged,noStrength:true}]);
    if(!actor.ownTurnDone&&actor.nationality?.openingExtraAttack)sequence.push(weapon);
-   if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min(weapon.shots,actor.heavyAmmo));
+   if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min(weapon.shots+(actor.burstBonus??0),actor.heavyAmmo));
    for(const w of sequence){
     if(target.hp<=0)break;
-    if(w.usesHeavyAmmo){if(!actor.heavyAmmo)break;actor.heavyAmmo--;}
+    if(w.usesHeavyAmmo){if(!(actor.heavyAmmo>0))break;actor.heavyAmmo--;}
     shot(combat,actor,target,w,distance,random,true);
    }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);
