@@ -319,3 +319,30 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .training-slot .portrait{width:38px;height:38px;flex:0 0 38px}
 .training-upgrade{padding-block:5px}
 .training-upgrade+.training-upgrade{border-top:1px solid #394035}
+
+.training-portrait-empty{border-style:dashed;display:grid;place-items:center;color:var(--muted)}
+.training-portrait-empty .icon{opacity:.55}
+
+.roof-build-progress {
+ padding: 14px 16px;
+ margin: 12px 0;
+ border: 1px solid #477356;
+ border-radius: 10px;
+ background: #14241c;
+ color: #d3efda;
+}
+.roof-build-progress .countdown { display: none; }
+.roof-build-progress .progress {
+ height: 15px;
+ margin: 9px 0 0;
+ border: 1px solid #42644d;
+ border-radius: 9px;
+ background: #202f26;
+ box-shadow: inset 0 2px 4px #101813;
+}
+.roof-build-progress .progress i {
+ background: repeating-linear-gradient(120deg, #ffffff12 0 9px, transparent 9px 18px),
+  linear-gradient(90deg, #3d8d59, #9ce6a3);
+ border-radius: inherit;
+ transition: width .5s linear;
+}

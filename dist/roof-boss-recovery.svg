@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440">
+ <rect width="960" height="440" fill="#26302d"/>
+ <path d="M0 325h960v115H0z" fill="#50574c"/>
+ <path d="M75 325V80h190v245M695 325V65h195v260M75 140h190m430 0h195M75 235h190m430 0h195" fill="none" stroke="#899181" stroke-width="12"/>
+ <path d="M110 347q65-103 174-86l81 46 72 17-35 29-100-8-54 43-42-14 38-42-73 27z" fill="#79866b" stroke="#151b17" stroke-width="8"/>
+ <g fill="#bcb092" stroke="#242822" stroke-width="8">
+  <circle cx="573" cy="210" r="25"/><path d="m553 238-34 99h111l-20-86-27-14z"/>
+  <circle cx="699" cy="225" r="25"/><path d="m680 252-26 85h113l-40-78-21-9z"/>
+ </g>
+ <path d="m587 261 53 22 44-10" fill="none" stroke="#c1ac88" stroke-width="21"/>
+ <path d="m628 273 21 3 3 18-23 1z" fill="#eee8d2"/>
+ <rect x="605" y="351" width="74" height="43" rx="5" fill="#7f5142"/>
+ <path d="M642 357v30m-15-15h30" stroke="#e6d7b7" stroke-width="6"/>
+ <defs>
+  <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse">
+   <path d="M-1 7 7-1m0 8 8-8" stroke="#292922" stroke-width="1" opacity=".7"/>
+  </pattern>
+  <path id="bone" d="M-22-3q-8-7-9 0-4 4 1 7 4 3 9-1h42q6 5 9 0 4-5-2-8-3-2-7 2z"/>
+ </defs>
+ <path d="M715 425q22-71 68-73 25-49 79-25 25-19 98 30v83H711z" fill="#34352c" stroke="#181d18" stroke-width="5"/>
+ <path d="M715 425q22-71 68-73 25-49 79-25 25-19 98 30v83H711z" fill="url(#hatch)"/>
+ <g fill="#b9a989" stroke="#25261e" stroke-width="2">
+  <use href="#bone" transform="translate(791 391) rotate(-20)"/>
+  <use href="#bone" transform="translate(844 379) rotate(23)"/>
+  <use href="#bone" transform="translate(906 371) rotate(-30)"/>
+  <use href="#bone" transform="translate(857 414) rotate(-9)"/>
+  <use href="#bone" transform="translate(932 418) rotate(22)"/>
+  <use href="#bone" transform="translate(738 423) rotate(-11)"/>
+  <path d="M802 362q-10-3-10-13 0-14 15-16 14-1 16 12 2 9-7 14v8h-14zM878 399q-10-3-10-13 0-14 15-16 14-1 16 12 2 9-7 14v8h-14z"/>
+ </g>
+ <g fill="#2b2b23"><ellipse cx="801" cy="349" rx="3" ry="4"/><ellipse cx="813" cy="349" rx="3" ry="4"/><ellipse cx="877" cy="386" rx="3" ry="4"/><ellipse cx="889" cy="386" rx="3" ry="4"/></g>
+</svg>

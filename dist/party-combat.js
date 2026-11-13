@@ -40,7 +40,7 @@ export function beginPartyRecovery(combat){
  delete combat.casualtyDecision;
  return combat;
 }
-import {canThrowGrenade,heroAttackStats,evasionAtDistance,hits,damageAfterArmor,weaponMaxDistance,dualPistolsActive,distanceFromMargin,nationalityHealing,perceptionCheck,weaponJammed,applyAutoStimulator} from './combat.js';
+import {flameAttack,canThrowGrenade,heroAttackStats,evasionAtDistance,hits,damageAfterArmor,weaponMaxDistance,dualPistolsActive,distanceFromMargin,nationalityHealing,perceptionCheck,weaponJammed,applyAutoStimulator} from './combat.js';
 import {ITEMS,TECHNOPARK} from './data.js';
 
 // A hero keeps a target until it falls; personal attackers take priority.
@@ -82,7 +82,7 @@ function applyPartyDamage(c,target,damage,random){
  if(auto){target.hp=auto.hp;say(c,target.name+': Авто-стимулятор применяет «'+ITEMS[auto.item].name+'» и восстанавливает '+auto.healed+' HP.');}
  return damage;
 }
-function shot(c,actor,target,weapon,distance,random,hero=false,counter=false){
+function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,burst=null){
  const stats=hero?heroAttackStats(actor,weapon,distance,{targetHasWoundedHero:target.hurtHeroIds?.includes(actor.id),focusDamageBonus:actor.focusTarget===target.id?(weapon.type==='ranged'?10:weapon.noStrength?0:actor.strength*7):0,battleDamageBonus:actor.berserkDamage??0,hp:actor.hp,firstRanged:!actor.firstRangedSpent,correctionBonus:actor.correctionTarget===target.id?Math.min(actor.correctionMax??15,(actor.correctionShots??0)*(actor.correctionStep??0)):0}):null;
  const accuracy=hero?stats.accuracy+(actor.woundAccuracyActive?(actor.nationality?.battleWoundAccuracy??0):0)+(!actor.firstMeleeSpent&&weapon.type==='melee'?(actor.nationality?.firstMeleeAccuracy??0):0):actor.accuracy+(weapon.accuracyBonus??0),critical=random.int(1,100)<=(actor.criticalChance??(hero?5:3));
  const evasion=hero?target.evasion+(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0):evasionAtDistance(target,distance,target.hp,(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0)+(target.woundedInBattle?(target.nationality?.woundedEvasion??0):0));
@@ -102,14 +102,17 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false){
   damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate);
  }
  if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
- say(c,`${actor.name} → ${target.name}: ${wrestlingThrow?'бросок с прогиба':weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':'промах'}.`);
+ if(burst){
+  if(!burst.length)c.events.push({type:'очередь отряда',turn:c.round,actorName:actor.name,targetName:target.name,attacks:burst});
+  burst.push({weapon:weapon.item??weapon.name,hit,critical,damage,heroHp:actor.hp,ratHp:target.hp});
+ }else say(c,`${actor.name} → ${target.name}: ${wrestlingThrow?'бросок с прогиба':weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':'промах'}.`);
  if(hit&&weapon.type==='melee'&&target.thorns){
   const reflected=random.int(target.thorns.min,target.thorns.max);
   actor.hp=Math.max(0,actor.hp-reflected);
   say(c,target.name+': шипы наносят '+reflected+' урона противнику '+actor.name+'.');
  }
  if(!hero&&hit&&(target.battleStartHp??target.maxHp)-target.hp>=target.maxHp*.2)target.woundAccuracyActive=true;
- if(!hero&&!hit&&!counter&&distance===0&&target.hp>0&&actor.hp>0&&target.nationality?.counterOnMiss&&!target.counterUsed){const w=target.weapons?.main;if(w&&(!w.usesHeavyAmmo||target.heavyAmmo>0)){if(w.usesHeavyAmmo)target.heavyAmmo--;target.counterUsed=true;shot(c,target,actor,w,0,random,true,true);}}
+ if(!hero&&!hit&&!counter&&distance===0&&target.hp>0&&actor.hp>0&&target.nationality?.counterOnMiss&&!target.counterUsed){const w=target.weapons?.main;if(w&&!w.flame&&(!w.usesHeavyAmmo||target.heavyAmmo>0)){if(w.usesHeavyAmmo)target.heavyAmmo--;target.counterUsed=true;shot(c,target,actor,w,0,random,true,true);}}
  return hit;
 }
 function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=null){
@@ -142,6 +145,13 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   for(const h of combat.heroes){h.distances??={};for(const e of combat.enemies){const dc=9+(e.stealth??0),check=perceptionCheck(h,random,(h.perception??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.initialPerceptionBonus??0)+(h.perceptionCheckBonus??0)-(h.checkPenalty??0),dc,{events:combat.events});h.distances[e.id]=Math.min(h.maxStartingDistance??3,distanceFromMargin(check.total-dc,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0));h.battleStartHp=h.hp;}}
   // Every participating hero has their own opening grenade or Mark.
   combat.openingIndex=0;
+  if(combat.ambushTarget){
+   const enemy=combat.enemies[0],target=combat.heroes.find(h=>h.id===combat.ambushTarget);
+   for(const hero of combat.heroes)hero.distances[enemy.id]=0;
+   enemy.targetHeroId=target.id;
+   shot(combat,enemy,target,{name:'Удар из засады',type:'melee',min:enemy.damageMin,max:enemy.damageMax},0,random);
+   if(updatePartyCasualties(combat)!=='running')return combat;
+  }
  }
  if(combat.openingIndex!=null){
   while(combat.openingIndex<combat.heroes.length){
@@ -158,6 +168,14 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  }
  for(let count=0;count<maxActors;count++){
   if(combat.status!=='running')return combat;
+  if(combat.reinforcement&&(!combat.enemies.some(e=>e.hp>0)||combat.actorIndex>=combat.order.length&&!combat.pendingActor)){
+   const enemy=combat.reinforcement;
+   combat.enemies.push(enemy);
+   combat.order.push({id:enemy.id,side:'enemy'});
+   combat.actorIndex=combat.order.length;
+   delete combat.reinforcement;
+   say(combat,enemy.name+' присоединяется к бою.');
+  }
   if(!combat.enemies.some(e=>e.hp>0)){
    for(const member of combat.heroes)applyDelayedDamage(combat,member);
    if(updatePartyCasualties(combat)!=='running')return combat;
@@ -185,7 +203,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    }if(actor.firstEnemyFocus&&!actor.focusBattleUsed){actor.focusTarget=target.id;actor.focusBattleUsed=true;}const distance=actor.distances[target.id]??0,main=actor.weapons?.main;
    let weapon=distance===0?(main??actor.weapons?.ranged):main?.type==='ranged'&&distance<=weaponMaxDistance(actor,main)?main:actor.weapons?.ranged;
    const heavy=actor.weapons?.ranged;
-   if(heavy?.usesHeavyAmmo&&actor.heavyAmmo>0)weapon=heavy;
+   if(heavy?.usesHeavyAmmo&&actor.heavyAmmo>0&&distance<=weaponMaxDistance(actor,heavy))weapon=heavy;
    if(weapon?.usesHeavyAmmo&&!(actor.heavyAmmo>0))weapon=weapon===main&&!heavy?.usesHeavyAmmo&&(distance===0||heavy?.type==='ranged'&&distance<=weaponMaxDistance(actor,heavy))?heavy:null;
    if(actor.reloading){
     actor.reloading=false;
@@ -213,11 +231,18 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
    else if(actor.dualWield&&distance===0&&actor.weapons?.ranged?.type==='melee')sequence=sequence.flatMap(w=>[w,{...actor.weapons.ranged,noStrength:true}]);
    if(!actor.ownTurnDone&&actor.nationality?.openingExtraAttack)sequence.push(weapon);
-   if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min(weapon.shots+(actor.burstBonus??0),actor.heavyAmmo));
+   if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min((weapon.shots??1)+(weapon.shots?actor.burstBonus??0:0),actor.heavyAmmo));
+   const burst=weapon.shots&&!dualPistolsActive(actor)?[]:null;
    for(const w of sequence){
     if(target.hp<=0)break;
     if(w.usesHeavyAmmo){if(!(actor.heavyAmmo>0))break;actor.heavyAmmo--;}
-    shot(combat,actor,target,w,distance,random,true);
+    if(w.flame){
+     const targets=[target,...combat.enemies.filter(enemy=>enemy!==target&&enemy.hp>0&&(actor.distances[enemy.id]??0)<=weaponMaxDistance(actor,w))].map(enemy=>({target:enemy,distance:actor.distances[enemy.id]??0}));
+     for(const hit of flameAttack(actor,w,targets,random)){
+      const damage=armorDamage(combat,hit.target,hit.raw,'thermal',random);
+      say(combat,actor.name+' → '+hit.target.name+': Rox · '+damage+' термического урона'+(hit.dodged?' (уворот)':'')+'.');
+     }
+    }else shot(combat,actor,target,w,distance,random,true,false,burst);
    }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);
    actor.ownTurnDone=true;
@@ -244,16 +269,22 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
      say(combat,actor.name+' сближается до '+(distance-1)+'.');
     }else{
      const accuracyBonus=(weapon.accuracyBonus??0)-(weapon.distancePenalty??15)*distance-(weapon.shotPenalty??0);
+     const burst=weapon.shots?[]:null;
      for(let shotIndex=0;shotIndex<(weapon.shots??1)&&target.hp>0&&actor.hp>0;shotIndex++){
-      shot(combat,actor,target,{...weapon,accuracyBonus},distance,random);
+      shot(combat,actor,target,{...weapon,accuracyBonus},distance,random,false,false,burst);
      }
     }
    }
   }else{
+   if(actor.regeneration)actor.hp=Math.min(actor.maxHp,actor.hp+actor.regeneration);
    const target=partyEnemyTarget(actor,combat.heroes,random);if(!target)continue;let distance=target.distances?.[actor.id]??0;
    if(distance>0&&!actor.rush){target.distances[actor.id]=distance-1;say(combat,actor.name+' сближается до '+(distance-1));}
    else if(distance>1){target.distances[actor.id]=distance-1;say(combat,actor.name+' сближается до '+(distance-1));}
-   else{const rush=distance===1?actor.rush:null;shot(combat,actor,target,{name:rush?'Рывок':actor.attackName??'Укус',type:'melee',min:rush?.min??actor.damageMin,max:rush?.max??actor.damageMax,accuracyBonus:rush?.accuracyBonus??0,damageType:actor.damageType??'physical'},distance,random);if(rush)target.distances[actor.id]=0;target.enemyOpeningDone=true;}
+   else{const rush=distance===1?actor.rush:null;
+    if(actor.doubleStrikeEvery)actor.attackTurns=(actor.attackTurns??0)+1;
+    const fast=actor.doubleStrikeEvery&&actor.attackTurns%actor.doubleStrikeEvery===0;
+    for(let i=0;i<(fast?2:1)&&target.hp>0;i++)shot(combat,actor,target,{name:fast?'Быстрый удар':rush?'Рывок':actor.attackName??'Укус',type:'melee',min:(rush?.min??actor.damageMin)-(fast?20:0),max:(rush?.max??actor.damageMax)-(fast?20:0),accuracyBonus:fast?-10:rush?.accuracyBonus??0,damageType:actor.damageType??'physical'},distance,random);
+    if(rush)target.distances[actor.id]=0;target.enemyOpeningDone=true;}
   }
   if(updatePartyCasualties(combat)!=='running')return combat;
   }finally{

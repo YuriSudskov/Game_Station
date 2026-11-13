@@ -1,5 +1,14 @@
+import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ piercerSpike:{name:'Шип-пронзатель',type:'resource',stack:true,value:800,rarity:'rare',icon:'bag',description:'Редкий реагент с Пронзателя.'},
+ piercerKebab:{name:'Шашлык из Пронзателя',type:'stimulant',stack:false,value:1000,rarity:'rare',icon:'stimulant',description:'10 применений. На одно прохождение: +1 Силы, +1 п.п. уклонения и +10 физического поглощения.'},
+ pukGrass:{name:'Пук-трава',type:'resource',stack:true,value:200,icon:'bag',description:'Трава для исследования.'},
+ machete:{name:'Мачете',type:'weapon',combat:'melee',min:20,max:100,stack:false,value:500,icon:'knife',description:'Оружие ближнего боя.'},
+ brenTen:{name:'Bren Ten',type:'weapon',combat:'ranged',weaponClass:'pistol',min:30,max:170,requiredHeroLevel:5,stack:false,value:4000,rarity:'rare',icon:'pistol'},
+ rpk:{name:'РПК',type:'weapon',combat:'ranged',weaponClass:'heavy',min:20,max:120,shots:10,shotPenalty:30,rangedSlotOnly:true,usesHeavyAmmo:true,stack:false,value:1250,icon:'assaultRifle'},
+ rox:{name:'Rox',type:'weapon',combat:'ranged',weaponClass:'heavy',secondaryWeaponClass:'flamethrower',damageType:'thermal',min:120,max:320,maxDistance:1,flame:true,ammoCost:200,rangedSlotOnly:true,usesHeavyAmmo:true,requiredHeroLevel:5,stack:false,value:4000,rarity:'rare',icon:'rifle'},
+ zauerM:{name:'ZauerM',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:200,maxDistance:2,damageRolls:2,shotPenalty:10,reloadMain:true,reloadEverySlot:true,requiredHeroLevel:5,stack:false,value:4000,rarity:'rare',icon:'shotgun'},
  velocipedel:{name:'Велосипедель',type:'weapon',combat:'ranged',weaponClass:'heavy',secondaryWeaponClass:'shotgun',damageType:'physical',min:20,max:140,shots:6,shotPenalty:30,rangedSlotOnly:true,usesHeavyAmmo:true,stack:false,value:1400,rarity:'rare',icon:'velocipedel',description:'Тяжёлый дробовик. Очередь из 6 выстрелов на любой дистанции, −30 п.п. точности. Каждый выстрел расходует один патрон.'},
  slugShotgun:{name:'Убойник',type:'weapon',combat:'ranged',weaponClass:'shotgun',damageType:'physical',min:30,max:170,maxDistance:3,stack:false,value:1500,icon:'shotgun',description:'Дробовик. 30–170 физического урона. Дистанция 0–3, один выстрел за ход.'},
  ppsh:{name:'ПП Шпагина',type:'weapon',combat:'ranged',weaponClass:'automatic',damageType:'physical',min:10,max:110,maxDistance:1,shots:10,shotPenalty:25,jamChance:10,stack:false,value:2500,icon:'smg',description:'10–110 физического урона, дистанция 0–1. Очередь из 10 выстрелов, каждый со штрафом −25 п.п. точности. Шанс заклинить в начале хода — 10%.'},
@@ -32,7 +41,7 @@ export const ITEMS={
  emptyBottle:{name:'Пустая бутылка',type:'resource',stack:true,value:30,icon:'bag',description:'Ингредиент для коктейля Молотова. Источник появится позже.'},
  molotov:{name:'Молотов',type:'grenade',stack:true,value:150,icon:'grenade',min:20,max:120,dodgeDc:13,description:'Термический урон 20–120 в начале боя и повторный урон огнём на втором ходу. Уклонение против 13 уменьшает урон вдвое.'},
  pipeGrenade:{name:'Трубная граната',type:'grenade',stack:true,value:150,icon:'grenade',min:30,max:180,dodgeDc:13,description:'Одна граната в начале боя. Термический урон 30–180. Уклонение против 13 уменьшает урон вдвое. Шанс задеть себя 5%, шанс сильного взрыва 10%.'},
- dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:90,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять в лечебный слот.'},
+ dressingKit:{name:'Перевязочный набор',type:'medicine',stack:true,value:110,icon:'medical',description:'Восстанавливает 20–50 + Восприятие × 10 HP. Можно взять в лечебный слот.'},
  ghoulKebab:{name:'Шашлык из Упыря',type:'food',stack:true,value:110,icon:'meat',description:'На станции восстанавливает 15% максимального HP + Сила × 7.'},
  leaderKebab:{name:'Редкий шашлык из Вожака',type:'food',stack:true,value:400,rarity:'rare',icon:'meat',description:'Восстанавливает 60–240 HP и даёт +2 к Силе на следующие четыре прохождения локаций.'},
  weaponUpgradePlan:{name:'Схема улучшения оружия',type:'resource',stack:true,value:2000,rarity:'rare',icon:'bag',description:'Трофей Упыриного вожака. Применение появится позже.'},
@@ -40,9 +49,9 @@ export const ITEMS={
  strongTape:{name:'Крепкая изолента',type:'resource',stack:true,value:150,icon:'bag',description:'Материал, найденный на поверхности.'},
  intactBook:{name:'Уцелевшая книга',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Редкая сохранившаяся книга.'},
  armorPlates:{name:'Бронепластины',type:'resource',stack:true,value:250,icon:'jacket',description:'Материал для брони.'},
- ak74:{name:'АК74',type:'weapon',combat:'ranged',weaponClass:'automatic',stack:false,value:1000,shots:3,shotPenalty:20,min:30,max:120,closeAccuracyBonus:5,icon:'assaultRifle',description:'Очередь из трёх выстрелов, −20 п.п. точности. Вплотную +5 п.п. точности.'},
+ ak74:{name:'АК74',type:'weapon',combat:'ranged',weaponClass:'automatic',stack:false,value:1000,rarity:'rare',shots:3,shotPenalty:20,min:30,max:120,closeAccuracyBonus:5,icon:'assaultRifle',description:'Очередь из трёх выстрелов, −20 п.п. точности. Вплотную +5 п.п. точности.'},
  medicKit:{name:'Аптечка медика',type:'medicine',stack:true,value:300,icon:'medical',description:'Лечит 30–80 HP + 10 × Восприятие. Можно взять с собой на задание.'},
- radiationCloak:{name:'Плащ РАД-защиты',type:'accessory',stack:false,value:1500,radiationProtection:3,icon:'jacket',description:'Дополнительный слот снаряжения. +3 к защите от радиации, сочетается с бронёй.'},
+ radiationCloak:{name:'Плащ РАД-защиты',type:'accessory',stack:false,value:1500,rarity:'rare',radiationProtection:3,icon:'jacket',description:'Дополнительный слот снаряжения. +3 к защите от радиации, сочетается с бронёй.'},
  protectiveSuit:{name:'Защитный костюм',type:'accessory',stack:false,value:500,radiationProtection:2,icon:'gasmask',description:'Дополнительная защита. +2 РАД, ещё +1 РАД за каждый плюс качества. Сочетается с бронёй.'},
  rareMushrooms:{name:'Редкие подземные грибы',type:'resource',stack:true,value:200,rarity:'rare',icon:'bag',description:'Ингредиент для грибного чая. Можно найти по пути на Павелецкую.'},
  mushroomTea:{name:'Чай из Грибов',type:'food',stack:true,value:500,icon:'medical',description:'На станции снимает 1–4 + Сила РАД, даёт 50 опыта и навсегда уменьшает максимум HP на 3.'},
@@ -99,7 +108,7 @@ export const RECIPES={
  weaponGrade:{name:'Улучшение оружия схемой',production:'upgrade',level:7,cost:400,seconds:40,xp:80,ingredients:{weaponUpgradePlan:1},upgrade:true,target:'weapon',raisesQuality:true},
  tinGrenade:{name:'Граната «Жестянка»',production:'upgrade',level:8,cost:60,seconds:20,xp:25,ingredients:{strongTape:1,metal:5},output:'tinGrenade',batch:true},
  sharpEdge:{name:'Заточка ближнего оружия +20',production:'upgrade',level:9,cost:300,seconds:30,xp:60,ingredients:{metalParts:1},upgrade:true,target:'melee',chance:65,prefix:'Острый',bonus:20,replaces:'sharpen'},
- spikedArmor:{name:'Шипованная броня',production:'science',level:8,cost:0,seconds:30,xp:45,ingredients:{strongTape:1,sharpClaws:8},upgrade:true,target:'body',chance:60,prefix:'Шипованная',thorns:{min:20,max:40}},
+ spikedArmor:{name:'Шипованная броня',production:'science',level:8,cost:0,seconds:30,xp:45,ingredients:{strongTape:1,sharpClaws:8},upgrade:true,target:'body',chance:60,prefix:'Шипованная',thorns:{min:20,max:40},valueIncreasePercent:15},
  armorGrade:{name:'Улучшение брони схемой',production:'science',level:9,cost:500,seconds:60,xp:80,ingredients:{armorUpgradePlan:1},upgrade:true,target:'body',raisesQuality:true},
  metalMediumArmor:{name:'Средний металлический доспех',production:'armor',level:7,cost:150,seconds:75,ingredients:{armorPlates:3,metalParts:4},output:'metalMediumArmor',xp:70},
  armorPlates:{name:'Бронепластины',production:'armor',level:8,cost:50,seconds:15,ingredients:{metalParts:1,acid:1},output:'armorPlates',outputQty:2,xp:15,batch:true},
@@ -107,8 +116,8 @@ export const RECIPES={
  chitinArmor:{name:'Броня из хитина',production:'armor',level:9,cost:250,seconds:90,ingredients:{kazakVest:1,hardChitinPlates:4},output:'chitinArmor',xp:100},
  fineShot:{name:'Точный или мелкая дробь',production:'upgrade',level:6,cost:300,seconds:30,ingredients:{},upgrade:true,target:'ranged',otherRanged:{prefix:'Точный',accuracyBonus:5,blocksAimedShots:false},chance:60,prefix:'Мелкая дробь',accuracyBonus:15,xp:25,blocksAimedShots:true},
  combatStimulator:{name:'Боевой стимулятор',production:'medicine',level:7,cost:100,seconds:45,xp:35,ingredients:{acid:1,antiseptic:1},output:'combatStimulator'},
- cardioStimulator:{name:'Кардио-стимулятор',production:'medicine',level:8,cost:200,seconds:60,xp:50,ingredients:{acid:1,rareMushrooms:1},output:'cardioStimulator'},
- autoStimulator:{name:'Авто-Стимулятор',production:'medicine',level:9,cost:350,seconds:75,xp:65,ingredients:{springMechanism:1,electronicParts:2},upgrade:true,target:'body',chance:75,prefix:'Авто-',autoHeal:true,valueBonus:450},
+ cardioStimulator:{name:'Кардио-стимулятор',production:'medicine',level:8,cost:200,seconds:60,xp:50,ingredients:{acid:1,rareMushrooms:1},output:'cardioStimulator',chance:100},
+ autoStimulator:{name:'Авто-Стимулятор',production:'medicine',level:9,cost:350,seconds:75,xp:65,ingredients:{springMechanism:1,electronicParts:2},upgrade:true,target:'body',chance:100,prefix:'Авто-',autoHeal:true,valueBonus:450},
  medicKit:{name:'Аптечка медика',production:'medicine',level:6,cost:50,seconds:20,ingredients:{antiseptic:1,dressingKit:1},output:'medicKit',xp:20,batch:true},
  butcherCleaver:{name:'Тесак Мясника',production:'melee',level:6,cost:200,seconds:25,ingredients:{metalParts:3,sharpBlade:1},output:'butcherCleaver',xp:50},
  quilted:{name:'Ватник',production:'science',level:3,cost:100,seconds:20,ingredients:{ghoulHide:2},upgrade:true,target:'body',chance:70,prefix:'Ватник на',firstHitArmor:15,valueBonus:160,xp:20},
@@ -117,7 +126,7 @@ export const RECIPES={
  ergonomic:{name:'Анатомический *',production:'upgrade',level:4,cost:50,seconds:20,ingredients:{fullLeather:1},upgrade:true,target:'melee',chance:70,prefix:'Удобный',accuracyBonus:5,valueBonus:150,xp:20},
  receiver:{name:'Улучшение ресивера',production:'upgrade',level:5,cost:150,seconds:30,ingredients:{springMechanism:1},upgrade:true,target:'ranged',chance:66,prefix:'Мощный',minBonus:10,maxBonus:20,valueBonus:250,xp:15},
  pipeGrenade:{name:'Трубная граната',production:'upgrade',level:3,cost:40,seconds:10,ingredients:{metalParts:1},output:'pipeGrenade',xp:10,chance:75,batch:true,refundOnFailure:true},
- dressingKit:{name:'Перевязочный набор',production:'medicine',level:3,cost:40,seconds:10,ingredients:{cloth:2},output:'dressingKit',xp:5,batch:true},
+ dressingKit:{name:'Перевязочный набор',production:'medicine',level:3,cost:40,seconds:10,ingredients:{cloth:3},output:'dressingKit',xp:5,batch:true},
  ghoulKebab:{name:'Шашлык из Упыря',production:'medicine',level:4,cost:20,seconds:15,ingredients:{ghoulMeat:2},output:'ghoulKebab',xp:12,batch:true},
  mushroomTea:{name:'Чай из Грибов',production:'medicine',level:5,cost:30,seconds:10,ingredients:{rareMushrooms:2},output:'mushroomTea',xp:20,batch:true},
  hideArmor:{name:'Укрепить шкурами',production:'armor',level:4,cost:100,seconds:30,ingredients:{qualityJacket:1,ghoulHide:4},output:'hideArmor',xp:40},
@@ -149,7 +158,7 @@ export const RECIPES={
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
 export const MAX_PRODUCTION_LEVEL=13;
-export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7};
+export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7,pukGrassSearch:7};
 export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780};
 export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
@@ -188,6 +197,21 @@ export const CARAVAN={
  mission:{segments:3,attackChances:[25,40,50],baseXp:30,findXp:0,killXp:15,lootXp:0,lootPerKill:true},
  loot:PATROL.loot
 };
+export const GHOUL_LEADER={...PATROL.enemy,name:'Упыриный вожак',hp:450,accuracy:20,damageMin:60,damageMax:140,attackName:'Когти',rage:true};
+export const LOST_CARAVAN={
+ seconds:120,
+ chance:3,
+ baseXp:40,
+ killXp:15,
+ leaderXp:30,
+ planChance:30,
+ cargo:{armorPlates:2,metalParts:3,electronicParts:1},
+ stages:[
+  {text:'Следы в тоннеле. Герой замечает брошенный тюк.',attackChance:20,finds:[{dc:8,id:'cloth',min:2,max:3},{dc:14,id:'dressingKit'}]},
+  {text:'На рельсах стоит брошенная тележка.',attackChance:40,finds:[{dc:10,id:'metal',min:2,max:4},{dc:16,id:'springMechanism'}]},
+  {text:'Герой находит растерзанный караван. Рядом большой упырь и Упыриный вожак.',attackChance:100,finds:[{dc:8,min:20,max:40},{dc:14,id:'medicKit'},{dc:18,id:'intactBook'}]}
+ ]
+};
 export const TECHNOPARK={
  radiation:{min:0,max:3},
  seconds:35,
@@ -199,6 +223,7 @@ export const TECHNOPARK={
 export const patrolReady=()=>['initiative','stealth','armor','damageMin','damageMax'].every(key=>Number.isInteger(PATROL.enemy[key]));
 
 export const PROFESSIONS={
+ sniper:{name:'Снайпер',strength:2,agility:3,intelligence:2,perception:4,available:true,startReady:true,combatReady:true,weapon:'knife',rangedWeapon:'mosin',accuracy:12,perks:['initiative','sharp']},
  "saboteur": {
   "name": "Диверсант",
   "strength": 2,
@@ -394,6 +419,7 @@ export const STATION_BUILDINGS={
  trainingCenter:{name:'Центр подготовки',role:'tea',cost:800,ingredients:{metalParts:12,springMechanism:5,cloth:10},bonus:'Личная постройка Чая для постоянных походов героев.'}
 };
 export const INTERACTIVE_MISSIONS={
+ roofRoute:roofMission,
  repairMaterials:{
   name:'Поиск материалов для ремонта',filtersPerHero:1,minHeroes:1,maxHeroes:1,
   radiation:2,entry:'search',
@@ -464,7 +490,7 @@ export const INTERACTIVE_MISSIONS={
       "bridge": {
         "sceneNumber": 4,
         "title": "Мост",
-        "image": "./zil-bridge.webp",
+        "image": "./zil-bridge-snow.webp",
         "imageAlt": "Заснеженный разрушенный мост над Москвой-рекой.",
         "text": "Каждый герой дважды проверяет Ловкость против сложности 10. При первом провале герой падает: 30–120 физического урона с учётом брони. Если кто-либо упал, появляется матёрый Страж.",
         "playable": true,
@@ -792,7 +818,7 @@ export const INTERACTIVE_MISSIONS={
 
 export const MEDIC_TREATMENT={min:60,max:100,perceptionMultiplier:10,strengthCost:1,maxUsesPerCombat:1};
 
-export const MATURE_GUARD={...TECHNOPARK.enemy,name:'Матёрый Страж',experience:45,loot:[{id:'toughLeather',chance:80,minQty:1,maxQty:3},{id:'leaderKebab',chance:10,minQty:1,maxQty:1}],hp:330,accuracy:20,damageMin:50,damageMax:150};
+export const MATURE_GUARD={...TECHNOPARK.enemy,name:'Матёрый Страж',experience:45,loot:[{id:'armorUpgradePlan',chance:20},{id:'toughLeather',chance:80,minQty:1,maxQty:3},{id:'leaderKebab',chance:10,minQty:1,maxQty:1}],hp:330,accuracy:20,damageMin:50,damageMax:150};
 
 // Interactive adventure enemy; encounter resolution remains under development.
 export const ACID_SPIDER={

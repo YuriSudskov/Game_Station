@@ -551,19 +551,20 @@ export const NATIONALITIES={
     "male": "Никос",
     "female": "Елена",
     "description": "Дополнительные очки выбора перка 1 при найме и 1 на 3тьем ур.",
-    "restriction": "Сила −1. Ловкость −1.",
+    "restriction": "Ловкость −1. Стартовый максимум HP −15.",
     "startDescription": "Одно очко перка при найме, ещё одно при достижении 3-го уровня.",
     "headwear": "flatcap",
     "bonuses": {
       "attributes": {
-        "strength": -1,
         "agility": -1
       },
+      "hp": -15,
       "extraPerks": 1,
       "perkMilestones": {
         "3": 1
       }
-    }
+    },
+    "balanceRevision": 2
   },
   "jewish_family": {
     "id": "jewish_family",
