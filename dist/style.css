@@ -307,3 +307,15 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .hp-stimulant-label{color:#76cef2}
 .hero-stats-navigation{margin-bottom:10px}
 .hero-stats-navigation .btn{min-width:44px;min-height:38px;padding:5px 10px}
+
+.training-center{gap:6px}
+.training-center .card{padding:8px 10px}
+.training-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:12px}
+.training-summary span{display:flex;justify-content:space-between;gap:6px}
+.training-line{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.training-center .training-line .note,.training-center .training-line h3{margin:0}
+.training-slot .training-line{margin-top:6px}
+.training-center .training-line .btn{width:auto;flex:none;margin:0;min-height:32px;padding:4px 9px;font-size:12px}
+.training-slot .portrait{width:38px;height:38px;flex:0 0 38px}
+.training-upgrade{padding-block:5px}
+.training-upgrade+.training-upgrade{border-top:1px solid #394035}

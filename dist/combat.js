@@ -66,7 +66,7 @@ export function withStarterPerk(config,perk,level=1) {
   else if(perk==='burst-fire')next.hero.burstBonus=1;
   else if(perk==='tough-cookie')next.hero.selfHealAfterBattle=5*next.hero.strength;
   else if(perk==='sharp'){next.hero.initiative+=2;next.hero.evasion+=3;}
-  else if(perk!=='quick-orders'&&perk!=='none') throw new Error(`Unknown perk: ${perk}`);
+  else if(perk!=='quick-orders'&&perk!=='none'&&perk!=='tea-solo') throw new Error(`Unknown perk: ${perk}`);
   return next;
 }
 export const canThrowGrenade=(distance,strength)=>distance===0||distance===1||distance===2&&strength>=4;
@@ -74,6 +74,8 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const h=config.hero,events=[];
   let r=config.rat;
   const note=(type,data)=>{if(trace) events.push({type,...data});};
+  let damageTaken=0;
+  const hurt=damage=>{damageTaken+=Math.min(Math.max(0,hp),damage);hp-=damage;};
   let hp=startHp,minimumHp=startHp,ratHp=r.hp,firstMelee=true,firstRanged=ambush||!h.ambushRangedBonusSpent,woundBonus=false,woundedEvasion=false,berserkDamage=0,counterUsed=false;const national=h.nationality??{};const woundCheck=()=>{minimumHp=Math.min(minimumHp,hp);if(!woundBonus&&national.battleWoundAccuracy&&startHp-hp>=h.maxHp*.2){woundBonus=true;}};
   if(!ambush)delete h.ambushRangedBonusSpent;
   const dc=9+r.stealth,perception=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.initialPerceptionBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),dc,{events,trace});
@@ -108,7 +110,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   };
   const applyDelayed=turn=>{
     if(!delayedDamage)return;
-    hp-=delayedDamage;note('отложенный урон',{turn,damage:delayedDamage});delayedDamage=0;woundCheck();
+    hurt(delayedDamage);note('отложенный урон',{turn,damage:delayedDamage});delayedDamage=0;woundCheck();
   };
   const reduceIncoming=(damage,turn)=>{if(h.halveHeavyHit&&!heavyHitUsed&&damage>h.maxHp*.25){heavyHitUsed=true;note('бывалый бандита',{turn,before:damage,damage:damage/2});return damage/2;}return damage;};
   const groupAlive=()=>opponents.some(enemy=>enemy.hp>0);
@@ -147,13 +149,13 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const self=hitHero?blast('герой',h.agility+(national.grenadeDodge??0)-(h.checkPenalty??0),((damageType==='physical'?h.armor:h.thermalArmor)??0)+absorbFirstHit(turn),base,dodgeDc):null;
     ratHp=opponents[enemyIndex].hp;
     triggerRage(turn);
-    if(self){self.damage=incoming(reduceIncoming(self.damage,turn),turn);hp-=self.damage;woundedEvasion=true;woundCheck();}
+    if(self){self.damage=incoming(reduceIncoming(self.damage,turn),turn);hurt(self.damage);woundedEvasion=true;woundCheck();}
     return self?[...targets,self]:targets;
   };
   const finish=turns=>{
     applyDelayed(turns);
     const won=hp>0&&!groupAlive();
-    return {won,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,...(grenadeItem?{grenadeUsed:grenadeItem}:{}),killed:opponents.filter(enemy=>enemy.hp<=0).length};
+    return {won,damageTaken,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,...(grenadeItem?{grenadeUsed:grenadeItem}:{}),killed:opponents.filter(enemy=>enemy.hp<=0).length};
   };
   const throwGrenade=turn=>{
     grenadeItem=pendingGrenade;
@@ -288,7 +290,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
             base+=raw;damage+=dealt;components.push(dealt);
           }
           if(!heroTurn&&!escortTarget){const before=damage;damage=incoming(reduceIncoming(damage,turn),turn);if(before!==damage)for(let i=0;i<components.length;i++)components[i]*=damage/before;}
-          if(heroTurn)ratHp-=damage;else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hp-=damage;
+          if(heroTurn)ratHp-=damage;else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hurt(damage);
         }
         if(hit&&!heroTurn&&!escortTarget){r.hurtHero=true;woundedEvasion=true;berserkDamage=Math.min(national.berserkCap??0,berserkDamage+(national.berserkOnHit??0));}woundCheck();note('атака',{turn,attack,actor,...(escortTarget?{target:'караван',caravanHp:caravan.hp}:{}),...(heroTurn?{targetName:r.name??'крыса',slot:weapon===h.weapons?.ranged?'ranged':'main'}:{}),weapon:heroTurn?(weapon.item??weapon.type):(rush?'Рывок':powerSwing?'Мощный замах':r.attackName??'укус'),...(heroTurn&&weapon.isBayonet?{bayonet:true}:{}),distance,roll,criticalRoll,critical,accuracy,evasion,hit,base,bonus,damagePenalty,damagePenaltyPercent:attackStats?.damagePenaltyPercent??0,armor:effectiveArmor,damage,...(components.length>1?{components}:{}),heroHp:Math.max(0,hp),ratHp:Math.max(0,ratHp)});
         if(!heroTurn&&!escortTarget&&h.emergencyHeal&&!h.emergencyHealUsed&&hp<h.maxHp*.3){h.emergencyHealUsed=true;const before=Math.max(0,hp),amount=nationalityHealing(h,30+7*h.strength);hp=Math.min(h.maxHp,before+amount);perkHealing+=hp-before;note('живучий уб',{turn,healed:hp-before,hp,rescued:before===0});}
@@ -332,7 +334,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(!heroTurn)enemyIndex=opponents.findIndex(enemy=>enemy.hp>0);
   }
   applyDelayed(config.trial.combatTurnLimit);
-  return {won:false,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp,turns:config.trial.combatTurnLimit,initialDistance,reason:'лимит',events};
+  return {won:false,damageTaken,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp,turns:config.trial.combatTurnLimit,initialDistance,reason:'лимит',events};
 }
 export function bandageHeal(config,random,hp,item='bandage') {
   const roll=item==='medicKit'?random.int(30,80):item==='dressingKit'?random.int(20,50):random.int(10,30),raw=nationalityHealing(config.hero,roll+10*config.hero.perception+(config.hero.medicineBonus??0),true);
@@ -519,7 +521,7 @@ export function stationHelp(config,random,dc=8){
 }
 
 export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,medicKits=0,grenades=0,molotovs=0,tinGrenades=0},location=SURFACE){
- const events=[],battles=[],loot={},h=config.hero,treatment={};let minimumHp=hp;
+ const events=[],battles=[],loot={},h=config.hero,treatment={};let minimumHp=hp,trapDamage=0;
  let money=0,filters=0,killed=0,found=0,xp=location.baseXp,bandagesUsed=0,healed=0;
  const note=(text,data={})=>events.push({type:'поверхность',text,...data});
  const add=(item,qty=1)=>{loot[item]=(loot[item]??0)+qty;};
@@ -566,6 +568,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
    for(let turn=1;turn<=(physical?1:2)&&hp>0;turn++){
     const base=random.int(explosive.min,explosive.max),dodge=random.int(1,20),dodged=dodge+dodgeBonus>explosive.dodgeDc;
     const damage=damageAfterArmor(base*(dodged?.5:1),armor);
+    trapDamage+=Math.min(hp,damage);
     hp=Math.max(0,hp-damage);minimumHp=Math.min(minimumHp,hp);
     const damageText=physical?`Ловушка, взрыв: ${damage} физического урона.`:`Ловушка, огонь ${turn}: ${damage} термического урона.`;
     note(damageText,{roll:dodge,bonus:dodgeBonus,dc:explosive.dodgeDc,success:dodged,hp});
@@ -607,7 +610,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
   note('Припасы: '+cache.name+'.');
   drops(location.bonusLoot??[]);
  }
- return {alive,minimumHp,hp,found,killed,loot:alive?loot:{},money:alive?money:0,filters:alive?filters:0,xp:alive?xp:0,radiation:alive?radiation:0,events,battles,bandagesUsed,bandagesRemaining:alive?bandages:0,dressingKitsRemaining:alive?dressingKits:0,medicKitsRemaining:alive?medicKits:0,grenadesRemaining:alive?grenades:0,molotovsRemaining:alive?molotovs:0,...(tinGrenades?{tinGrenadesRemaining:alive?tinGrenades:0}:{}),healed,lootSuccesses:0};
+ return {alive,trapDamage,minimumHp,hp,found,killed,loot:alive?loot:{},money:alive?money:0,filters:alive?filters:0,xp:alive?xp:0,radiation:alive?radiation:0,events,battles,bandagesUsed,bandagesRemaining:alive?bandages:0,dressingKitsRemaining:alive?dressingKits:0,medicKitsRemaining:alive?medicKits:0,grenadesRemaining:alive?grenades:0,molotovsRemaining:alive?molotovs:0,...(tinGrenades?{tinGrenadesRemaining:alive?tinGrenades:0}:{}),healed,lootSuccesses:0};
 }
 
 

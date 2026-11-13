@@ -26,6 +26,7 @@ export const ITEMS={
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
  kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
  darkCrystal:{name:'Тёмный кристалл',type:'consumable',stack:false,value:10000,rarity:'epic',icon:'crystal',description:'Уникальная находка Крысиного короля. Даёт выбранному герою одну Метку: «Регенерация» или «Тёмная хватка». Регенерация лечит героя, Тёмная хватка заменяет бросок гранаты особой атакой. В текущей игре может выпасть только один раз.'},
+ teaNotes:{name:'Записки бывалого Чая',type:'consumable',stack:true,value:2500,rarity:'rare',icon:'bag',description:'Даёт другому герою один дополнительный выбор перка.'},
  traderNotes:{name:'Записки бывалого торговца',type:'consumable',stack:true,value:3000,rarity:'epic',icon:'bag',description:'Даёт выбранному герою один дополнительный выбор перка.'},
  gasMaskFilter:{name:'Фильтр для противогаза',type:'currency',value:200,icon:'filter',description:'Ресурс для выходов на поверхность и вылазок с карты.'},
  emptyBottle:{name:'Пустая бутылка',type:'resource',stack:true,value:30,icon:'bag',description:'Ингредиент для коктейля Молотова. Источник появится позже.'},
@@ -315,7 +316,12 @@ export const HERO_HOBBIES={
  library:{attribute:'intelligence',options:{intelligence:'+1 Интеллект',experience:'+10% опыта героя'}},
  meditation:{attribute:'perception',options:{perception:'+1 Восприятие',thermal:'+10 термического поглощения'}}
 };
+Object.assign(PERKS,{'tea-solo':{name:'Одинокий ходок',description:'Одиночные вылазки дают двойной опыт и дополнительный предмет.'}});
 export const LEVEL_PERKS={
+ 'tea-journal':{name:'Рукописный дневник',description:'Записки бывалого Чая за каждый выбранный перк Чая, включая этот.',profession:'tea',minLevel:2},
+ 'tea-repeat':{name:'Порыскать еще…',description:'Один повтор каждой пройденной вылазки Чаем с сохранением добычи.',profession:'tea',minLevel:3},
+ 'tea-spartan':{name:'Свой спартанец',description:'Каждый пункт репутации Спарты меняет опыт Чая и денежную награду вылазки на 3%.',profession:'tea',minLevel:8},
+ 'tea-team':{name:'Командный игрок',description:'Чай может взять торговца с отношением выше 10.',profession:'tea',minLevel:5},
  ...Object.fromEntries(Object.entries(HERO_HOBBIES).map(([id,hobby])=>['hobby-'+id,{
   profession:'all',minLevel:4,repeatable:true,hobby:id,attributeBonus:hobby.attribute,
   name:'Развитие · '+hobby.options[hobby.attribute],description:hobby.options[hobby.attribute]+' постоянно.'
@@ -384,13 +390,14 @@ export const STATION_BUILDINGS={
  medicTent:{name:'Палатка медика',cost:500,ingredients:{cloth:10,dressingKit:3,medicKit:1},bonus:'Бесплатно восстанавливает 5% доступного максимума HP после каждой завершённой локации или вылазки. Доход 1–8 А в минуту, до 60 минут за цикл.'},
  tradingPost:{name:'Торговый пост',role:'shekel',cost:750,ingredients:{metalParts:10,fullLeather:6},bonus:'Продажа предметов на 5 п.п. выгоднее.'},
  housing:{name:'Улучшение жилья',role:'sova',cost:650,ingredients:{metalParts:10,fullLeather:10},bonus:'Открывает развитие станции метро и 20 мест для жителей. Общий инвентарь +4 ячейки.'},
- laboratory:{name:'Своя лаборатория',role:'pin',cost:200,ingredients:{fullLeather:10,pipe:3,acid:2,rareMushrooms:2},bonus:'Шанс качества изготовления в Науке +5 п.п.'}
+ laboratory:{name:'Своя лаборатория',role:'pin',cost:200,ingredients:{fullLeather:10,pipe:3,acid:2,rareMushrooms:2},bonus:'Шанс качества изготовления в Науке +5 п.п.'},
+ trainingCenter:{name:'Центр подготовки',role:'tea',cost:800,ingredients:{metalParts:12,springMechanism:5,cloth:10},bonus:'Личная постройка Чая для постоянных походов героев.'}
 };
 export const INTERACTIVE_MISSIONS={
  repairMaterials:{
   name:'Поиск материалов для ремонта',filtersPerHero:1,minHeroes:1,maxHeroes:1,
   radiation:2,entry:'search',
-  nodes:{search:{title:'Окрестности Технопарка',image:'./zil-exit.svg',
+  nodes:{search:{title:'Окрестности Технопарка',image:'./zil-exit.webp',
    text:'У разбитого павильона виднеются листы металла и балки. Отмечаем, где лежат материалы, и возвращаемся доложить Смотрителю.',
    choices:[{id:'reportMaterials',label:'Отметить материалы и вернуться',resolve:'repairMaterials'}]}}
  },
@@ -402,8 +409,9 @@ export const INTERACTIVE_MISSIONS={
     "entry": "exit",
     "nodes": {
       "exit": {
+        "sceneNumber": 1,
         "title": "Выход",
-        "image": "./zil-exit.svg",
+        "image": "./zil-exit.webp",
         "imageAlt": "Заснеженная разрушенная Москва, мост со Стражем и тёмная подворотня.",
         "text": "Вы выходите на свет: всё вокруг завалено снегом. Между разрушенными домами тянется дорога к мосту. Вдалеке на мосту стоит Страж. Что вы будете делать?",
         "playable": true,
@@ -423,8 +431,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "alleyDeadEnd": {
+        "sceneNumber": 2,
         "title": "Обход не найден",
-        "image": "./zil-alley.svg",
+        "image": "./zil-alley.webp",
         "imageAlt": "Заснеженный переулок между разрушенными домами.",
         "text": "Похоже, суслики вас не заметили. Вы спокойно осмотрели переулок, но обходного пути не нашли. Остаётся вернуться и попробовать проскользнуть мимо Стража.",
         "choices": [
@@ -437,8 +446,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "sewerHatch": {
+        "sceneNumber": 3,
         "title": "Канализационный люк",
-        "image": "./zil-hatch.svg",
+        "image": "./zil-hatch.webp",
         "imageAlt": "Канализационный люк в заснеженном переулке.",
         "text": "Похоже, суслики вас не заметили. Вы спокойно ищете другой путь. Среди снега найден канализационный люк.",
         "playable": false,
@@ -452,8 +462,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "bridge": {
+        "sceneNumber": 4,
         "title": "Мост",
-        "image": "./zil-bridge.svg",
+        "image": "./zil-bridge.webp",
         "imageAlt": "Заснеженный разрушенный мост над Москвой-рекой.",
         "text": "Каждый герой дважды проверяет Ловкость против сложности 10. При первом провале герой падает: 30–120 физического урона с учётом брони. Если кто-либо упал, появляется матёрый Страж.",
         "playable": true,
@@ -484,8 +495,9 @@ export const INTERACTIVE_MISSIONS={
         }
       },
       "guardRecovery": {
+        "sceneNumber": 5,
         "title": "После боя",
-        "image": "./zil-alley.svg",
+        "image": "./zil-alley.webp",
         "text": "Стражи повержены. Ваш поверженный товарищ приходит в себя с 1 HP. Можно подлечиться и обыскать трупы.",
         "playable": false,
         "choices": [
@@ -497,8 +509,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "guardBattle": {
+        "sceneNumber": 6,
         "title": "Стражи заметили отряд",
-        "image": "./zil-guard-ambush.svg",
+        "image": "./zil-guard-ambush.webp",
         "text": "Суслик замечает вас и начинает выть. Вы не успеваете оглянуться, как вокруг появляются несколько Стражей. Пятеро против вашего отряда — начинается групповой бой.",
         "playable": false,
         "combat": {
@@ -508,8 +521,9 @@ export const INTERACTIVE_MISSIONS={
         "choices": []
       },
       "matureGuardBattle": {
+        "sceneNumber": 7,
         "title": "Матёрый Страж",
-        "image": "./zil-mature-guard.svg",
+        "image": "./zil-mature-guard.webp",
         "text": "Неудача на мосту привлекла тёмного матёрого Стража. Он преграждает путь отряду. После победы можно продолжить путь ко входу на станцию.",
         "playable": false,
         "combat": {
@@ -520,8 +534,9 @@ export const INTERACTIVE_MISSIONS={
         "choices": []
       },
       "stationEntrance": {
+        "sceneNumber": 8,
         "title": "Вход на ЗИЛ",
-        "image": "./zil-gates.svg",
+        "image": "./zil-gates.webp",
         "imageAlt": "Закрытые металлические ворота станции ЗИЛ.",
         "text": "Каждый герой проверяет Интеллект против 12 и Силу против 14. Два успеха на весь отряд откроют ворота. Иначе остаётся подрыв двумя взрывными гранатами или возвращение на станцию.",
         "playable": true,
@@ -552,8 +567,9 @@ export const INTERACTIVE_MISSIONS={
         }
       },
       "sewerFork": {
+        "sceneNumber": 9,
         "title": "Развилка в канализации",
-        "image": "./zil-sewer-fork.svg",
+        "image": "./zil-sewer-fork.webp",
         "imageAlt": "Подземный коридор с проходами налево и направо.",
         "text": "Вы спускаетесь через канализационный люк. Внизу расходятся два коридора. Можно пойти налево или направо.",
         "choices": [
@@ -572,8 +588,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "molotovCorridor": {
+        "sceneNumber": 10,
         "title": "Левый коридор",
-        "image": "./zil-sewer-trap.svg",
+        "image": "./zil-sewer-trap.webp",
         "imageAlt": "Растяжка с бутылкой в тёмном подземном проходе.",
         "text": "Передний герой проверяет обнаружение ловушки против сложности 13. Найденную ловушку можно обезвредить и забрать Молотов. Провал вызовет два удара огня.",
         "playable": true,
@@ -606,8 +623,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "longCorridor": {
+        "sceneNumber": 11,
         "title": "Длинный коридор",
-        "image": "./zil-long-corridor.svg",
+        "image": "./zil-long-corridor.webp",
         "text": "Коридор уводит вас всё дальше под землю. В конце появляется проход в тоннель рядом со станцией ЗИЛ. Здесь отряд поджидает кислотный паук.",
         "choices": [
           {
@@ -619,8 +637,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "acidSpiderBattle": {
+        "sceneNumber": 12,
         "title": "Кислотный Паукан",
-        "image": "./zil-spider.svg",
+        "image": "./zil-spider.webp",
         "text": "В конце туннеля вы выходите в большой коридор с рельсами, и нежданно на вас нападает огромный кислотный паук.",
         "playable": false,
         "combat": {
@@ -631,8 +650,9 @@ export const INTERACTIVE_MISSIONS={
         "choices": []
       },
       "stationBandits": {
+        "sceneNumber": 13,
         "title": "Станция ЗИЛ: встреча с бандитами",
-        "image": "./zil-station-bandits.svg",
+        "image": "./zil-station-bandits.webp",
         "text": "Ура, мы на станции ЗИЛ. Здесь вы видите следы жизни людей, всякий мусор, бочки, в которых недавно горел костёр. Рядом с одной из бочек вы видите две фигуры. Судя по всему, это бандиты. Они замечают вас и подходят с оружием в руках!",
         "choices": [
           {
@@ -662,14 +682,16 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "banditBattle": {
+        "sceneNumber": 14,
         "title": "Бой с бандитами",
-        "image": "./zil-bandit-battle.svg",
+        "image": "./zil-bandit-battle.webp",
         "text": "Один бандит вскидывает «Бастард ПП», второй берёт вас на мушку из «Браунинга».",
         "choices": []
       },
       "stationInside": {
+        "sceneNumber": 15,
         "title": "На станции ЗИЛ",
-        "image": "./zil-station.svg",
+        "image": "./zil-station.webp",
         "text": "Платформа опустела. Путь на ЗИЛ найден.",
         "choices": [
           {
@@ -680,8 +702,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "returnHome": {
+        "sceneNumber": 16,
         "title": "Путь на ЗИЛ открыт",
-        "image": "./zil-gates.svg",
+        "image": "./zil-gates.webp",
         "text": "Вход на станцию разблокирован. Отряд может вернуться на Автозаводскую. Вылазка будет считаться выполненной.",
         "playable": false,
         "completion": {
@@ -695,8 +718,9 @@ export const INTERACTIVE_MISSIONS={
         "choices": []
       },
       "gateBlocked": {
+        "sceneNumber": 17,
         "title": "Ворота не поддаются",
-        "image": "./zil-gate-blocked.svg",
+        "image": "./zil-gate-blocked.webp",
         "text": "Без подрыва пройти не получится. Нужно две взрывные гранаты из снаряжения отряда; Молотовы не подходят. Можно вернуться на станцию и начать вылазку заново позже.",
         "playable": true,
         "demolition": {
@@ -730,8 +754,9 @@ export const INTERACTIVE_MISSIONS={
         }
       },
       "leftStash": {
+        "sceneNumber": 18,
         "title": "Схрон сталкера",
-        "image": "./zil-stash.svg",
+        "image": "./zil-stash.webp",
         "text": "Тут дальше тупик, и схрон сталкера.",
         "choices": [
           {
@@ -748,8 +773,9 @@ export const INTERACTIVE_MISSIONS={
         ]
       },
       "spiderTunnel": {
+        "sceneNumber": 19,
         "title": "Путь свободен",
-        "image": "./zil-rail-walk.svg",
+        "image": "./zil-station.webp",
         "text": "Кислотный Паукан повержен. За ним рельсы уходят в тоннель к станции.",
         "choices": [
           {
