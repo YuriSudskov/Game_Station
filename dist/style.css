@@ -346,3 +346,4 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
  border-radius: inherit;
  transition: width .5s linear;
 }
+.station-research-action{position:absolute;left:16px;top:54px;z-index:2}

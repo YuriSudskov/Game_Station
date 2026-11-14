@@ -52,7 +52,7 @@ export function stationBuildingCost(s,id){
 }
 export function stationBuildingAvailable(s,id){
  const building=Object.hasOwn(STATION_BUILDINGS,id)?STATION_BUILDINGS[id]:null;
- return Boolean(s.alexeyMet&&building&&(!building.role||building.role===s.playerRole));
+ return Boolean(s.alexeyMet&&building&&(id!=='researchCenter'||s.completedLocations?.technoparkRoof)&&(!building.role||building.role===s.playerRole));
 }
 function awardTeaReputation(state,active){
  if(state.playerRole==='tea'&&active.heroIds.length===1&&!active.teaCompanion&&state.heroes.some(hero=>hero.id===active.heroIds[0]&&hero.isTea&&!hero.dead)){
@@ -904,7 +904,11 @@ function createRun(s,hero,kind,at,seed,allowSpecial,baseConfig){
   return {kind,special:true,seed,startedAt:at,endsAt:at+duration(seconds*1000),result};
  }
  if(kind==='caravan'){
-  const config={...baseConfig,rat:CARAVAN.enemy,mission:CARAVAN.mission,loot:CARAVAN.loot};
+  const clears=s.specialLocationClears?.caravan??Number(Boolean(s.completedLocations?.caravan));
+  const series=s.heroes.find(member=>member.job?.worker===hero)?.job;
+  const seriesClears=series?.reports?.filter(run=>!run.special&&run.result?.alive).length??0;
+  const mission=clears+seriesClears>=5?{...CARAVAN.mission,attackChances:[25,40,45]}:CARAVAN.mission;
+  const config={...baseConfig,rat:CARAVAN.enemy,mission,loot:CARAVAN.loot};
   const caravan={...CARAVAN.escort,maxHp:CARAVAN.escort.hp};
   const result=expedition(config,rng(seed),{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,tinGrenades:hero.tinGrenades,trace:true,caravan});
   return {kind,seed,startedAt:at,endsAt:at+duration(CARAVAN.seconds*1000),result};
@@ -2400,7 +2404,7 @@ hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effec
   requireThat(building.role||stationBuildingCount(s)<stationBuildingLimit(s),'Нет свободных мест для построек.');
   pay(s,stationBuildingCost(s,id));
   for(const [item,qty] of Object.entries(building.ingredients))removeItem(s,item,qty);
-  (s.stationConstruction??={})[id]={startedAt:now,endsAt:now+STATION_BUILD_SECONDS*1000};
+  (s.stationConstruction??={})[id]={startedAt:now,endsAt:now+(building.seconds??STATION_BUILD_SECONDS)*1000};
   addHistory(s,'Начато строительство: '+building.name+'.',now);
   break;
  }

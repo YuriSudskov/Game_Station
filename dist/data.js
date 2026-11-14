@@ -416,6 +416,7 @@ export const STATION_BUILDINGS={
  tradingPost:{name:'Торговый пост',role:'shekel',cost:750,ingredients:{metalParts:10,fullLeather:6},bonus:'Продажа предметов на 5 п.п. выгоднее.'},
  housing:{name:'Улучшение жилья',role:'sova',cost:650,ingredients:{metalParts:10,fullLeather:10},bonus:'Открывает развитие станции метро и 20 мест для жителей. Общий инвентарь +4 ячейки.'},
  laboratory:{name:'Своя лаборатория',role:'pin',cost:200,ingredients:{fullLeather:10,pipe:3,acid:2,rareMushrooms:2},bonus:'Шанс качества изготовления в Науке +5 п.п.'},
+ researchCenter:{name:'Исследовательский центр',cost:1000,seconds:300,ingredients:{metalParts:12,electronicParts:4,steel:2},bonus:'Открывает меню исследований.'},
  trainingCenter:{name:'Центр подготовки',role:'tea',cost:800,ingredients:{metalParts:12,springMechanism:5,cloth:10},bonus:'Личная постройка Чая для постоянных походов героев.'}
 };
 export const INTERACTIVE_MISSIONS={
