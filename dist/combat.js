@@ -410,7 +410,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
       firstEnemy={...firstEnemy,hp:opening.hp};
       if(trace)events.push(...opening.events.filter(e=>e.type==='атака'||e.type==='ожидание'||e.type==='соколиный глаз').map(e=>({...e,ambush:true})));
     }
-    const reinforcements=firstEnemy.hp>0?random.int(1,3):0;
+    const reinforcements=firstEnemy.hp>0?random.int(1,m.maxReinforcements??3):0;
     found=1+reinforcements;
     if(trace&&reinforcements)events.push({type:'подкрепление',count:reinforcements});
     if(firstEnemy.hp===0){

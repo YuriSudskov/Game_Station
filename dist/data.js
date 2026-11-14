@@ -194,7 +194,7 @@ export const CARAVAN={
  description:'Дрезина каравана сломалась, и теперь нужно идти по тоннелю пешком. Упыри иногда нападают на караван, так что нам нужна защита. Платим 30 A, если все доберутся туда живыми. А обратно тебя на дрезине привезём.',
  escort:{hp:200,armor:20,evasion:50,accuracy:5},
  enemy:{...PATROL.enemy,name:'Большой Упырь',hp:300,evasion:35,accuracy:10,stealth:1,damageMin:50,damageMax:110,powerSwing:{accuracyPenalty:10,damageBonus:20}},
- mission:{segments:3,attackChances:[25,40,50],baseXp:30,findXp:0,killXp:15,lootXp:0,lootPerKill:true},
+ mission:{segments:3,attackChances:[25,40,35],baseXp:30,findXp:0,killXp:15,lootXp:0,lootPerKill:true},
  loot:PATROL.loot
 };
 export const GHOUL_LEADER={...PATROL.enemy,name:'Упыриный вожак',hp:450,accuracy:20,damageMin:60,damageMax:140,attackName:'Когти',rage:true};

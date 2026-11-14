@@ -707,6 +707,13 @@ export const isCombatRun=run=>isCombatJob(run.kind)||Boolean(run.special);
 
 const rolledSpecialLocation=(kind,run)=>Number.isInteger(run?.seed)
  && rng(run.seed^0x9e3779b9).int(1,100)<=SPECIAL_LOCATIONS[kind]?.chance;
+function recordSpecialLocationRun(state,kind,run){
+ if(!SPECIAL_LOCATIONS[kind]||!run?.result||run.result.alive===false||run.special)return false;
+ const clears=state.specialLocationClears??={};
+ const previous=clears[kind]??Number(Boolean(state.completedLocations?.[kind]));
+ clears[kind]=Math.min(5,previous+1);
+ return previous>=5&&rolledSpecialLocation(kind,run);
+}
 
 function advanceSpecialLocations(state,now){
  let changed=false;
@@ -724,8 +731,10 @@ function advanceSpecialLocations(state,now){
   const runs=series?job.reports:[job];
   if(runs.some(run=>run?.special)){
    delete state.specialLocations?.[kind];
-  }else if(runs.some(run=>rolledSpecialLocation(kind,run))){
-   (state.specialLocations??={})[kind]=true;
+  }else{
+   let unlocked=false;
+   for(const run of runs)if(recordSpecialLocationRun(state,kind,run))unlocked=true;
+   if(unlocked)(state.specialLocations??={})[kind]=true;
   }
  }
  return changed;
@@ -901,7 +910,9 @@ function createRun(s,hero,kind,at,seed,allowSpecial,baseConfig){
   return {kind,seed,startedAt:at,endsAt:at+duration(CARAVAN.seconds*1000),result};
  }
  if(kind==='technopark'){
-  const config={...baseConfig,rat:TECHNOPARK.enemy,mission:TECHNOPARK.mission,loot:TECHNOPARK.loot};
+  const firstClear=!s.completedLocations?.technopark&&!s.heroes.some(member=>member.job?.kind==='series'&&member.job.location==='technopark'&&member.job.reports?.some(report=>report.result?.alive));
+  const mission=firstClear?{...TECHNOPARK.mission,maxReinforcements:2}:TECHNOPARK.mission;
+  const config={...baseConfig,rat:TECHNOPARK.enemy,mission,loot:TECHNOPARK.loot};
   const random=rng(seed),locationRadiation=s.completedLocations?.technoparkRoof?0:random.int(TECHNOPARK.radiation.min,TECHNOPARK.radiation.max);
   const result=expedition(config,random,{hp:hero.hp,bandages:hero.bandages,dressingKits:hero.dressingKits,medicKits:hero.medicKits,grenades:hero.grenades,molotovs:hero.molotovs,tinGrenades:hero.tinGrenades,trace:true});
   result.locationRadiation=locationRadiation;
@@ -1048,7 +1059,7 @@ function advanceTrainingCenter(state,now){
      delete state.specialLocations?.[kind];
     }else if(!hero.dead){
      completed++;
-     if(rolledSpecialLocation(kind,job)){
+     if(recordSpecialLocationRun(state,kind,job)){
       (state.specialLocations??={})[kind]=true;
       hero.job={kind:'trainingSpecial',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals};
       break;
