@@ -1,0 +1,21 @@
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#111714;color:#ece9d9;--lime:#d4e49b;--muted:#bcc4b8;--line:#465448}
+*{box-sizing:border-box}body{margin:0}main{width:min(100% - 24px,960px);margin:24px auto 40px}header{margin-bottom:16px}h1,h2,p{margin:0 0 8px}header p,.muted{color:var(--muted)}a{color:var(--lime)}button,select{font:inherit;color:inherit;background:#25322b;border:1px solid #637262;border-radius:6px;padding:8px 12px;min-height:44px}button{cursor:pointer}button:hover:not(:disabled),button[aria-pressed=true]{background:#3e4e35;border-color:var(--lime)}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.arena{padding:14px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(#101812b8,#101812f5),url('./roof-scenes/technopark-19.webp') center/cover}.round,.teams,.moves,.field{display:flex;gap:10px;flex-wrap:wrap}.round{justify-content:space-between;margin-bottom:12px}.teams{gap:16px}.team{display:grid;gap:7px;align-content:start;flex:1;min-width:0}.team h2{font-size:1rem}.unit{display:grid;grid-template-columns:38px 1fr;align-items:center;gap:8px;position:relative;width:100%;text-align:left;background:#18251fe8;border:1px solid var(--line);padding:7px;border-radius:6px;min-height:62px}.unit.active{border-color:var(--lime)}.unit.fallen{opacity:.52;filter:grayscale(1)}.unit .portrait{width:38px;height:38px;display:grid;place-items:center;background:#333e32;color:var(--lime);border-radius:5px;font-weight:800}.portrait svg{width:100%;height:100%}.unit small{display:block;color:var(--muted)}progress{display:block;width:100%;height:5px;margin-top:5px;accent-color:#a6ba71}.foes progress{accent-color:#d39178}.reinforcement{margin-top:12px;color:#f0ca9e}
+.panel{background:#18221d;border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}.moves{margin:10px 0}.field{align-items:end;margin:10px 0}.field label{display:grid;gap:4px;max-width:100%;min-width:0}.field select{max-width:100%}.confirm{background:var(--lime);color:#171d13;font-weight:700}.confirm:hover:not(:disabled){background:#e9f3bf}.events{max-height:130px;overflow:auto;padding-left:22px;margin-bottom:0}.float{position:absolute;right:8px;top:0;color:#ffd2bc;background:#2b211b;padding:2px 5px;border-radius:4px;pointer-events:none;animation:rise .7s ease-out both}.float.heal{color:var(--lime)}.hit{animation:hit .24s ease-out}.fall-animation{animation:fall .5s ease-out}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}@keyframes rise{from{opacity:1;transform:translateY(4px)}to{opacity:0;transform:translateY(-26px)}}@keyframes hit{25%{transform:translateX(-4px)}65%{transform:translateX(3px)}}@keyframes fall{from{opacity:1;transform:translateY(-4px)}to{opacity:.52;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}@media(max-width:480px){.arena,.panel{padding:9px}.teams{gap:6px}.unit{grid-template-columns:24px 1fr;gap:5px;font-size:.87rem}.unit .portrait{width:24px;height:29px}}
+
+.unit.has-range{grid-template-columns:auto minmax(0,1fr) auto}
+.range-badge{min-width:30px;padding:3px;text-align:center;border:1px solid #708161;border-radius:5px;color:var(--lime);font-weight:750;font-variant-numeric:tabular-nums}
+.range-caption{display:block;color:var(--muted);font-size:.75rem;font-weight:400}
+.turn-panel{padding:10px}
+.turn-panel h2{font-size:1.05rem}
+.turn-panel .moves{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:6px 0}
+.turn-panel .moves button{padding:4px 2px;font-size:.85rem}
+.turn-panel .field{display:grid;gap:6px;margin:6px 0}
+.attack-fields{grid-template-columns:minmax(0,1.65fr) repeat(2,minmax(0,1fr))}
+.turn-panel .field label{font-size:.78rem;color:var(--muted)}
+.turn-panel select{width:100%;padding:4px;font-size:.85rem}
+.turn-submit{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.turn-submit p{margin:0;font-size:.85rem}
+.turn-submit small{display:block}
+.turn-submit button{margin-left:auto;flex-shrink:0}
+@media(max-width:420px){.attack-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.attack-fields label:first-child{grid-column:1/-1}}
