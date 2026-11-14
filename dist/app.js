@@ -60,7 +60,14 @@ function commit(action,success=''){
    },1200);
   }
   state=next;save();render();if(success)toast(success);return true;
- }catch(error){toast(error.message);return false;}
+ }catch(error){
+  if(modal?.type==='job'&&['claimHero','repeatHero'].includes(action.type)){
+   modal.claimError=error.message;
+   renderModal();
+  }
+  toast(error.message);
+  return false;
+ }
 }
 function heroOptionLabel(hero){
  const busy=hero.dead||hero.missingOnMission||hero.awaitingBurial||hero.job||needsAdventureRecovery(hero)||radiationBlocksMissions(hero);
@@ -660,6 +667,12 @@ function zilBattleLog(combat){
  return renderLog(combat.events.filter(event=>event.type!=='окружение отряда'&&!(event.type==='цель Стража'&&combat.enemies.some(enemy=>enemy.webAttack))));
 }
 function modalShell(title,body,{details='',sceneKey=null}={}){
+ if(modal?.type==='job'&&modal.claimError){
+  const full=modal.claimError.includes('не хватает места');
+  body='<p class="warning" role="alert">'+esc(modal.claimError)+'</p>'+
+   (full?btn('Открыть инвентарь','nav','data-view="inventory"','full secondary'):'')+body;
+ }
+
  const result=modal?.type==='job'&&ready(state.hero?.job);
  const html=`<div class="backdrop"><section class="modal${result?' job-result':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head${details?' zil-scene-head':''}"><div><h2>${title}</h2>${details}</div><button class="iconbutton" data-action="close" aria-label="Закрыть">${icon('close')}</button></div><div class="modal-body">${body}</div></section></div>`;
  const previous=overlay.querySelector('.modal');
