@@ -238,10 +238,11 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(w.usesHeavyAmmo){if(!(actor.heavyAmmo>0))break;actor.heavyAmmo--;}
     if(w.flame){
      const targets=[target,...combat.enemies.filter(enemy=>enemy!==target&&enemy.hp>0&&(actor.distances[enemy.id]??0)<=weaponMaxDistance(actor,w))].map(enemy=>({target:enemy,distance:actor.distances[enemy.id]??0}));
-     for(const hit of flameAttack(actor,w,targets,random)){
+     const hits=flameAttack(actor,w,targets,random).map(hit=>{
       const damage=armorDamage(combat,hit.target,hit.raw,'thermal',random);
-      say(combat,actor.name+' → '+hit.target.name+': Rox · '+damage+' термического урона'+(hit.dodged?' (уворот)':'')+'.');
-     }
+      return {targetName:hit.target.name,damage,dodged:hit.dodged,ratHp:Math.max(0,hit.target.hp)};
+     });
+     combat.events.push({type:'огнемёт',turn:combat.round,actorName:actor.name,weapon:w.item,targets:hits});
     }else shot(combat,actor,target,w,distance,random,true,false,burst);
    }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);

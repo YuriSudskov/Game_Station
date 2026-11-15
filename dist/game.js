@@ -356,7 +356,24 @@ function normalizeInheritedSlot(slot){
  if(readyLevel===(entry.stars+1)*10&&entry.stars<5)entry.stars++;
  return entry;
 }
-export function inheritedRebirths(state){return [...getHeroes(state).filter(h=>rebirthStars(h)>0).map(h=>({stars:rebirthStars(h),attributes:clone(h.rebirthAttributes??{})})),...(state.buriedRebirths??[]).map(normalizeInheritedSlot),...(state.inheritedRebirths??[]).map(normalizeInheritedSlot)].sort((a,b)=>b.stars-a.stars);}
+export function inheritedRebirths(state){
+ const queued=(state.inheritedRebirths??[]).map(normalizeInheritedSlot);
+ const firstHireWithoutStars=queued[0]?.stars===0;
+ const slots=[
+  ...getHeroes(state).filter(h=>rebirthStars(h)>0).map(h=>({stars:rebirthStars(h),attributes:clone(h.rebirthAttributes??{})})),
+  ...(state.buriedRebirths??[]).map(normalizeInheritedSlot),
+  ...queued.filter(slot=>slot.stars>0),
+ ].sort((a,b)=>b.stars-a.stars);
+ if(firstHireWithoutStars&&slots.length)slots.unshift({stars:0,attributes:{}});
+ if(state.playerRole==='tea'&&state.teaId&&slots[0]?.stars>0){
+  slots[0].stars--;
+  if(slots[0].stars===0){
+   if(slots.length===1)slots.shift();
+   else slots[0].attributes={};
+  }
+ }
+ return slots;
+}
 export function restartQuote(state){const spent=Number.isSafeInteger(state.totalSpent)&&state.totalSpent>=0?state.totalSpent:0;const balance=state.money??0,inventoryValue=(state.inventory??[]).reduce((sum,row)=>sum+(ITEMS[row.item]?.value==null?0:salePrice(state,row,row.qty)),0),total=spent+balance+inventoryValue;const bonus=Math.max(0,roundRatio(total,2));return {spent,balance,inventoryValue,total,bonus,money:(state.startingMoney??1500)+bonus,inheritance:inheritedRebirths(state)};}
 const RESTART_COOLDOWN_MS=10*60*1000;
 export const restartAttempt=state=>Number.isSafeInteger(state.restartAttempt)&&state.restartAttempt>=1?state.restartAttempt:1;

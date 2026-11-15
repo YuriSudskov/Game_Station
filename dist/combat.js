@@ -278,11 +278,12 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     else if(heroTurn&&weapon.flame){
       h.heavyAmmo--;
       const targets=[r,...opponents.filter(enemy=>enemy!==r&&enemy.hp>0&&inRange(weapon,enemy.distance))].map(target=>({target,distance:target===r?distance:target.distance}));
-      for(const hit of flameAttack(h,weapon,targets,random)){
+      const flameHits=flameAttack(h,weapon,targets,random).map(hit=>{
         const armor=hit.target.thermalArmor??0,damage=damageAfterArmor(hit.raw,armor)*(hit.target.halfThermalDamage?.5:1);
         hit.target.hp-=damage;
-        note('атака',{turn,actor:'герой',weapon:weapon.item,targetName:hit.target.name,distance:hit.distance,hit:true,damage,armor,heroHp:hp,ratHp:Math.max(0,hit.target.hp),dodgeDc:hit.dc,dodged:hit.dodged});
-      }
+        return {targetName:hit.target.name,damage,ratHp:Math.max(0,hit.target.hp),dodged:hit.dodged};
+      });
+      note('огнемёт',{turn,actor:'герой',weapon:weapon.item,heroHp:hp,targets:flameHits});
       ratHp=r.hp;triggerRage(turn);
     }
     else if(!heroTurn&&distance>(r.attackRange??0)&&!rush) { distance--; note('сближение',{turn,actor:r.name??'крыса',distance}); }
