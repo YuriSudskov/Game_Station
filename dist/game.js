@@ -610,6 +610,7 @@ export function jobRadiation(job){
  return job?.result?.radiation??0;
 }
 export function interactiveMissionReady(id='zilRoute'){const mission=INTERACTIVE_MISSIONS[id];return Boolean(mission?.entry&&mission.nodes[mission.entry]&&mission.nodes[mission.entry].playable!==false);}
+export const heroReviveCost=hero=>200*hero.level;
 export const isCombatJob=kind=>kind==='mission'||kind==='patrol'||kind==='technopark'||kind==='caravan'||kind==='surface'||kind==='zilTunnels'||kind==='surfaceShops'||kind==='pukGrassSearch';
 export function heroAttributes(hero){const p=PROFESSIONS[hero.profession??'saboteur'];return Object.fromEntries(['strength','agility','intelligence','perception'].map(key=>[key,Math.max(0,Math.min(10,p[key]+(hero.rebirthAttributes?.[key]??0)+(hero.nationalityBonuses?.attributes?.[key]??0)+Number(hero.hobby?.option===key)+(hero.levelPerks??[]).filter(({perk})=>LEVEL_PERKS[perk]?.attributeBonus===key).length)-(hero.temporaryAttributeLoss?.[key]??0))]));}
 export function adventureCooldownRemaining(hero,now=Date.now()){
@@ -1054,9 +1055,8 @@ function advanceTrainingCenter(state,now){
    }else if(!waiting){
     const result=job.result;
     const loot=lootWithQuality(Object.entries(result.loot??{}).map(([item,qty])=>({item,qty})),job.seed);
-    if(kind==='technopark'&&!state.duren)loot.push({item:'sharpBlade',qty:1});
-    if(kind==='caravan'&&!state.completedLocations.caravan)loot.push({item:'traderNotes',qty:1});
-    if(result.alive!==false&&!canReceive(state,loot)){
+    const gifts=firstLocationGifts(state,job);
+    if(result.alive!==false&&!canReceive(state,[...loot,...gifts.flatMap(gift=>gift.items)])){
      if(!job.reason){job.reason='Освободи место в инвентаре';changed=true;}
      break;
     }
@@ -1070,6 +1070,7 @@ function advanceTrainingCenter(state,now){
     totals.damage+=(result.trapDamage??0)+(result.battles??[]).reduce((sum,battle)=>sum+(battle.damageTaken??0),0);
     if(!hero.dead){
      totals.xp+=result.xp??0;
+     if(gifts.length)(totals.gifts??=[]).push(...gifts);
      for(const entry of loot){
       const name=itemName(entry);
       totals.loot[name]=(totals.loot[name]??0)+entry.qty;
@@ -1455,7 +1456,35 @@ function finishLostInteractiveMission(state,active,outcome,now,random=Math.rando
  if(outcome==='escaped'&&!state.teaGameOver){settleUnfinishedAdventure(state,active,random);returnAdventureFallen(state,active,now);}applyAdventureRadiation(state,active);startAdventureCooldown(state,active,now);state.lastInteractiveMission={...clone(active),outcome,finishedAt:now};state.interactiveMission=null;
  addHistory(state,outcome==='escaped'?'Сюжетная вылазка прервана: выживший вернулся, поверженный погиб и пропал на задании.':'Отряд погиб и пропал на задании. Восстановление пока невозможно.',now);
 }
+const FIRST_LOCATION_GIFTS={
+ help:['yuras',[{item:'gasMaskFilter',qty:1},{item:'bandage',qty:2}]],
+ mission:['keeper',[{item:'gasMaskFilter',qty:1},{item:'cloth',qty:3}]],
+ patrol:['keeper',[{item:'gasMaskFilter',qty:1},{item:'pipeGrenade',qty:1}]],
+ caravan:['vasek',[{item:'traderNotes',qty:1},{item:'dressingKit',qty:1}]],
+ technopark:['keeper',[{item:'gasMaskFilter',qty:2}]],
+ surface:['keeper',[{item:'protectiveSuit',qty:1}]],
+ zilTunnels:['keeper',[{item:'gasMaskFilter',qty:1},{item:'medicKit',qty:1}]],
+ surfaceShops:['alexey',[{item:'gasMaskFilter',qty:1},{item:'intactBook',qty:1}]],
+ pukGrassSearch:['keeper',[{item:'gasMaskFilter',qty:1},{item:'cardioStimulator',qty:1,charges:10}]]
+};
+export function firstLocationGifts(state,job){
+ const location=job?.location??job?.kind;
+ const reward=Object.hasOwn(FIRST_LOCATION_GIFTS,location)?FIRST_LOCATION_GIFTS[location]:null;
+ if(!reward||(job.kind==='series'?(job.worker.dead||!job.completed):job.result?.alive===false))return [];
+ const gifts=[];
+ if(!state.completedLocations[location]){
+  const [npc,items]=reward;
+  gifts.push({location,npc:npc==='alexey'&&!state.alexeyMet?'keeper':npc,items});
+ }
+ if(location==='technopark'&&!state.duren)gifts.push({location,npc:'duren',items:[{item:'sharpBlade',qty:1}]});
+ if(location==='help'&&!state.specialFirstRewards?.help&&(job.special&&job.result?.alive||job.kind==='series'&&job.reports.some(run=>run.kind==='help'&&run.special&&run.result?.alive))){
+  gifts.push({location,npc:'yuras',special:true,items:[{item:'combatStimulator',qty:1,charges:10}]});
+ }
+ return gifts;
+}
 function claimHeroResult(s,h,now,random){
+ const gifts=firstLocationGifts(s,h.job);
+ h.lastLocationGifts=gifts;
 const firstNewLevel=h.level+1,job=h.job,bonus=claimBonus(h,job),nationalBonus=nationalityClaimBonus(h,job);if(job.kind!=='series'&&job.kind!=='rest')spendStrengthBonus(h);if(job.kind==='series'){receive(s,lootWithQuality(Object.entries(job.loot).map(([item,qty])=>({item,qty})),job.seeds?.[0]??job.startedAt??job.endsAt));s.money+=job.money;for(const key of ['hp','maxHp','level','xp','wounds','bandages','dressingKits','medicKits','grenades','molotovs','tinGrenades','dead','leaderKebabRuns','stimulants','activeStimulant','extraPerkChoices','nationalityPerkMilestones','weaponFamiliarity','rangedWeaponFamiliarity','heavyAmmo'])h[key]=job.worker[key];addHistory(s,`${locationName(job.location)}: серия завершена, +${job.xp} опыта, +${job.money/10} A. ${job.reason}.`,now);}else if(job.kind==='help'&&!job.special){const e=job.result;receive(s,Object.entries(e.loot).map(([item,qty])=>({item,qty})));s.money+=e.money;levelUp(h,e.xp);if(h.wounds>0)h.wounds--;addHistory(s,`Помощь на станции завершена: +${e.xp} опыта, +${e.money/10} A.`,now);}else if(job.kind==='rest'){const completed=job.restoresAdventureAttributes??(job.restType==='stationFull'?(job.completedCycles??0)>0:now>=job.endsAt),full=job.restType==='stationFull'&&h.hp+job.healing>=effectiveMaxHp(h)-1e-9;if(completed&&needsAdventureRecovery(h))restoreAdventureAttributes(h);h.hp=full&&completed?effectiveMaxHp(h):Math.min(effectiveMaxHp(h),h.hp+job.healing);addHistory(s,`Отдых завершён: восстановлено до ${Math.round(h.hp)} HP.`,now);}else {const e=job.result;if(!e.alive){h.dead=true;h.hp=0;h.stimulants=0;h.bandages=0;h.dressingKits=0;h.medicKits=0;h.grenades=0;h.molotovs=0;h.tinGrenades=0;addHistory(s,'Диверсант погиб. Добыча и опыт потеряны.',now);}else {receive(s,lootWithQuality(Object.entries(e.loot).map(([item,qty])=>({item,qty})),job.seed??job.startedAt));s.money+=e.money??0;h.hp=e.hp;h.bandages=e.bandagesRemaining;h.dressingKits=e.dressingKitsRemaining??0;h.medicKits=e.medicKitsRemaining??0;h.grenades=e.grenadesRemaining??0;h.molotovs=e.molotovsRemaining??0;h.tinGrenades=e.tinGrenadesRemaining??0;levelUp(h,e.xp);if(h.wounds>0)h.wounds--;addHistory(s,`Локация пройдена: +${e.xp} опыта, побеждено противников: ${e.killed}.`,now);}}if(nationalBonus){s.money+=nationalBonus;addHistory(s,`${h.name}: национальный бонус +${nationalBonus/10} A.`,now);}if(bonus){s.money+=bonus;addHistory(s,`${h.name}: «Жадный», дополнительно +${bonus/10} A.`,now);}const dose=jobRadiation(job);
  if(dose){
   h.radiation=(h.radiation??0)+dose;
@@ -1465,28 +1494,23 @@ const firstNewLevel=h.level+1,job=h.job,bonus=claimBonus(h,job),nationalBonus=na
  if(job.kind!=='series')finishStimulant(h,job);h.hp=Math.min(h.hp,effectiveMaxHp(h));if(!h.dead&&h.mark==='regeneration'&&job.kind!=='rest')h.hp=effectiveMaxHp(h);
  if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}if(job.kind!=='series'&&job.kind!=='rest'){const healed=healAtMedicTent(s,h,job.endsAt);if(healed)addHistory(s,'Палатка медика · '+h.name+': +'+Math.round(healed*10)/10+' HP.',now);}h.lastHeavyReload=job.kind==='rest'?null:settleHeavyAmmo(s,h,job.kind==='series'?{heavyAmmoRemaining:job.worker.heavyAmmo,heavyAmmoSpent:job.reports.reduce((total,run)=>total+(run.result?.heavyAmmoSpent??0),0)}:job.result,now);recordKeeperProgress(s,h,job);const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface','zilTunnels','surfaceShops','pukGrassSearch'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
  h.lastCompletedLocation=completedLocation;
- const firstRatAlarm=completedLocation==='help'&&(job.special&&job.result?.alive||job.kind==='series'&&job.reports.some(run=>run.kind==='help'&&run.special&&run.result?.alive));
- if(firstRatAlarm&&!s.specialFirstRewards?.help){
-  receive(s,[{item:'combatStimulator',qty:1,charges:10}]);(s.specialFirstRewards??={}).help=true;
-  addHistory(s,'Юрась: за первое успешное отражение нападения крыс получен боевой стимулятор на 10 применений.',now);
- }
- if(completedLocation==='technopark'&&!s.duren){
-  receive(s,[{item:'sharpBlade',qty:1}]);
-  s.duren={level:1,xp:0,nextAt:now,visit:null};
-  visit(s,now,random);
-  addHistory(s,'Знакомство с Дурнем. Получено острое лезвие.',now);
- }
  if(!s.completedLocations[completedLocation]){
   s.completedLocations[completedLocation]=true;
-  if(completedLocation==='caravan'){
-   receive(s,[{item:'traderNotes',qty:1}]);
-   if(!s.vasek){s.vasek={level:1,xp:0,relation:0,nextAt:now,visit:null};visit(s,now,random);}
-   addHistory(s,'Знакомство с Васьком, торговцем оружием союзной станции. Он вручил записки бывалого торговца.',now);
-   addHistory(s,'Первое прохождение каравана. Получены записки бывалого торговца.',now);
-  }else if(completedLocation!=='surface'){
-   s.filters++;
-   addHistory(s,`Первое прохождение: ${locationName(completedLocation)}. Получен фильтр.`,now);
+  if(completedLocation==='caravan'&&!s.vasek){
+   s.vasek={level:1,xp:0,relation:0,nextAt:now,visit:null};
+   visit(s,now,random);
+   addHistory(s,'Знакомство с Васьком, торговцем оружием союзной станции.',now);
   }
+ }
+ if(completedLocation==='technopark'&&!s.duren){
+  s.duren={level:1,xp:0,nextAt:now,visit:null};
+  visit(s,now,random);
+  addHistory(s,'Знакомство с Дурнем.',now);
+ }
+ for(const gift of gifts){
+  receive(s,gift.items);
+  if(gift.special)(s.specialFirstRewards??={}).help=true;
+  addHistory(s,`Первое прохождение: ${locationName(completedLocation)}. ${gift.items.map(item=>itemName(item)+' ×'+item.qty).join(', ')}.`,now);
  }
 }h.job=null;
 }
@@ -2149,7 +2173,7 @@ hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effec
   addHistory(s,h.name+': похоронен достойно.',now);
   break;
  }
- case 'revive':{requireThat(!h?.awaitingBurial,'Погибшего героя можно похоронить.');requireThat(!h?.missingOnMission,'Герой погиб и пропал на задании. Восстановление пока невозможно.');requireThat(h&&h.dead&&!h.job,'Герой не нуждается в восстановлении.');if(action.paid){pay(s,200*h.level);h.hp=effectiveMaxHp(h);h.wounds=0;}else{h.hp=1;h.wounds=4;}h.dead=false;h.bandages=0;h.dressingKits=0;h.medicKits=0;h.grenades=0;h.molotovs=0;h.tinGrenades=0;addHistory(s,action.paid?'Герой восстановлен с полным здоровьем.':'Герой восстановлен. Тяжёлые раны: 4 прохождения локаций.',now);break;}
+ case 'revive':{requireThat(!h?.awaitingBurial,'Погибшего героя можно похоронить.');requireThat(!h?.missingOnMission,'Герой погиб и пропал на задании. Восстановление пока невозможно.');requireThat(h&&h.dead&&!h.job,'Герой не нуждается в восстановлении.');if(action.paid){pay(s,heroReviveCost(h));h.hp=effectiveMaxHp(h);h.wounds=0;}else{h.hp=1;h.wounds=4;}h.dead=false;h.bandages=0;h.dressingKits=0;h.medicKits=0;h.grenades=0;h.molotovs=0;h.tinGrenades=0;addHistory(s,action.paid?'Герой восстановлен с полным здоровьем.':'Герой восстановлен. Тяжёлые раны: 4 прохождения локаций.',now);break;}
  case 'leaderKebab':{
   const hero=idleHero(s,true);
   removeItem(s,'leaderKebab',1);

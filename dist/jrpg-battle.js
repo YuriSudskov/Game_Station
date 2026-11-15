@@ -1,4 +1,3 @@
-import {heroPortraitSvg} from './portraits.js';
 
 const root = document.querySelector('#battle');
 const announcement = document.querySelector('#announcement');
@@ -61,8 +60,8 @@ function unitCard(unit, enemy){
  const active = phase==='hero' && unit===heroes[actorIndex];
  const ranged = enemy && alive(unit) && ['hero','enemy'].includes(phase);
  const distance = ranged ? distanceText(range(heroes[actorIndex],unit)) : null;
- const content = `<span class="portrait" aria-hidden="true">${enemy?(unit.id==='g5'?'М':'С'):heroPortraitSvg(unit)}</span><span><strong>${unit.name}</strong><small>${alive(unit)?hp:'Повержен'}</small><progress value="${unit.hp}" max="${unit.max}" aria-label="Здоровье, ${unit.name}"></progress></span>${ranged?`<span class="range-badge" aria-label="Дистанция: ${distance}">${distance}</span>`: ''}${effect?`<span aria-hidden="true" class="float ${effect.amount>0?'heal':''}">${effect.amount>0?'+':''}${effect.amount}</span>`:''}`;
- const classes = `unit ${ranged?'has-range':''} ${selected||active?'active':''} ${alive(unit)?'':'fallen'} ${effect?.fallen?'fall-animation':effect?.amount<0?'hit':''}`;
+ const content = `<span class="miniature" aria-hidden="true"></span><span><strong>${unit.name}</strong><small>${alive(unit)?hp:'Повержен'}</small><progress value="${unit.hp}" max="${unit.max}" aria-label="Здоровье, ${unit.name}"></progress></span>${ranged?`<span class="range-badge" aria-label="Дистанция: ${distance}">${distance}</span>`: ''}${effect?.amount?`<span aria-hidden="true" class="float ${effect.amount>0?'heal':''}">${effect.amount>0?'+':''}${effect.amount}</span>`:''}`;
+ const classes = `unit spot-${unit.id} ${ranged?'has-range':''} ${selected||active?'active':''} ${alive(unit)?'':'fallen'} ${effect?.firing?'firing':''} ${effect?.fallen?'fall-animation':effect?.amount<0?'hit':''}`;
  if(enemy && alive(unit) && phase==='hero' && ['attack','grenade'].includes(choice.action)){
   return `<button type="button" class="${classes}" data-target="${unit.id}" aria-pressed="${selected}">${content}</button>`;
  }
@@ -106,7 +105,7 @@ function render(focus){
   const result = {victory:'Победа',defeat:'Поражение',escaped:'Отряд отступил'}[phase];
   panel = `<section class="panel"><h2 id="result" tabindex="-1">${result}</h2><p>Раундов: ${round} · Повержено Стражей: ${enemies.filter(unit=>!alive(unit)).length} из ${enemies.length}</p><p>${heroes.map(unit=>unit.name+' · '+(alive(unit)?unit.hp+'/'+unit.max+' HP':'повержен')).join(' / ')}</p><p>Нанесено урона: ${totals.damage} · Восстановлено HP: ${totals.healing}</p><p>Потрачено: выстрелов ${totals.shots}, гранат ${totals.grenades}, аптечек ${totals.meds}.</p><button id="restart" class="confirm">Сыграть заново</button></section>`;
  }
- root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>${enemies.filter(alive).length} противников в бою</span></div><div class="teams"><section class="team"><h2>Отряд</h2>${heroes.map(unit=>unitCard(unit,false)).join('')}</section><section class="team foes"><h2>Стражи ${['hero','enemy'].includes(phase)?`<small class="range-caption">Дистанция · ${hero.name}</small>`: ''}</h2>${enemies.map(unit=>unitCard(unit,true)).join('')}</section></div>${round===1&&['hero','enemy'].includes(phase)?'<p class="reinforcement">Подкрепление · Матёрый Страж вступит в раунде 2</p>':''}</section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
+ root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>${enemies.filter(alive).length} противников в бою</span></div><p class="field-label">Дистанция от героя · ${hero.name}</p><div class="battlefield">${heroes.map(unit=>unitCard(unit,false)).join('')}${enemies.map(unit=>unitCard(unit,true)).join('')}</div>${round===1&&['hero','enemy'].includes(phase)?'<p class="reinforcement">Подкрепление · Матёрый Страж вступит в раунде 2</p>':''}</section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
  if(focus) root.querySelector(focus)?.focus({preventScroll:true});
 }
 function confirmAction(){
@@ -116,6 +115,7 @@ function confirmAction(){
  impact = {};
  switch(choice.action){
  case 'attack': {
+  impact[hero.id] = {firing:true};
   const weapon = weapons[choice.slot];
   const [,mode,count] = weapon.modes.find(([id])=>id===choice.mode);
   const [,zone,multiplier,penalty] = zones.find(([id])=>id===choice.zone);

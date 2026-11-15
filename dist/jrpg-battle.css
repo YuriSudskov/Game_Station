@@ -19,3 +19,31 @@
 .turn-submit small{display:block}
 .turn-submit button{margin-left:auto;flex-shrink:0}
 @media(max-width:420px){.attack-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.attack-fields label:first-child{grid-column:1/-1}}
+.arena{background:#17221b}
+.field-label{color:var(--muted);font-size:.85rem}
+.battlefield{position:relative;isolation:isolate;height:clamp(360px,51vw,470px);overflow:hidden;border-radius:6px;background:#343b35 url('./jrpg-arena.png') center/cover}
+.battlefield .unit{position:absolute;left:var(--x);top:var(--y);width:clamp(74px,17%,145px);min-height:0;transform:translate(-50%,-58%);padding:0 3px 3px;display:flex;flex-direction:column;gap:2px;background:transparent;border-color:transparent;text-align:center;font-size:.76rem;line-height:1.15}
+.battlefield .unit>span:nth-child(2){background:#15201bea;border-radius:4px;padding:4px;width:100%}
+.battlefield .unit.active>span:nth-child(2){outline:1px solid var(--lime)}
+.battlefield .unit.active .miniature::before{border-color:var(--lime)}
+.battlefield .range-badge{position:absolute;right:0;top:0;background:#1a261e}
+.miniature{position:relative;width:min(100%,112px);aspect-ratio:1;display:block;isolation:isolate}
+.miniature::before{content:'';position:absolute;z-index:-1;left:20%;right:20%;bottom:1%;height:13%;border-radius:50%;background:#14181380;border:1px solid transparent}
+.miniature::after{content:'';position:absolute;inset:0;background:url('./jrpg-miniatures.png') var(--sprite,0% 100%)/200% 200% no-repeat;filter:drop-shadow(1px 3px 2px #10150d80)}
+.spot-h1{--x:17%;--y:53%;--sprite:0% 0%}
+.spot-h2{--x:29%;--y:80%;--sprite:100% 0%}
+.spot-g1{--x:55%;--y:52%}
+.spot-g2{--x:73%;--y:58%}
+.spot-g3{--x:55%;--y:85%}
+.spot-g4{--x:87%;--y:79%}
+.spot-g5{--x:85%;--y:34%;--sprite:100% 100%}
+.spot-g5 .miniature{width:min(100%,132px)}
+.battlefield .unit.hit,.battlefield .unit.fall-animation{animation:none}
+.battlefield .hit .miniature{animation:hit .24s ease-out}
+.battlefield .fall-animation .miniature{animation:fall .5s ease-out}
+.battlefield .fallen .miniature::after{transform:rotate(-55deg) scale(.8)}
+.battlefield .float{z-index:2}
+@media(max-width:420px){.battlefield .unit{font-size:.67rem}.battlefield .range-badge{min-width:22px}}
+
+.battlefield .firing .miniature{animation:recoil .22s ease-out}
+@keyframes recoil{30%{transform:translateX(-4px);filter:brightness(1.7)}}
