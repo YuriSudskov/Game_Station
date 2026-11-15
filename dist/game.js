@@ -989,7 +989,7 @@ function trainingBlock(state,hero,kind){
  return state.filters<trainingFilters(kind)?'Не хватает фильтров':'';
 }
 function queueTrainingRun(state,hero,slot,kind,at,random=Math.random,special=false){
- const assignment={trainingSlot:slot,trainingLocation:kind,trainingCompleted:hero.job?.trainingCompleted??0,trainingTotals:hero.job?.trainingTotals};
+ const assignment={trainingSlot:slot,trainingLocation:kind,trainingCompleted:hero.job?.trainingCompleted??0,trainingTotals:hero.job?.trainingTotals,trainingAutoSpecial:hero.job?.trainingAutoSpecial===true};
  const reason=trainingBlock(state,hero,kind);
  if(reason){hero.job={...assignment,kind:'trainingPause',reason};return false;}
  const run=makeRun(state,hero,kind,at,Math.floor(random()*4294967296),special);
@@ -1020,6 +1020,7 @@ function advanceTrainingCenter(state,now){
   for(let cycles=0;cycles<100;cycles++){
    const job=hero.job,{trainingSlot:slot,trainingLocation:kind}=job;
    if(job.kind==='trainingSpecial')break;
+   const autoSpecial=job.trainingAutoSpecial===true;
    const waiting=job.kind==='trainingPause';
    let completed=job.trainingCompleted??0;
    const totals=job.trainingTotals??{loot:{},xp:0,damage:0,earned:0,spent:0,filters:0,radiation:0,partial:completed>0};
@@ -1065,7 +1066,8 @@ function advanceTrainingCenter(state,now){
      completed++;
      if(recordSpecialLocationRun(state,kind,job)){
       (state.specialLocations??={})[kind]=true;
-      hero.job={kind:'trainingSpecial',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals};
+      hero.job={kind:'trainingSpecial',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals,trainingAutoSpecial:autoSpecial};
+      if(autoSpecial)queueTrainingRun(state,hero,slot,kind,at,Math.random,true);
       break;
      }
     }
@@ -1073,22 +1075,22 @@ function advanceTrainingCenter(state,now){
      storeTrainingReport(state,hero,slot,kind,completed,totals);
      break;
     }
-    hero.job={trainingCompleted:completed,trainingTotals:totals};
+    hero.job={trainingCompleted:completed,trainingTotals:totals,trainingAutoSpecial:autoSpecial};
    }
    const rest=REST_OPTIONS.station;
    if(job.kind!=='trainingRest'&&hero.hp<.75*effectiveMaxHp(hero)){
     if(state.money<rest.cost){
      const reason='Не хватает 10 А на отдых';
-     if(!waiting||job.reason!==reason){hero.job={kind:'trainingPause',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals,reason};changed=true;}
+     if(!waiting||job.reason!==reason){hero.job={kind:'trainingPause',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals,trainingAutoSpecial:autoSpecial,reason};changed=true;}
      break;
     }
     pay(state,rest.cost);
     totals.spent+=rest.cost;
-    hero.job={kind:'trainingRest',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals,startedAt:at,endsAt:at+rest.seconds*1000,healing:rest.healing(hero)};
+    hero.job={kind:'trainingRest',trainingSlot:slot,trainingLocation:kind,trainingCompleted:completed,trainingTotals:totals,trainingAutoSpecial:autoSpecial,startedAt:at,endsAt:at+rest.seconds*1000,healing:rest.healing(hero)};
     changed=true;
     continue;
    }
-   const started=queueTrainingRun(state,hero,slot,kind,at);
+   const started=queueTrainingRun(state,hero,slot,kind,at,Math.random,autoSpecial&&Boolean(activeSpecialLocation(state,kind)));
    changed=changed||started||!waiting||job.reason!==hero.job.reason;
    if(!started)break;
   }
@@ -2351,6 +2353,7 @@ hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effec
   requireThat(Number.isInteger(slot)&&slot>=0&&slot<slots.length&&!slots[slot]&&!s.trainingCenter?.lastRuns?.[slot],'Слот недоступен.');
   requireThat(trainingLocations(s,h).includes(kind),'Герой или локация недоступны.');
   if(s.trainingCenter?.lastRuns)delete s.trainingCenter.lastRuns[slot];
+  h.job={trainingAutoSpecial:action.autoSpecial===true};
   queueTrainingRun(s,h,slot,kind,now,random);
   break;
  }

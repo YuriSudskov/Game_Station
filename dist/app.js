@@ -791,6 +791,7 @@ function renderModal(){if(!state.teaGameOver&&!modal&&KEEPER_TUTORIAL[view]&&!st
    return modalShell('2 из 2 · Выбрать локацию',`<section class="card">${trainingHeroSummary(hero)}</section>
     <p class="note">Герой будет повторять походы, а локация закрепится за ним. Лимит — ${trainingCenterStats(state).maxRepeats} походов. Время ${trainingPercent(trainingCenterStats(state).durationPenalty)}, опыт ${trainingPercent(-trainingCenterStats(state).xpPenalty)}. Награды зачисляются автоматически.</p>
     <p class="note">При здоровье ниже 75% герой отдыхает за 10 А. Если денег не хватает, походы продолжатся после пополнения баланса. После первого завершённого похода можно отменить назначение. Текущий поход прервётся без награды, слот освободится через 5 секунд.</p>
+    <p><label><input type="checkbox" id="training-auto-special"> Идти на особые локации сразу</label></p>
     <div class="interactive-stage-choices">${locations.map(kind=>btn('Отправить · '+locationName(kind),'startTrainingRun',`data-id="${esc(hero.id)}" data-location="${kind}" data-slot="${modal.slot}"`,'full secondary')).join('')||'<p class="note">Сейчас нет доступных локаций.</p>'}</div>
     ${btn('Назад к героям','trainingPick',`data-slot="${modal.slot}"`,'ghost full')}`);
   }
@@ -1106,7 +1107,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(a==='buyTrainingSlot'){commit({type:a});return;}
  if(a==='startTrainingRun'||a==='stopTrainingRun'||a==='startTrainingSpecial'){
   const interruptedSlot=a==='stopTrainingRun'?getHeroes(state).find(hero=>hero.id===el.dataset.id)?.job?.trainingSlot:null;
-  if(commit({type:a,heroId:el.dataset.id,slot:Number(el.dataset.slot),location:el.dataset.location})){
+  if(commit({type:a,heroId:el.dataset.id,slot:Number(el.dataset.slot),location:el.dataset.location,autoSpecial:document.querySelector('#training-auto-special')?.checked===true})){
    if(interruptedSlot!=null)pendingInterruptedTrainingReport=interruptedSlot;
    close();
   }
