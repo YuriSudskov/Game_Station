@@ -296,6 +296,7 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 
 .btn.trading-post-entry-ready{background:#d5e98a;border-color:#e5f2ad;color:#1c2914;box-shadow:0 0 0 2px #d5e98444}
 .duren-map-target{left:55.9%;top:6%}
+.hansa-map-target{left:61.8%;top:5.8%}
 
 .surface-map-controls{display:flex;gap:6px;margin:6px 0}
 .surface-map-controls .btn{min-height:34px;padding:5px 10px}
@@ -347,3 +348,25 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
  transition: width .5s linear;
 }
 .station-research-action{position:absolute;left:16px;top:54px;z-index:2}
+
+.hansa-shop-entry{display:flex;flex-wrap:wrap;gap:8px}
+.hansa-shop-entry [data-action=hansaShop]{margin-left:auto}
+
+.hansa-cooldown,.hansa-experience{padding:10px 12px;border:1px solid #40634e;border-radius:8px;background:#14251b}
+.hansa-cooldown{margin-bottom:12px}
+.hansa-cooldown .countdown{margin:0 0 6px;font-variant-numeric:tabular-nums}
+.hansa-cooldown .countdown::before{content:"До обновления · "}
+.hansa-cooldown .progress{height:8px;margin:0}
+.hansa-cooldown .progress i{background:linear-gradient(90deg,#378c57,#8ce4a2)}
+.hansa-experience{margin-top:12px;color:#d8b878}
+.hansa-experience progress{display:block;width:100%;height:8px;margin-top:7px;accent-color:#d8b878}
+
+.hansa-stock{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:6px}
+.hansa-lot{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:52px;padding:6px 8px;border:1px solid #40634e;border-radius:6px;background:#14251b}
+.hansa-lot>.icon{width:18px;height:18px;color:#86d3a0}
+.hansa-lot-details{display:grid;gap:2px;line-height:1.2;overflow-wrap:anywhere;font-size:13px}
+.hansa-lot-details small{color:var(--muted);font-size:11px}
+.hansa-lot .hansa-buy{min-height:32px;padding:4px 7px;white-space:nowrap;font-size:12px}
+.hansa-lot-empty{display:flex;justify-content:center;color:var(--muted);font-size:12px}
+
+.recipe-controls{display:flex;align-items:center;gap:4px;margin-left:auto}

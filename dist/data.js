@@ -33,7 +33,7 @@ export const ITEMS={
  cardioStimulator:{name:'Кардио-стимулятор',type:'stimulant',stack:false,value:850,icon:'stimulant',description:'10 применений. На время прохождения локации увеличивает максимальное и текущее HP на 15%.'},
  combatStimulator:{name:'Боевой стимулятор',type:'stimulant',stack:false,value:500,icon:'stimulant',description:'10 применений, по одному за прохождение локации. На время прохождения +40 максимального и текущего HP, +5 п.п. точности.'},
  butcherCleaver:{name:'Тесак Мясника',type:'weapon',combat:'melee',min:40,max:120,accuracyBonus:-5,stack:false,value:1000,rarity:'rare',icon:'knife',flavor:'Свежее мясо!',description:'Редкое оружие ближнего боя. Физический урон 40–120 + Сила × 10. −5 п.п. точности.'},
- kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика. Физический урон 5–60 + Сила × 10.'},
+ kaBar:{name:'Нож «Ка-Бар»',type:'weapon',combat:'melee',min:5,max:60,stack:false,value:100,icon:'knife',description:'Стартовое оружие Штурмовика и Диверсанта. Физический урон 5–60 + Сила × 10.'},
  darkCrystal:{name:'Тёмный кристалл',type:'consumable',stack:false,value:10000,rarity:'epic',icon:'crystal',description:'Уникальная находка Крысиного короля. Даёт выбранному герою одну Метку: «Регенерация» или «Тёмная хватка». Регенерация лечит героя, Тёмная хватка заменяет бросок гранаты особой атакой. В текущей игре может выпасть только один раз.'},
  teaNotes:{name:'Записки бывалого Чая',type:'consumable',stack:true,value:2500,rarity:'rare',icon:'bag',description:'Даёт другому герою один дополнительный выбор перка.'},
  traderNotes:{name:'Записки бывалого торговца',type:'consumable',stack:true,value:3000,rarity:'epic',icon:'bag',description:'Даёт выбранному герою один дополнительный выбор перка.'},
@@ -62,6 +62,8 @@ export const ITEMS={
  pipe:{name:'Труба',type:'resource',stack:true,value:80,icon:'metal',description:'Материал для Обреза и винтовки Мосина. Продаётся у Юрася.'},
  bastard:{name:'Бастард ПП',type:'weapon',combat:'ranged',weaponClass:'automatic',min:30,max:80,shots:3,shotPenalty:20,stack:false,value:250,icon:'smg',description:'Очередь из трёх выстрелов. У каждого своя проверка попадания со штрафом −20 п.п. и отдельный расчёт физического урона.'},
  sawedOff:{name:'Обрез',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:40,max:130,maxDistance:1,damageRolls:2,shotPenalty:10,reloadMain:true,stack:false,value:600,icon:'shotgun',description:'Дуплет на дистанции 0–1: одна проверка попадания со штрафом −10 п.п., два броска урона. В основном слоте следующий ход после выстрела уходит на перезарядку.'},
+ homemadeRifle:{name:'Самодельная винтовка',type:'weapon',combat:'ranged',weaponClass:'rifle',min:30,max:140,reloadMain:true,reloadEverySlot:true,stack:false,value:200,icon:'rifle'},
+ heavyStarterArmor:{name:'Средняя броня Тяжа',type:'body',armorClass:'medium',armor:45,thermalArmor:0,accuracyPenalty:5,evasionBonusCap:40,missionTimePenaltyPercent:10,stack:false,value:250,icon:'jacket'},
  mosin:{name:'Винтовка Мосина',type:'weapon',combat:'ranged',weaponClass:'rifle',min:60,max:150,distancePenalty:10,piercing:true,reloadMain:true,bayonet:{min:10,max:80},twoSlots:true,rarity:'rare',stack:false,value:900,icon:'rifle',description:'Занимает оба слота. Пробивающий выстрел на любой дистанции. Штраф точности −10 п.п. за единицу дистанции. После выстрела перезаряжается, а вплотную в этот же ход атакует штыком.'},
  metalParts:{name:'Металлические части',type:'resource',stack:true,value:100,icon:'metal',description:'Материал для оружия в Цехе.'},
  sharpBlade:{name:'Острое лезвие',type:'resource',stack:true,value:300,rarity:'rare',icon:'knife',description:'Находка в Технопарке. Материал для Шила и винтовки Мосина.'},
@@ -135,6 +137,8 @@ export const RECIPES={
  springMechanism:{name:'Пружинный механизм',production:'ranged',level:2,cost:50,seconds:10,ingredients:{metal:3},output:'springMechanism',xp:8,batch:true},
  bastard:{name:'Бастард ПП',production:'ranged',level:3,cost:100,seconds:30,ingredients:{metal:3,springMechanism:1},output:'bastard',xp:20},
  sawedOff:{name:'Обрез',production:'ranged',level:4,cost:150,seconds:30,ingredients:{pipe:2,metalParts:3},output:'sawedOff',xp:30},
+ homemadeRifle:{name:'Самодельная винтовка',type:'weapon',combat:'ranged',weaponClass:'rifle',min:30,max:140,reloadMain:true,reloadEverySlot:true,stack:false,value:200,icon:'rifle'},
+ heavyStarterArmor:{name:'Средняя броня Тяжа',type:'body',armorClass:'medium',armor:45,thermalArmor:0,accuracyPenalty:5,evasionBonusCap:40,missionTimePenaltyPercent:10,stack:false,value:250,icon:'jacket'},
  mosin:{name:'Винтовка Мосина',production:'ranged',level:5,cost:0,seconds:60,ingredients:{pipe:1,springMechanism:1,metalParts:3,sharpBlade:1},output:'mosin',xp:50},
  mr73:{name:'Револьвер MR-73',production:'ranged',level:6,cost:200,seconds:40,ingredients:{springMechanism:2,pipe:1,metalParts:3},output:'mr73',xp:50},
  metalParts:{name:'Металлические части',production:'melee',level:3,cost:40,seconds:12,ingredients:{metal:4},output:'metalParts',xp:8,batch:true},
@@ -223,7 +227,7 @@ export const TECHNOPARK={
 export const patrolReady=()=>['initiative','stealth','armor','damageMin','damageMax'].every(key=>Number.isInteger(PATROL.enemy[key]));
 
 export const PROFESSIONS={
- sniper:{name:'Снайпер',strength:2,agility:3,intelligence:2,perception:4,available:true,startReady:true,combatReady:true,weapon:'knife',rangedWeapon:'mosin',accuracy:12,perks:['initiative','sharp']},
+ sniper:{name:'Снайпер',strength:2,agility:3,intelligence:2,perception:4,available:true,startReady:true,combatReady:true,weapon:'knife',rangedWeapon:'homemadeRifle',accuracy:12,perks:['initiative','sharp','sniper-cold','sniper-ammo','sniper-optics']},
  "saboteur": {
   "name": "Диверсант",
   "strength": 2,
@@ -299,9 +303,11 @@ export const PROFESSIONS={
 };
 
 export const IDENTITIES={ivan:{name:'Иван',nationality:'Русский'},hans:{name:'Ганс',nationality:'Немец'},izya:{name:'Изя',nationality:'Еврей'}};
-Object.assign(PROFESSIONS.heavy,{available:true,startReady:true,combatReady:true,weapon:'crowbar',accuracy:8,perks:['armored','burst-fire','tough-cookie','sharp','heavy-gunner']});
+Object.assign(PROFESSIONS.doctor,{available:true,startReady:true,combatReady:true,weapon:'knife',weaponQuality:1,startDressingKits:2,perks:['doctor-therapist','doctor-pharmacist','doctor-duty','doctor-institute']});
+Object.assign(PROFESSIONS.medic,{available:true,startReady:true,combatReady:true,weapon:'pistol',accuracy:8,perks:["medic-field","medic-sanitary","medic-nimble","medic-shooter"]});
+Object.assign(PROFESSIONS.heavy,{available:true,startReady:true,combatReady:true,weapon:'knife',body:'heavyStarterArmor',accuracy:8,perks:['armored','burst-fire','tough-cookie','sharp','heavy-gunner']});
 Object.assign(PROFESSIONS.assault,{available:true,combatReady:true,weapon:'kaBar',accuracy:8,perks:['burst-fire','tough-cookie','quick-orders','sharp']});
-Object.assign(PROFESSIONS.saboteur,{perks:['melee-evasion','evasion','initiative','double-strike'],weapon:'knife',accuracy:10,evasionBonus:2.5,combatReady:true});
+Object.assign(PROFESSIONS.saboteur,{perks:['melee-evasion','evasion','initiative','double-strike'],weapon:'kaBar',accuracy:10,evasionBonus:2.5,combatReady:true});
 Object.assign(PROFESSIONS.engineer,{available:true,requiredRosterLevel:1,perks:[],weapon:null,accuracy:null,evasionBonus:0,combatReady:false});
 
 Object.assign(PERKS,{
@@ -342,7 +348,44 @@ export const HERO_HOBBIES={
  meditation:{attribute:'perception',options:{perception:'+1 Восприятие',thermal:'+10 термического поглощения'}}
 };
 Object.assign(PERKS,{'tea-solo':{name:'Одинокий ходок',description:'Одиночные вылазки дают двойной опыт и дополнительный предмет.'}});
+Object.assign(PERKS,{"sniper-cold":{"name":"Холодный расчёт","description":"Первый выстрел из винтовки или дробовика: −15 п.п. точности, двойной урон после поглощения."},"sniper-ammo":{"name":"Любимые патроны","description":"Первые пять одиночных выстрелов за задание: +5 п.п. точности и +10 урона."},"sniper-optics":{"name":"Оптика","description":"Винтовка на дистанции 2+: +10 п.п. точности."}});
+Object.assign(PERKS,{
+ 'doctor-therapist':{name:'Терапевт',description:'+10 HP к лечению расходниками для всех героев.'},
+ 'doctor-pharmacist':{name:'Аптекарь',description:'+5 п.п. качества и +10% скорости производства медицины.'},
+ 'doctor-duty':{name:'Дежурный',description:'+20% к лечению отдыхом и едой для всех героев.'},
+ 'doctor-institute':{name:'Институтский',description:'+1 к РАД-защите, ещё +1 с 6-го уровня.'}
+});
+Object.assign(PERKS,{"medic-field":{"name":"Полевой","description":"+20 HP при применении лечебных расходников."},"medic-sanitary":{"name":"Санитар","description":"+3 к лимиту лечения и второй слот для другого стимулятора."},"medic-nimble":{"name":"Юркий","description":"При HP ниже 50% +10 п.п. уклонения и к его лимиту."},"medic-shooter":{"name":"Стрелок","description":"+5 п.п. точности с пистолетами."}});
 export const LEVEL_PERKS={
+ 'doctor-rounds':{name:'Обход',minLevel:2,profession:'doctor',description:'После локации шанс 20% вылечить другого раненого или облучённого героя на 30 + 10 × Восприятие Доктора HP.'},
+ 'doctor-health':{name:'Здоровье врача',minLevel:3,profession:'doctor',description:'+60 к максимуму HP и ещё +5 за каждый следующий уровень после выбора.'},
+ 'doctor-rehab':{name:'Реабилитация',minLevel:4,profession:'doctor',description:'Другие герои бесплатно восстанавливаются после гибели в локации с половиной HP и ран. Платное восстановление дешевле на 50%.'},
+ 'doctor-composure':{name:'Выдержка врача',minLevel:5,profession:'doctor',attributeBonus:'perception',description:'+1 Восприятие и +2 к проверкам на избегание урона или статуса.'},
+ 'doctor-decontamination':{name:'Дезактивация',minLevel:6,profession:'doctor',requires:'doctor-rounds',description:'Успешный Обход снимает 1 ед. облучения.'},
+ 'doctor-brigade':{name:'Врачебная бригада',minLevel:7,profession:'doctor',requires:'doctor-rounds',description:'Шанс Обхода увеличивается до 35%.'},
+ 'doctor-nerves':{name:'Стальные нервы',minLevel:8,profession:'doctor',description:'Входящий урон по Доктору снижается на 10%.'},
+ 'doctor-resuscitation':{name:'Чудо реанимация',minLevel:9,profession:'doctor',description:'Можно один раз воскресить героя, тело которого вынесли с вылазки. Герой получает шрамы, −1 Силы и +10 поглощения физического и термического урона.'},
+ 'doctor-operation':{name:'Чудо операция',minLevel:10,profession:'doctor',repeatable:true,description:'Повышает любой основной параметр другого героя на 1, до максимума 11.'},
+ 'medic-strength':{"name":"ЗОЖ для команды","minLevel":2,"description":"Другие герои получают +1 Силы сверх обычного предела.","profession":"medic","repeatable":false},
+ 'medic-knowledge':{"name":"Знания медицины","minLevel":3,"description":"Послебоевое лечение отряда получает +20 HP.","profession":"medic","repeatable":false},
+ 'medic-reserve':{"name":"Запас сил","minLevel":4,"description":"Первое профессиональное лечение на вылазке даёт +30 HP и сохраняет Силу пациента.","profession":"medic","repeatable":false},
+ 'medic-nutrition':{"name":"Пищевые добавки","minLevel":5,"description":"Весь отряд получает 7 × Восприятие Медика к максимуму HP.","profession":"medic","repeatable":false},
+ 'medic-double-heal':{"name":"Полевая аптечка","minLevel":6,"description":"После боя на локации Медик может применить второй расходник.","profession":"medic","repeatable":false},
+ 'medic-charges':{"name":"Запас стимуляторов","minLevel":7,"description":"Новые стимуляторы снаряжаются с запасом применений на 50% больше.","profession":"medic","repeatable":false},
+ 'medic-preserve':{"name":"Постоянные стимуляторы","minLevel":8,"description":"Шанс сохранить заряд на вылазке. Первый выбор 30%, второй +20 п.п., следующие +10 п.п.","profession":"medic","repeatable":true},
+ 'sniper-range':{"name":"Дальномер","description":"Штраф точности за единицу дистанции уменьшается на 4 п.п.","minLevel":2,"profession":"sniper"},
+ 'sniper-crit':{"name":"Охотник за головами","description":"Шанс крита +5 п.п. с винтовкой и +3 п.п. с остальным стрелковым оружием.","minLevel":3,"profession":"sniper"},
+ 'sniper-hit':{"name":"Снайперский выстрел","description":"Первое стрелковое попадание за бой: +20 урона с винтовкой или +10 с другим оружием.","minLevel":4,"profession":"sniper"},
+ 'sniper-reload':{"name":"Быстрая перезарядка","description":"Один выстрел в ход перезарядки со штрафом −15 п.п. точности.","minLevel":5,"profession":"sniper"},
+ 'sniper-weak':{"name":"Уязвимые места","description":"После первого попадания по врагу игнорирует 25% его защиты.","minLevel":7,"profession":"sniper"},
+ 'sniper-pierce':{"name":"Бронебойный","description":"Первый выстрел за бой игнорирует защиту.","minLevel":8,"profession":"sniper"},
+ 'heavy-armor':{"name":"Мастер брони","description":"Броня со штрафом точности: штраф меньше на 5 п.п. и +7 термического поглощения.","minLevel":2,"profession":"heavy"},
+ 'heavy-control':{"name":"Контроль очереди","description":"Тяжёлые очереди и огнемёты: +7 п.п. точности.","minLevel":3,"profession":"heavy"},
+ 'heavy-health':{"name":"Выносливость","description":"+20 максимума HP и +7 за каждый уровень после 4-го.","minLevel":4,"profession":"heavy"},
+ 'heavy-step':{"name":"Тяжёлый шаг","description":"Штраф длительности локаций от тяжёлой брони меньше на 10 п.п.","minLevel":5,"profession":"heavy"},
+ 'heavy-hold':{"name":"Удержать позицию","description":"Первый удар от 25% максимума HP после защиты делится пополам.","minLevel":6,"profession":"heavy"},
+ 'heavy-padding':{"name":"Бронеподкладка","description":"Средняя и тяжёлая броня: +15 физического и +7 термического поглощения, −5 п.п. точности, локации на 5% дольше.","minLevel":7,"profession":"heavy"},
+ 'heavy-burst':{"name":"Длинная очередь","description":"+1 пуля в очереди и −5 п.п. точности каждой пуле.","minLevel":8,"profession":"heavy"},
  'tea-journal':{name:'Рукописный дневник',description:'Записки бывалого Чая за каждый выбранный перк Чая, включая этот.',profession:'tea',minLevel:2},
  'tea-repeat':{name:'Порыскать еще…',description:'Один повтор каждой пройденной вылазки Чаем с сохранением добычи.',profession:'tea',minLevel:3},
  'tea-spartan':{name:'Свой спартанец',description:'Каждый пункт репутации Спарты меняет опыт Чая и денежную награду вылазки на 3%.',profession:'tea',minLevel:8},
@@ -363,7 +406,7 @@ export const LEVEL_PERKS={
  'general-evasion':{name:'Общее развитие: уклонение',profession:'all',minLevel:4,repeatable:true,evasionBonus:4,description:'+4 п.п. уклонения на любой дистанции. Можно выбирать многократно.'},
  'general-armor':{name:'Общее развитие: защита',profession:'all',minLevel:6,repeatable:true,physicalArmorBonus:5,thermalArmorBonus:5,description:'+5 к физическому и +5 к термическому поглощению. Можно выбирать многократно.'},
  'general-radiation':{name:'Общее развитие: РАД-защита',profession:'all',minLevel:8,repeatable:true,radiationProtectionBonus:1,clearsRadiation:true,description:'При выборе полностью снимает облучение и навсегда добавляет +1 к защите РАД. Можно выбирать многократно.'},
- 'dual-wield':{name:'Двуручный бой',profession:'saboteur',minLevel:2,repeatable:false,rewardRole:'sova',description:'Позволяет ближнее оружие в дополнительном слоте. Вплотную после каждой основной атаки — один удар вторым оружием без бонуса Силы. При экипированном втором ближнем оружии все атаки −10 п.п. точности.'},
+ 'dual-wield':{name:'Двуеручный бой',profession:'saboteur',minLevel:2,repeatable:false,rewardRole:'sova',description:'Позволяет ближнее оружие в дополнительном слоте. Вплотную после каждой основной атаки — один удар вторым оружием без бонуса Силы. При экипированном втором ближнем оружии все атаки −10 п.п. точности.'},
  'assault-accurate':{name:'Точный',profession:'assault',minLevel:2,repeatable:false,description:'+5 п.п. точности.'},
  'assault-reaction':{name:'Боевые рефлексы',profession:'assault',minLevel:3,repeatable:false,description:'+2 к инициативе и +4 п.п. уклонения.'},
  'assault-enduring':{name:'Выносливый',profession:'assault',minLevel:4,repeatable:false,hpBonus:80,description:'Сразу +80 к текущему и максимальному HP.'},
@@ -373,8 +416,14 @@ export const LEVEL_PERKS={
  'engineer-side-job':{name:'Халтурка',profession:'engineer',minLevel:4,repeatable:false,description:'При выборе и на каждом новом уровне приносит 80 A + 10 A × текущий уровень.'},
  'engineer-assistant':{name:'Личный помощник',profession:'engineer',minLevel:5,repeatable:false,description:'+5 п.п. к шансу успеха всех рецептов на станции, максимум 100%.'},
  'favorite-close':{name:'Любимый Ближний',profession:'saboteur',minLevel:2,repeatable:false,description:'+5 п.п. точности и +5 урона на дистанции 0.'},
- 'quick-reaction':{name:'Боевая реакция',profession:'saboteur',minLevel:3,repeatable:false,description:'+2 инициативы и +3 п.п. уклонения постоянно.'},
- 'samurai':{name:'КакСамурай',profession:'saboteur',minLevel:4,repeatable:false,description:'+4 к урону в ближнем бою за уровень, начиная с уровня выбора.'},
+ 'quick-reaction':{name:'Боевая реакция',profession:'saboteur',minLevel:4,repeatable:false,description:'+2 инициативы и +3 п.п. уклонения постоянно.'},
+ 'samurai':{name:'КакСамурай',profession:'saboteur',minLevel:5,repeatable:false,description:'+4 к урону в ближнем бою за уровень, начиная с уровня выбора.'},
+ 'saboteur-rush':{name:'Рывок',profession:'saboteur',minLevel:3,description:'В первый ход сближает на 2 дистанции. При старте хода с дистанции 1 — сразу один ближний удар с −10 п.п. точности.'},
+ 'saboteur-arm-hit':{name:'Удар в руку',profession:'saboteur',minLevel:6,description:'Первое попадание ближним оружием за бой снижает точность цели на 10 п.п. на два её следующих хода.'},
+ 'saboteur-trip':{name:'Подсечка',profession:'saboteur',minLevel:7,description:'Первое попадание ближним оружием за бой снижает уклонение цели на 10 п.п. на два её следующих хода.'},
+ 'saboteur-second-strike':{name:'Точный второй удар',profession:'saboteur',minLevel:8,requires:'double-strike',description:'У второй атаки «Двойного удара» штраф точности снижается с −10 до −5 п.п. Штраф урона сохраняется.'},
+ 'saboteur-butcher':{name:'Мясник',profession:'saboteur',minLevel:9,description:'+5 п.п. к шансу крита ближним оружием. Крит наносит ×1,75 урона вместо ×1,5.'},
+ 'saboteur-hide':{name:'Скрыться из виду',profession:'saboteur',minLevel:10,description:'Раз за вылазку автоматически перебрасывает первую свою проваленную проверку скрытности с +2.'},
  'enduring':{legacy:true,name:'Выносливый',profession:'saboteur',minLevel:5,repeatable:true,description:'Ранее выбранный перк: +30 к максимуму HP за каждый выбор, без лечения. Бонус сохранён; для новых выборов заменён общим развитием здоровья.'}
 };
 

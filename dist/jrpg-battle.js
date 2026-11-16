@@ -12,17 +12,16 @@ const zones = [
 const actions = [['attack','Атака'],['grenade','Граната'],['heal','Лечение'],['retreat','Отступить']];
 const alive = unit => unit.hp > 0;
 const roll = chance => Math.random() * 100 < chance;
-const guard = (i, hp = 60) => ({id:'g'+i, name:i === 5 ? 'Матёрый Страж' : 'Страж '+i, hp, max:hp});
+const guard = (i, hp = 60) => ({id:'g'+i, name:i === 5 ? 'Матёрый Страж' : 'Страж '+i, hp, max:hp, distance:[2,2,3,4,4][i-1]});
 const select = (id, label, options, current) => `<label>${label}<select id="${id}">${options.map(([value,name])=>`<option value="${value}" ${value===current?'selected':''}>${name}</option>`).join('')}</select></label>`;
 
-let heroes, enemies, round, actorIndex, phase, choice, log, impact, totals, distances;
+let heroes, enemies, round, actorIndex, phase, choice, log, impact, totals;
 function start(){
  heroes = [
   {id:'h1',name:'Чай',hp:130,max:130,headwear:'ushanka',ammo:{main:18,side:6},grenades:2,meds:2},
   {id:'h2',name:'Напарник',hp:120,max:120,headwear:'beanie',ammo:{main:18,side:6},grenades:2,meds:2}
  ];
  enemies = [1,2,3,4].map(i=>guard(i));
- distances = heroes.map((_, i)=>[2+i,2+i,3,4,4]);
  round = 1;
  actorIndex = 0;
  phase = 'hero';
@@ -40,12 +39,6 @@ function add(text){
  log.push(text);
  announcement.textContent = text;
 }
-function range(hero, enemy){
- return distances[heroes.indexOf(hero)][enemies.indexOf(enemy)];
-}
-function changeRange(hero, enemy, step){
- distances[heroes.indexOf(hero)][enemies.indexOf(enemy)] = Math.max(0,Math.min(4,range(hero,enemy)+step));
-}
 function damage(unit, amount){
  const actual = Math.min(unit.hp,amount);
  unit.hp -= actual;
@@ -59,19 +52,20 @@ function unitCard(unit, enemy){
  const selected = enemy && phase==='hero' && ['attack','grenade'].includes(choice.action) && unit.id===choice.target;
  const active = phase==='hero' && unit===heroes[actorIndex];
  const ranged = enemy && alive(unit) && ['hero','enemy'].includes(phase);
- const distance = ranged ? distanceText(range(heroes[actorIndex],unit)) : null;
+ const distance = ranged ? distanceText(unit.distance) : null;
  const content = `<span class="miniature" aria-hidden="true"></span><span><strong>${unit.name}</strong><small>${alive(unit)?hp:'Повержен'}</small><progress value="${unit.hp}" max="${unit.max}" aria-label="Здоровье, ${unit.name}"></progress></span>${ranged?`<span class="range-badge" aria-label="Дистанция: ${distance}">${distance}</span>`: ''}${effect?.amount?`<span aria-hidden="true" class="float ${effect.amount>0?'heal':''}">${effect.amount>0?'+':''}${effect.amount}</span>`:''}`;
- const classes = `unit spot-${unit.id} ${ranged?'has-range':''} ${selected||active?'active':''} ${alive(unit)?'':'fallen'} ${effect?.firing?'firing':''} ${effect?.fallen?'fall-animation':effect?.amount<0?'hit':''}`;
+ const position = enemy ? ` style="--distance:${unit.distance};--previous-distance:${effect?.fromDistance ?? unit.distance}"` : '';
+ const classes = `unit spot-${unit.id} ${effect?.fromDistance!==undefined?'approaching':''} ${ranged?'has-range':''} ${selected||active?'active':''} ${alive(unit)?'':'fallen'} ${effect?.firing?'firing':''} ${effect?.fallen?'fall-animation':effect?.amount<0?'hit':''}`;
  if(enemy && alive(unit) && phase==='hero' && ['attack','grenade'].includes(choice.action)){
-  return `<button type="button" class="${classes}" data-target="${unit.id}" aria-pressed="${selected}">${content}</button>`;
+  return `<button type="button" class="${classes}"${position} data-target="${unit.id}" aria-pressed="${selected}">${content}</button>`;
  }
- return `<div class="${classes}">${content}</div>`;
+ return `<div class="${classes}"${position}>${content}</div>`;
 }
 const distanceText = value => value===4?'4+':String(value);
 function attackIssue(hero, target){
  const weapon = weapons[choice.slot], mode = weapon.modes.find(([id])=>id===choice.mode);
  if(!target) return 'Выбери цель.';
- if(range(hero,target)>weapon.range) return 'Цель вне дальности оружия.';
+ if(target.distance>weapon.range) return 'Цель вне дальности оружия.';
  if(hero.ammo[choice.slot]<mode[2]) return 'Недостаточно выстрелов для этого режима.';
  return '';
 }
@@ -79,7 +73,7 @@ function issue(){
  const hero = heroes[actorIndex], target = enemies.find(unit=>unit.id===choice.target && alive(unit));
  const patient = heroes.find(unit=>unit.id===choice.patient && alive(unit));
  if(choice.action==='attack') return attackIssue(hero,target);
- if(choice.action==='grenade') return !hero.grenades?'Гранаты закончились.':!target||range(hero,target)>3?'Граната доступна на дистанции 0–3.':'';
+ if(choice.action==='grenade') return !hero.grenades?'Гранаты закончились.':!target||target.distance>3?'Граната доступна на дистанции 0–3.':'';
  if(choice.action==='heal') return !hero.meds?'Аптечки закончились.':!patient||patient.hp===patient.max?'Выбери раненого героя.':'';
  return '';
 }
@@ -105,7 +99,7 @@ function render(focus){
   const result = {victory:'Победа',defeat:'Поражение',escaped:'Отряд отступил'}[phase];
   panel = `<section class="panel"><h2 id="result" tabindex="-1">${result}</h2><p>Раундов: ${round} · Повержено Стражей: ${enemies.filter(unit=>!alive(unit)).length} из ${enemies.length}</p><p>${heroes.map(unit=>unit.name+' · '+(alive(unit)?unit.hp+'/'+unit.max+' HP':'повержен')).join(' / ')}</p><p>Нанесено урона: ${totals.damage} · Восстановлено HP: ${totals.healing}</p><p>Потрачено: выстрелов ${totals.shots}, гранат ${totals.grenades}, аптечек ${totals.meds}.</p><button id="restart" class="confirm">Сыграть заново</button></section>`;
  }
- root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>${enemies.filter(alive).length} противников в бою</span></div><p class="field-label">Дистанция от героя · ${hero.name}</p><div class="battlefield">${heroes.map(unit=>unitCard(unit,false)).join('')}${enemies.map(unit=>unitCard(unit,true)).join('')}</div>${round===1&&['hero','enemy'].includes(phase)?'<p class="reinforcement">Подкрепление · Матёрый Страж вступит в раунде 2</p>':''}</section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
+ root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>${enemies.filter(alive).length} противников в бою</span></div><p class="field-label">Дистанция до отряда</p><div class="battlefield">${heroes.map(unit=>unitCard(unit,false)).join('')}${enemies.map(unit=>unitCard(unit,true)).join('')}</div>${round===1&&['hero','enemy'].includes(phase)?'<p class="reinforcement">Подкрепление · Матёрый Страж вступит в раунде 2</p>':''}</section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
  if(focus) root.querySelector(focus)?.focus({preventScroll:true});
 }
 function confirmAction(){
@@ -123,7 +117,7 @@ function confirmAction(){
   hero.ammo[choice.slot] -= count;
   totals.shots += count;
   for(let i=0;i<count && alive(target);i++){
-   if(!roll(96-range(hero,target)*7+penalty-(count>1?6:0))) continue;
+   if(!roll(96-target.distance*7+penalty-(count>1?6:0))) continue;
    hits++;
    dealt += damage(target,Math.round((weapon.damage+Math.floor(Math.random()*9))*multiplier));
   }
@@ -136,7 +130,7 @@ function confirmAction(){
  case 'grenade': {
   hero.grenades--;
   totals.grenades++;
-  const nearby = enemies.filter(unit=>unit!==target && alive(unit) && Math.abs(range(hero,unit)-range(hero,target))<=1);
+  const nearby = enemies.filter(unit=>unit!==target && alive(unit) && Math.abs(unit.distance-target.distance)<=1);
   const dealt = damage(target,55);
   const splash = nearby[0] ? damage(nearby[0],25) : 0;
   totals.damage += dealt+splash;
@@ -199,14 +193,15 @@ function enemyTurn(index){
  const enemy = enemies[enemyIndex];
  const target = heroes[enemyIndex%heroes.length];
  const hero = alive(target)?target:heroes.find(alive);
- const distance = range(hero,enemy);
+ const distance = enemy.distance;
  if(distance>0){
   if(enemy.slowed){
    delete enemy.slowed;
    add(`${enemy.name} теряет ход сближения из-за ранения ноги.`);
   }else{
-   changeRange(hero,enemy,-1);
-   add(`${enemy.name} приближается к герою ${hero.name} · дистанция ${distanceText(range(hero,enemy))}.`);
+   impact[enemy.id] = {fromDistance:distance};
+   enemy.distance--;
+   add(`${enemy.name} приближается к отряду · дистанция ${distanceText(enemy.distance)}.`);
   }
  }else{
   const dealt = roll(82) ? damage(hero,(enemy.id==='g5'?35:24)-(enemy.disarmed?12:0)) : 0;

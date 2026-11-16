@@ -32,11 +32,11 @@
 .miniature::after{content:'';position:absolute;inset:0;background:url('./jrpg-miniatures.png') var(--sprite,0% 100%)/200% 200% no-repeat;filter:drop-shadow(1px 3px 2px #10150d80)}
 .spot-h1{--x:17%;--y:53%;--sprite:0% 0%}
 .spot-h2{--x:29%;--y:80%;--sprite:100% 0%}
-.spot-g1{--x:55%;--y:52%}
-.spot-g2{--x:73%;--y:58%}
-.spot-g3{--x:55%;--y:85%}
-.spot-g4{--x:87%;--y:79%}
-.spot-g5{--x:85%;--y:34%;--sprite:100% 100%}
+.spot-g1{--front:36%;--y:43%}
+.spot-g2{--front:44%;--y:61%}
+.spot-g3{--front:43%;--y:87%}
+.spot-g4{--front:55%;--y:75%}
+.spot-g5{--front:52%;--y:31%;--sprite:100% 100%}
 .spot-g5 .miniature{width:min(100%,132px)}
 .battlefield .unit.hit,.battlefield .unit.fall-animation{animation:none}
 .battlefield .hit .miniature{animation:hit .24s ease-out}
@@ -47,3 +47,7 @@
 
 .battlefield .firing .miniature{animation:recoil .22s ease-out}
 @keyframes recoil{30%{transform:translateX(-4px);filter:brightness(1.7)}}
+
+.battlefield .unit[style]{--x:calc(var(--front) + var(--distance) * 8%)}
+.battlefield .unit.approaching{animation:approach .32s ease-out}
+@keyframes approach{from{left:calc(var(--front) + var(--previous-distance) * 8%)}}
