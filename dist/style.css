@@ -370,3 +370,27 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .hansa-lot-empty{display:flex;justify-content:center;color:var(--muted);font-size:12px}
 
 .recipe-controls{display:flex;align-items:center;gap:4px;margin-left:auto}
+
+.special-item-border{border:3px solid transparent!important;background:linear-gradient(#14251b,#14251b) padding-box,linear-gradient(135deg,#eb83ae,#8f8dff,#6fdfc3,#f0c874) border-box!important}
+.hero-portrait{position:relative}.portrait-special,.portrait-pet{position:absolute;line-height:1;pointer-events:none;text-shadow:0 1px 2px #000;font-size:14px}.portrait-special{left:0;top:0}.portrait-pet{right:-5px;bottom:0}
+
+.comic-item-icon{width:42px;height:42px;object-fit:contain;margin:2px 0 4px}
+.item-icon .comic-item-icon{width:52px;height:52px;margin:0}
+
+.hero-card-overview {
+  display: grid;
+  grid-template-columns: clamp(76px, 30%, 100px) minmax(0, 1fr);
+  gap: 12px;
+}
+.hero-card-overview > .hero-portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 64 / 76;
+  align-self: start;
+}
+.hero-card-overview > .hero-portrait > .hero-portrait-svg {
+  position: absolute;
+  inset: 0;
+}
+.hero-card-details { min-width: 0; }
+.hero-card-details .hero-task { flex-wrap: wrap; }

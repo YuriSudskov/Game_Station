@@ -1,0 +1,33 @@
+export const PORTRAIT_ATLASES=[
+ ["portraits-1.jpg",["nizhny_mechanic","neva_experimenter","petersburg_dreamer","butovo_trickster","moscow_city_patron","kazan_craftsman","murmansk_captain","saratov_diplomat"]],
+ ["portraits-2.jpg",["volgograd_farmer","krasnodar_athlete","ufa_researcher","ural_brawler","tula_gunsmith","novosibirsk_academic","tajik_builder","uzbek_assistant"]],
+ ["portraits-3.jpg",["baikal_firekeeper","azerbaijan_trader","siberian_tracker","kamchatka_survivor","usa_survivor","usa_cowboy","english_detective","english_gentleman"]],
+ ["portraits-4.jpg",["arab_skirmisher","arab_demolitionist","afroamerican_explorer","belarus_stalwart","brazil_footballer","greek_talent","jewish_family","jewish_merchant"]],
+ ["portraits-5.jpg",["egypt_sunwalker","india_yogi","spain_dancer","spain_gambler","italy_vendetta","italy_quick","china_endurance","china_kungfu"]],
+ ["portraits-6.jpg",["korea_prepared","latin_adventurer","mexico_musician","mongolia_destroyer","freed_prisoner","germany_traditionalist","germany_engineer","norway_berserk"]],
+ ["portraits-7.jpg",["portugal_sailor","russian_pilgrim","nigeria_tracker","poland_risk","indigenous_scout","soviet_veteran","yakut_hunter","france_charmer"]],
+ ["portraits-8.jpg",["france_marksman","roma_trader","roma_finder","swiss_precise","estonia_delayed","japan_scientist","japan_samurai","japan_ninja"]],
+ ["portraits-9.jpg",["armenia_connected","chechen_wrestler","kabarda_negotiator"]]
+];
+export const COMIC_EQUIPMENT={
+ duskScarf:[8,46,51,31],
+ greenStone:[19,49,26,26],
+ ironJaw:[14,37,35,17],
+ purpleTopHat:[5,-4,54,36],
+ goldCross:[17,50,30,26],
+ expensiveGlasses:[14,22,37,18],
+ powerHelmet:[4,0,56,55],
+ spartaHelmet:[4,-4,56,50],
+ spartaGasHelmet:[5,0,56,55],
+ hockeyMask:[15,16,35,39],
+ germanHelmet:[3,-1,58,34],
+ sovietArmyCap:[7,-3,50,31],
+ nkvdCap:[3,-4,58,36],
+ policeHelmet:[4,0,56,57],
+ smokingCigarette:[34,26,28,18],
+ captainTricorne:[0,-4,64,44],
+ gangsterHat:[1,-5,62,37],
+ cowboyHat:[0,-5,64,36],
+ shepherdPet:[34,41,30,35],
+ mouseVasya:[39,50,25,26]
+};

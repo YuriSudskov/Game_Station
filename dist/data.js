@@ -1,6 +1,44 @@
 import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ airForceJacket:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"jacket","name":"Жёлтая куртка ВВС","type":"body","armorClass":"light","armor":65,"thermalArmor":40,"evasionBonus":5,"value":4000},
+ plasticGuardArmor:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"jacket","evasionBonusCap":40,"missionTimePenaltyPercent":10,"name":"Страж 3 (пластик)","type":"body","armorClass":"medium","armor":70,"thermalArmor":30,"ricochet":5,"value":2000},
+ beetleArmor:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"jacket","evasionBonusCap":40,"missionTimePenaltyPercent":10,"name":"Жук НИИ Стали","type":"body","armorClass":"medium","armor":70,"thermalArmor":40,"ricochet":10,"value":3200},
+ blueSpecialArmor:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"jacket","evasionBonusCap":40,"missionTimePenaltyPercent":10,"name":"Спец. защита синих","type":"body","armorClass":"medium","armor":80,"thermalArmor":50,"ricochet":5,"accuracyPenalty":5,"value":3500},
+ militaryVest:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"jacket","evasionBonusCap":25,"missionTimePenaltyPercent":20,"name":"Военный бронежилет","type":"body","armorClass":"heavy","armor":80,"thermalArmor":45,"ricochet":10,"accuracyPenalty":10,"value":3500},
+ znka:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"stimulant","name":"Зелёнка ZNKA","type":"stimulant","value":2000,"description":"10 применений. +3 РАД-защиты, снимает одну накопленную дозу при применении."},
+ hansaAntirad:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"stimulant","name":"Ганзийский антирад","type":"stimulant","value":1500,"description":"10 применений. Внешняя радиация делится пополам с округлением вниз до вычета защиты."},
+ strongPainkiller:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"stimulant","name":"Сильное обезболивающее","type":"stimulant","value":1000,"description":"10 применений. +15 физической и +7 термической защиты, −5 п.п. точности."},
+ lu216:{"pendingDistribution":true,"stack":true,"rarity":"rare","icon":"grenade","name":"Граната LU 216","type":"grenade","value":300,"min":50,"max":300,"dodgeDc":13,"damageType":"thermal","description":"Термический урон 50–300, уворот 13. Партия 5 шт."},
+ dynamite:{"pendingDistribution":true,"stack":true,"rarity":"rare","icon":"grenade","name":"Динамит","type":"grenade","value":500,"min":90,"max":200,"dodgeDc":12,"intelligenceMultiplier":20,"damageType":"thermal","description":"Термический урон 90–200 + 20 × Интеллект. Уворот 12."},
+ m60:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"M60","weaponClass":"heavy","min":30,"max":170,"shots":6,"shotPenalty":25,"maxDistance":2,"ammoCost":10,"value":3500,"rangedSlotOnly":true,"usesHeavyAmmo":true},
+ rox3:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"РОКС3","weaponClass":"heavy","secondaryWeaponClass":"flamethrower","damageType":"thermal","flame":true,"min":150,"max":400,"maxDistance":1,"ammoCost":200,"value":5500,"rangedSlotOnly":true,"usesHeavyAmmo":true,"requiredHeroLevel":5},
+ remington:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"Remington","weaponClass":"rifle","min":40,"max":210,"accuracyBonus":5,"closeAccuracyBonus":-15,"distancePenalty":12,"maxDistance":3,"value":3600},
+ saiga20k:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"Сайга 20К","weaponClass":"shotgun","min":40,"max":200,"maxDistance":2,"value":4000},
+ improvedM16:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"M16 улучшенный","weaponClass":"automatic","min":20,"max":160,"shots":4,"shotPenalty":20,"accuracyBonus":5,"maxDistance":3,"value":5000},
+ fiveSeven:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"pistol","type":"weapon","combat":"ranged","name":"FN Five Seven","weaponClass":"pistol","min":30,"max":190,"accuracyBonus":5,"maxDistance":2,"value":4000},
+ american180:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"rifle","type":"weapon","combat":"ranged","name":"American 180","weaponClass":"automatic","min":30,"max":160,"shots":10,"shotPenalty":25,"maxDistance":1,"upgradeLimit":2,"value":3600},
+ poisonKnife:{"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"knife","type":"weapon","combat":"melee","name":"Отравленный нож","min":40,"max":130,"strengthMultiplier":10,"poison":true,"value":4500},
+ duskScarf:{"pendingDistribution":true,"name":"Красный пафосный шарф","type":"special","stack":false,"value":1800,"description":"+15 термической защиты.","effect":{"thermal":15},"portrait":"🧣","icon":"bag"},
+ greenStone:{"pendingDistribution":true,"name":"Зелёный камень амулет","type":"special","stack":false,"value":2800,"description":"+3 HP за уровень, +1 РАД-защиты.","effect":{"hp":3,"rad":1},"portrait":"💎","icon":"bag"},
+ ironJaw:{"pendingDistribution":true,"name":"Железная челюсть","type":"special","stack":false,"value":2000,"description":"+5 п.п. рикошета.","effect":{"ricochet":5},"portrait":"🦷","icon":"bag"},
+ purpleTopHat:{"pendingDistribution":true,"name":"Цилиндр с лентой","type":"special","stack":false,"value":1400,"description":"+5 п.п. уклонения, −10 физической защиты.","effect":{"evasion":5,"armor":-10},"portrait":"🎩","icon":"bag"},
+ goldCross:{"pendingDistribution":true,"name":"Тяжёлый золотой крест","type":"special","stack":false,"value":2800,"description":"+6 HP за уровень, −2 к лимиту медикаментов и гранат.","effect":{"hp":6,"supplies":-2},"portrait":"✝","icon":"bag"},
+ expensiveGlasses:{"pendingDistribution":true,"name":"Очки за 200 долларов","type":"special","stack":false,"value":1500,"description":"Иммунитет к ослеплению.","effect":{"blind":true},"portrait":"🕶","icon":"bag"},
+ powerHelmet:{"pendingDistribution":true,"name":"Шлем от Брони","type":"special","stack":false,"value":3200,"description":"+10 физической и термической защиты.","effect":{"armor":10,"thermal":10},"portrait":"⛑","icon":"bag"},
+ spartaHelmet:{"pendingDistribution":true,"name":"Шлем Спарты","type":"special","stack":false,"value":1300,"description":"+7 физической защиты.","effect":{"armor":7},"portrait":"🪖","icon":"bag"},
+ spartaGasHelmet:{"pendingDistribution":true,"name":"Шлем Спарты с противогазом","type":"special","stack":false,"value":2100,"description":"+7 физической защиты, +1 РАД-защиты.","effect":{"armor":7,"rad":1},"portrait":"🪖","icon":"bag"},
+ hockeyMask:{"pendingDistribution":true,"name":"Хоккейная маска","type":"special","stack":false,"value":1600,"description":"+8 урона в ближнем бою.","effect":{"melee":8},"portrait":"🎭","icon":"bag"},
+ germanHelmet:{"pendingDistribution":true,"name":"Немецкая каска","type":"special","stack":false,"value":1700,"description":"−20% базового урона критического попадания.","effect":{"crit":20},"portrait":"🪖","icon":"bag"},
+ sovietArmyCap:{"pendingDistribution":true,"name":"Советская армейка","type":"special","stack":false,"value":1600,"description":"+4 п.п. точности стрелкового оружия.","effect":{"ranged":4},"portrait":"🧢","icon":"bag"},
+ nkvdCap:{"pendingDistribution":true,"name":"Фуражка НКВД","type":"special","stack":false,"value":1800,"description":"+2 к броскам переговоров.","effect":{"talk":2},"portrait":"🧢","icon":"bag"},
+ policeHelmet:{"pendingDistribution":true,"name":"Синяя каска полицейского","type":"special","stack":false,"value":2200,"description":"−25% базового урона критического попадания.","effect":{"crit":25},"portrait":"🪖","icon":"bag"},
+ smokingCigarette:{"pendingDistribution":true,"name":"Сигарета с дымом","type":"special","stack":false,"value":2400,"description":"−10% урона от атак монстров до защиты.","effect":{"monster":10},"portrait":"🚬","icon":"bag"},
+ captainTricorne:{"pendingDistribution":true,"name":"Треуголка капитана","type":"special","stack":false,"value":1300,"description":"+1 к поиску ценного.","effect":{"loot":1},"portrait":"🏴‍☠️","icon":"bag"},
+ gangsterHat:{"pendingDistribution":true,"name":"Шляпа гангстера","type":"special","stack":false,"value":1800,"description":"+2 к броскам переговоров.","effect":{"talk":2},"portrait":"🎩","icon":"bag"},
+ cowboyHat:{"pendingDistribution":true,"name":"Шляпа ковбоя","type":"special","stack":false,"value":1400,"description":"+5 урона пистолетами.","effect":{"pistol":5},"portrait":"🤠","icon":"bag"},
+ shepherdPet:{"pendingDistribution":true,"name":"Пёс - Овчарка","type":"pet","stack":false,"value":3600,"description":"+4 к поиску ценного и обнаружению.","effect":{"loot":4,"detect":4},"portrait":"🐕","icon":"bag"},
+ mouseVasya:{"pendingDistribution":true,"name":"Мышь - Вася","type":"pet","stack":false,"value":2400,"description":"+1 Восприятие.","effect":{"perception":1},"portrait":"🐁","icon":"bag"},
  piercerSpike:{name:'Шип-пронзатель',type:'resource',stack:true,value:800,rarity:'rare',icon:'bag',description:'Редкий реагент с Пронзателя.'},
  piercerKebab:{name:'Шашлык из Пронзателя',type:'stimulant',stack:false,value:1000,rarity:'rare',icon:'stimulant',description:'10 применений. На одно прохождение: +1 Силы, +1 п.п. уклонения и +10 физического поглощения.'},
  pukGrass:{name:'Пук-трава',type:'resource',stack:true,value:200,icon:'bag',description:'Трава для исследования.'},
@@ -201,7 +239,7 @@ export const CARAVAN={
  mission:{segments:3,attackChances:[25,40,35],baseXp:30,findXp:0,killXp:15,lootXp:0,lootPerKill:true},
  loot:PATROL.loot
 };
-export const GHOUL_LEADER={...PATROL.enemy,name:'Упыриный вожак',hp:450,accuracy:20,damageMin:60,damageMax:140,attackName:'Когти',rage:true};
+export const GHOUL_LEADER={...PATROL.enemy,boss:true,name:'Упыриный вожак',hp:450,accuracy:20,damageMin:60,damageMax:140,attackName:'Когти',rage:true};
 export const LOST_CARAVAN={
  seconds:120,
  chance:3,
@@ -868,10 +906,10 @@ export const INTERACTIVE_MISSIONS={
 
 export const MEDIC_TREATMENT={min:60,max:100,perceptionMultiplier:10,strengthCost:1,maxUsesPerCombat:1};
 
-export const MATURE_GUARD={...TECHNOPARK.enemy,name:'Матёрый Страж',experience:45,loot:[{id:'armorUpgradePlan',chance:20},{id:'toughLeather',chance:80,minQty:1,maxQty:3},{id:'leaderKebab',chance:10,minQty:1,maxQty:1}],hp:330,accuracy:20,damageMin:50,damageMax:150};
+export const MATURE_GUARD={...TECHNOPARK.enemy,boss:true,name:'Матёрый Страж',experience:45,loot:[{id:'armorUpgradePlan',chance:20},{id:'toughLeather',chance:80,minQty:1,maxQty:3},{id:'leaderKebab',chance:10,minQty:1,maxQty:1}],hp:330,accuracy:20,damageMin:50,damageMax:150};
 
 // Interactive adventure enemy; encounter resolution remains under development.
-export const ACID_SPIDER={
+export const ACID_SPIDER={boss:true,
  name:'Кислотный Паукан',experience:45,loot:[{id:'hardChitinPlates',chance:70,minQty:1,maxQty:2},{id:'acid',chance:50,minQty:1,maxQty:2}],hp:340,evasion:35,accuracy:15,stealth:4,
  damageType:'thermal',damageMin:30,damageMax:120,
  mainAttack:{name:'Кислотный укус',distance:0,damageType:'thermal',damageMin:30,damageMax:120},
