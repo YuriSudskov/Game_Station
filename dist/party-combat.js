@@ -41,7 +41,7 @@ export function beginPartyRecovery(combat){
  return combat;
 }
 import {meleeCriticalBonus,meleeCriticalMultiplier,secondStrikeAccuracy,saboteurFirstMeleeHit,finishSaboteurDebuffs,saboteurRushDistance,prepareProfessionShot,flameAttack,canThrowGrenade,heroAttackStats,evasionAtDistance,hits,damageAfterArmor,weaponMaxDistance,dualPistolsActive,distanceFromMargin,nationalityHealing,perceptionCheck,weaponJammed,applyAutoStimulator} from './combat.js';
-import {ITEMS,TECHNOPARK} from './data.js';
+import {ITEMS,TECHNOPARK,MATURE_GUARD} from './data.js';
 
 // A hero keeps a target until it falls; personal attackers take priority.
 export function partyHeroTarget(hero,combat){
@@ -149,6 +149,12 @@ function tryHeroGrenade(combat,hero,random){
 }
 export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  if(!['pending','running'].includes(combat.status))return combat;
+ for(const enemy of combat.enemies){
+  if(enemy.boss&&(enemy.name===MATURE_GUARD.name||enemy.name.startsWith(MATURE_GUARD.name+' №'))){
+   enemy.boss=false;
+   if(enemy.poisonAccuracy){delete enemy.poisonAccuracy;enemy.skipNextTurn=true;}
+  }
+ }
  combat.status='running';combat.actorIndex??=0;combat.round??=1;
  if(!combat.initialized){
   combat.initialized=true;
