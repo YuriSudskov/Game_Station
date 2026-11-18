@@ -1,13 +1,13 @@
 export const PORTRAIT_ATLASES=[
- ["portraits-1.jpg",["nizhny_mechanic","neva_experimenter","petersburg_dreamer","butovo_trickster","moscow_city_patron","kazan_craftsman","murmansk_captain","saratov_diplomat"]],
- ["portraits-2.jpg",["volgograd_farmer","krasnodar_athlete","ufa_researcher","ural_brawler","tula_gunsmith","novosibirsk_academic","tajik_builder","uzbek_assistant"]],
- ["portraits-3.jpg",["baikal_firekeeper","azerbaijan_trader","siberian_tracker","kamchatka_survivor","usa_survivor","usa_cowboy","english_detective","english_gentleman"]],
- ["portraits-4.jpg",["arab_skirmisher","arab_demolitionist","afroamerican_explorer","belarus_stalwart","brazil_footballer","greek_talent","jewish_family","jewish_merchant"]],
- ["portraits-5.jpg",["egypt_sunwalker","india_yogi","spain_dancer","spain_gambler","italy_vendetta","italy_quick","china_endurance","china_kungfu"]],
- ["portraits-6.jpg",["korea_prepared","latin_adventurer","mexico_musician","mongolia_destroyer","freed_prisoner","germany_traditionalist","germany_engineer","norway_berserk"]],
- ["portraits-7.jpg",["portugal_sailor","russian_pilgrim","nigeria_tracker","poland_risk","indigenous_scout","soviet_veteran","yakut_hunter","france_charmer"]],
- ["portraits-8.jpg",["france_marksman","roma_trader","roma_finder","swiss_precise","estonia_delayed","japan_scientist","japan_samurai","japan_ninja"]],
- ["portraits-9.jpg",["armenia_connected","chechen_wrestler","kabarda_negotiator"]]
+ ["portraits-1-small.jpg",["nizhny_mechanic","neva_experimenter","petersburg_dreamer","butovo_trickster","moscow_city_patron","kazan_craftsman","murmansk_captain","saratov_diplomat"]],
+ ["portraits-2-small.jpg",["volgograd_farmer","krasnodar_athlete","ufa_researcher","ural_brawler","tula_gunsmith","novosibirsk_academic","tajik_builder","uzbek_assistant"]],
+ ["portraits-3-small.jpg",["baikal_firekeeper","azerbaijan_trader","siberian_tracker","kamchatka_survivor","usa_survivor","usa_cowboy","english_detective","english_gentleman"]],
+ ["portraits-4-small.jpg",["arab_skirmisher","arab_demolitionist","afroamerican_explorer","belarus_stalwart","brazil_footballer","greek_talent","jewish_family","jewish_merchant"]],
+ ["portraits-5-small.jpg",["egypt_sunwalker","india_yogi","spain_dancer","spain_gambler","italy_vendetta","italy_quick","china_endurance","china_kungfu"]],
+ ["portraits-6-small.jpg",["korea_prepared","latin_adventurer","mexico_musician","mongolia_destroyer","freed_prisoner","germany_traditionalist","germany_engineer","norway_berserk"]],
+ ["portraits-7-small.jpg",["portugal_sailor","russian_pilgrim","nigeria_tracker","poland_risk","indigenous_scout","soviet_veteran","yakut_hunter","france_charmer"]],
+ ["portraits-8-small.jpg",["france_marksman","roma_trader","roma_finder","swiss_precise","estonia_delayed","japan_scientist","japan_samurai","japan_ninja"]],
+ ["portraits-9-small.jpg",["armenia_connected","chechen_wrestler","kabarda_negotiator"]]
 ];
 export const COMIC_EQUIPMENT={
  duskScarf:[8,46,51,31],
