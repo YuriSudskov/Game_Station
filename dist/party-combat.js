@@ -1,3 +1,5 @@
+import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
+import {applyKnifePoison} from './combat.js';
 // Shared setup for interactive party encounters. Combat resolution is added separately.
 export function partyEnemyTarget(enemy,heroes,random){
  const alive=heroes.filter(hero=>!hero.dead&&hero.hp>0),current=alive.find(hero=>hero.id===enemy.targetHeroId);
@@ -104,7 +106,7 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
   actor.throwUsed=true;target.skipNextTurn=true;
   damage=armorDamage(c,target,random.int(20,60)+actor.strength*10,'physical',random);
  }else if(hit)for(let n=0;n<(weapon.damageRolls??1);n++){
-  let raw=random.int(weapon.min,weapon.max)+(stats?stats.bonus-stats.damagePenalty:0)+(n===0?closeBonus:0)+(sniperHit?(weapon.weaponClass==='rifle'?20:10):0);raw*=stats?.damageMultiplier??1;if(critical)raw*=hero?meleeCriticalMultiplier(actor,weapon):1.5;
+  let raw=random.int(weapon.min,weapon.max)+(stats?stats.bonus-stats.damagePenalty:0)+(n===0?closeBonus:0)+(sniperHit?(weapon.weaponClass==='rifle'?20:10):0);raw*=stats?.damageMultiplier??1;if(hero&&actor.scientistMechanism&&mechanicalEnemy(target))raw*=1.2;if(critical)raw*=hero?meleeCriticalMultiplier(actor,weapon):1.5;
   if(!hero&&actor.kind!=='bandit')raw*=1-(target.monsterProtection??0)/100;
   if(critical&&!hero)raw*=(1-(target.nationality?.criticalDamageReductionPercent??0)/100)*(1-(target.criticalProtection??0)/100);
   damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate,armorFactor,weapon.damageAfterProtection??1);
@@ -288,7 +290,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(distance>(kind==='web'?1:0)){for(const hero of alive){hero.distances??={};hero.distances[actor.id]=Math.max(0,(hero.distances[actor.id]??distance)-1);}say(combat,actor.name+' сокращает дистанцию до '+Math.max(0,distance-1)+' вместо атаки.');continue;}
     const spec=kind==='web'?actor.webAttack:actor.mainAttack;
     const hit=shot(combat,actor,target,{...spec,type:kind==='main'?'melee':'ranged',min:spec.damageMin,max:spec.damageMax},distance,random);
-    if(kind==='web'&&hit&&target.hp>0){const roll=random.int(1,20);target.entangled=roll+target.strength+(target.defenseCheckBonus??0)<=13;say(combat,target.name+': Сила '+roll+' + '+target.strength+' против 13 — '+(target.entangled?'опутан':'выстоял')+'.');}
+    if(kind==='web'&&hit&&target.hp>0){const roll=random.int(1,20),safety=scientistSafetyBonus(target);target.entangled=roll+target.strength+(target.defenseCheckBonus??0)+safety<=13;say(combat,target.name+': Сила '+roll+' + '+target.strength+(safety?' + '+safety+' (Протокол безопасности)':'')+' против 13 — '+(target.entangled?'опутан':'выстоял')+'.');}
     if(updatePartyCasualties(combat)!=='running'){if(actor.hp>0&&actor.plannedAttacks.length)combat.pendingActor=entry;else{delete actor.plannedAttacks;delete combat.pendingActor;}return combat;}
    }
    delete actor.plannedAttacks;delete combat.pendingActor;

@@ -1,4 +1,5 @@
 import {ITEMS,SURFACE,TECHNOPARK,ZIL_TUNNELS,CARAVAN,PATROL,GHOUL_LEADER,LOST_CARAVAN} from './data.js';
+import {scientistCheck,mechanicalEnemy} from './scientist.js';
 
 export function rng(seed) {
   let state=seed>>>0;
@@ -96,7 +97,7 @@ export function withStarterPerk(config,perk,level=1) {
   else if(perk==='burst-fire')next.hero.burstBonus=1;
   else if(perk==='tough-cookie')next.hero.selfHealAfterBattle=5*next.hero.strength;
   else if(perk==='sharp'){next.hero.initiative+=2;next.hero.evasion+=3;}
-  else if(perk!=='quick-orders'&&perk!=='none'&&perk!=='tea-solo'&&!['medic-field','medic-sanitary','medic-nimble','medic-shooter','doctor-therapist','doctor-pharmacist','doctor-duty','doctor-institute'].includes(perk)&&!['sniper-cold','sniper-ammo','sniper-optics'].includes(perk)) throw new Error(`Unknown perk: ${perk}`);
+  else if(perk!=='quick-orders'&&perk!=='none'&&perk!=='tea-solo'&&!['medic-field','medic-sanitary','medic-nimble','medic-shooter','doctor-therapist','doctor-pharmacist','doctor-duty','doctor-institute'].includes(perk)&&!['sniper-cold','sniper-ammo','sniper-optics','scientist-lab','scientist-geiger','scientist-analyst','scientist-smart'].includes(perk)) throw new Error(`Unknown perk: ${perk}`);
   return next;
 }
 export function meleeCriticalBonus(hero,weapon){
@@ -383,7 +384,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
           for(let i=0;i<rolls;i++){
             const raw=wrestlingThrow?random.int(20,60):heroTurn?damageRoll(random,weapon.min,weapon.max,damageMode):damageRoll(random,rush?.min??r.damageMin,rush?.max??r.damageMax,damageMode);
             const dealt=wrestlingThrow?damageAfterArmor(raw+h.strength*10,r.armor??0):damageAfterArmor((raw+bonus+(i===0?closeBonus:0)-damagePenalty)*(heroTurn?attackStats.damageMultiplier:1)*(critical?(heroTurn?meleeCriticalMultiplier(h,weapon):1.5):1)*(critical&&!heroTurn&&!escortTarget?1-(national.criticalDamageReductionPercent??0)/100:1)*(heroTurn||escortTarget||r.kind==='bandit'?1:1-(h.monsterProtection??0)/100),effectiveArmor)*(heroTurn&&weapon.damageType==='thermal'&&r.halfThermalDamage?.5:1);
-            const finalDamage=dealt*(weapon?.damageAfterProtection??1);base+=raw;damage+=finalDamage;components.push(finalDamage);
+            const finalDamage=dealt*(weapon?.damageAfterProtection??1)*(heroTurn&&h.scientistMechanism&&mechanicalEnemy(r)?1.2:1);base+=raw;damage+=finalDamage;components.push(finalDamage);
           }
           if(!heroTurn&&!escortTarget){const before=damage;damage=incoming(reduceIncoming(damage,turn),turn);if(before!==damage)for(let i=0;i<components.length;i++)components[i]*=damage/before;}
           if(heroTurn){ratHp-=damage;saboteurFirstMeleeHit(h,saboteurState,r,weapon);if(ratHp>0&&applyKnifePoison(r,weapon,damage,random))note('яд',{turn,target:r.name??'крыса',boss:Boolean(r.boss)});}else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hurt(damage);
@@ -531,6 +532,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     if(trace) events.push({type:'бой',number:i+1,...result});
     if(!result.won) return {alive:false,hp,found,killed,lootSuccesses:0,loot,xp:0,battles,events,initialBandages,bandagesUsed,bandagesLost:bandages,bandagesRemaining:0,healed,...(initialKits?{dressingKitsRemaining:0}:{}),...(initialMedicKits?{medicKitsRemaining:0}:{}),...(initialGrenades?{grenadesRemaining:0}:{}),...(initialMolotovs?{molotovsRemaining:0}:{}),...(initialTinGrenades?{tinGrenadesRemaining:0}:{})};
     killed+=encounterEnemies?result.killed:1;
+    if(config.hero.scientistMechanism)extraXp+=(encounterEnemies?encounterEnemies.filter(mechanicalEnemy).length:Number(mechanicalEnemy(enemy)))*(m.killXp??0)*.2;
     const maxHp=config.hero.maxHp;
     if(config.hero.selfHealAfterBattle&&bandages===0&&dressingKits===0&&medicKits===0&&hp<maxHp){
       const amount=Math.min(maxHp-hp,nationalityHealing(config.hero,config.hero.selfHealAfterBattle));
@@ -663,7 +665,7 @@ export function journeyToLevel2(config,random) {
 
 export function stationHelp(config,random,dc=8){
  const h=config.hero,checks=[['Сила','strength',null],['Ловкость','agility','cloth'],['Интеллект','intelligence','leather'],['Восприятие','perception','metal']],events=[],loot={cloth:0,leather:0,metal:0};let money=0,successes=0;
- for(const [name,key,item] of checks){const baseBonus=h[key]+(key==='perception'?h.perceptionCheckBonus??0:0)-(h.checkPenalty??0);const {roll,bonus,success}=key==='perception'?perceptionCheck(h,random,baseBonus,dc,{events}):(()=>{const roll=random.int(1,20);return {roll,bonus:baseBonus,success:roll+baseBonus>dc};})();let reward=0;if(success){successes++;if(item){loot[item]++;reward=1;}else{reward=random.int(1,4);money=reward*10;}}events.push({name,roll,bonus,dc,success,item,reward});}
+ for(const [name,key,item] of checks){const baseBonus=h[key]+(key==='perception'?h.perceptionCheckBonus??0:key==='intelligence'?h.intelligenceCheckBonus??0:0)-(h.checkPenalty??0);const {roll,bonus,success}=key==='perception'?perceptionCheck(h,random,baseBonus,dc,{events}):(()=>{const roll=random.int(1,20);return {roll,bonus:baseBonus,success:roll+baseBonus>dc};})();let reward=0;if(success){successes++;if(item){loot[item]++;reward=1;}else{reward=random.int(1,4);money=reward*10;}}events.push({name,roll,bonus,dc,success,item,reward});}
  return {loot,money,xp:5+3*successes,successes,events};
 }
 
@@ -767,13 +769,14 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,me
 export function nationalityHealing(hero,amount,medicine=false){const n=hero.nationalityBonuses??hero.nationality??{};return amount*(1+(n.healingPercent??0)/100)*(medicine?1+(n.medicinePercent??0)/100:1);}
 
 export function weaponMaxDistance(hero,weapon){const max=weapon?.maxDistance??Infinity;return hero.maxStartingDistance>=4&&max>=3?Math.max(max,4):max;}
-export function perceptionCheck(hero,random,bonus,dc,{inclusive=false,events=null,trace=true}={}){
+export function perceptionCheck(hero,random,bonus,dc,{inclusive=false,events=null,trace=true,scientistEligible=true}={}){
+ if(scientistEligible)bonus+=hero.scientistSearchBonus??0;
  let roll=random.int(1,20),total=roll+bonus,success=inclusive?total>=dc:total>dc;
  if(!success&&hero.perceptionReroll&&!hero.perceptionRerollUsed){
   hero.perceptionRerollUsed=true;const firstRoll=roll,firstBonus=bonus;bonus+=2;roll=random.int(1,20);total=roll+bonus;success=inclusive?total>=dc:total>dc;
   if(events&&trace)events.push({type:'соколиный глаз',firstRoll,firstBonus,roll,bonus,dc,inclusive,success});
  }
- return {roll,bonus,total,success};
+ return scientistEligible?scientistCheck(hero,random,{roll,bonus,total,success,dc,inclusive}):{roll,bonus,total,success};
 }
 
 export function dualPistolsActive(hero){return Boolean(hero.dualPistols&&hero.weapons?.main?.weaponClass==='pistol'&&hero.weapons?.ranged?.weaponClass==='pistol');}
