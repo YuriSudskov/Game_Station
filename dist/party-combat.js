@@ -109,7 +109,7 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
   let raw=random.int(weapon.min,weapon.max)+(stats?stats.bonus-stats.damagePenalty:0)+(n===0?closeBonus:0)+(sniperHit?(weapon.weaponClass==='rifle'?20:10):0);raw*=stats?.damageMultiplier??1;if(hero&&actor.scientistMechanism&&mechanicalEnemy(target))raw*=1.2;if(critical)raw*=hero?meleeCriticalMultiplier(actor,weapon):1.5;
   if(!hero&&actor.kind!=='bandit')raw*=1-(target.monsterProtection??0)/100;
   if(critical&&!hero)raw*=(1-(target.nationality?.criticalDamageReductionPercent??0)/100)*(1-(target.criticalProtection??0)/100);
-  damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate,armorFactor,weapon.damageAfterProtection??1);
+  damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate,armorFactor*(weapon.armorFactor??1),weapon.damageAfterProtection??1);
  }
  if(hero&&hit)saboteurFirstMeleeHit(actor,actor,target,weapon);
  if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
