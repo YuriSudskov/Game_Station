@@ -1351,7 +1351,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(a==='kolomOpen'){state.kolomPreparing=state.interactiveMission?.id!=='kolomenskaya';show('kolom');return;}
  if(a==='kolomAccept'){commit({type:'acceptKolom'});return;}
  if(a==='kolomStart'){const id=document.querySelector('#kolom-hero')?.value;if(commit({type:'startKolom',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),riskConfirmed:Boolean(document.querySelector('#kolom-risk')?.checked)})){state.kolomPreparing=false;}return;}
- if(a==='kolomPack'){const id=document.querySelector('#kolom-hero')?.value;commit({type:'fillPartySupplies',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),category:el.dataset.category});return;}
+ if(a==='kolomPack'){const id=document.querySelector('#kolom-hero')?.value;state.kolomPreparationIds=[id,document.querySelector('#kolom-second')?.value];commit({type:'fillPartySupplies',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),category:el.dataset.category});return;}
  if(a==='kolomChoice'){commit({type:'kolomChoice',node:el.dataset.node,choice:el.dataset.choice,targetHeroId:el.dataset.target});return;}
  if(a==='kolomClose'){close();view='station';render();return;}
  if(a==='hansaQuest'){if(hansaQuestAvailable(state)&&!state.hansaQuestAccepted)show(a);return;}

@@ -336,7 +336,7 @@ export function merchantSellerOffers(state,id,random=Math.random){
   pool.delete(featured.item);
   const others=[...pool.values()],offers=[featured];
   while(offers.length<merchantOfferCount(state[id].level)&&others.length)offers.push(...others.splice(Math.floor(random()*others.length),1));
-  return offers;
+  return offers.map(row=>pikiImprovedOffer(row,state[id].level,random));
  }
  const level=state[id].level??1,entries=Object.entries(id==='vasek'?VASEK_STOCK_BY_LEVEL:YURAS_STOCK_BY_LEVEL).filter(([required])=>Number(required)<=level);
  const highest=entries.at(-1)[1],best=highest[Math.floor(random()*highest.length)],rest=entries.flatMap(([,rows])=>rows).filter(row=>row.item!==best.item);
@@ -423,6 +423,17 @@ function merchantNationalityBonus(state,key){
  return state?getHeroes(state).filter(hero=>!hero.dead).reduce((sum,hero)=>sum+(hero.nationalityBonuses?.[key]??0),0):0;
 }
 export function merchantCooldown(state,id,level=state?.[id]?.level??1,relation=state?.[id]?.relation??0){const roleMultiplier=state?.playerRole==='shekel'?1.1:1;if(id==='molchun')return Math.round(MERCHANTS.molchun.cooldown*roleMultiplier);return Math.round(roleMultiplier*merchantSettings(state,id).cooldown*1.3**(Math.max(1,Math.min(10,level))-1)*(1-.03*Math.max(-10,Math.min(20,relation)))*Math.max(0,1-merchantNationalityBonus(state,'merchantCooldownReduction')/100));}
+export function pikiImprovedOffer(row,level,random=Math.random){
+ const roll=random(),count=roll<.05?2:roll<.70?1:0;
+ let result=clone(row);
+ for(let i=0;i<count;i++){
+  const pool=Object.entries(RECIPES).filter(([id,r])=>r.upgrade&&!r.raisesQuality&&r.level<=level&&(r.prefix||r.postfix)&&canUpgrade(result,id)&&!(result.upgrades??[]).some(u=>replacedRecipes(r).includes(u.recipe)));
+  if(!pool.length)break;
+  result=upgradedItem(result,pool[Math.floor(random()*pool.length)][0]);
+ }
+ if((result.upgrades??[]).length>(row.upgrades??[]).length)result.pikiImprovementDiscount=true;
+ return result;
+}
 export function tradeQuote(item,qty,modifier,role,merchant='yuras',state=null){
  if(merchant==='molchun')return {price:roundRatio(itemValue(item)*qty,role==='seller'?(state?.playerRole==='shekel'?135:150):(state?.playerRole==='shekel'?110:100)),shekelPrice:null,xp:0,relation:0,cooldown:merchantCooldown(state,merchant)};
  const npc=state?.[merchant]??{level:1,xp:0,relation:0};
@@ -433,7 +444,7 @@ export function tradeQuote(item,qty,modifier,role,merchant='yuras',state=null){
   ? roundRatio(itemValue(item)*qty,tradePercent(state,'buyPercent'))
   : sellerPrice(item,qty,state);
  const relationFactor=200+(role==='seller'?-currentRelation:currentRelation);
- const price=roundRatio(base,(100+modifier)*relationFactor,20000);
+ const price=roundRatio(base,(100+modifier)*relationFactor*(role==='seller'&&merchant==='pikiSix'&&item.pikiImprovementDiscount?95:100),2000000);
  const effect=TRADE_EFFECTS[role==='seller'?modifier:-modifier],xp=price/10*effect.xp*(1+.03*relation)*(1+merchantNationalityBonus(state,'merchantXpBonus')/100),preview={level:npc.level??1,xp:npc.xp??0};gainMerchantXp(preview,xp);
  const shekelPrice=role==='seller'&&item?.currency==='shekel'?Math.max(1,Math.ceil(price/shekelRate(state??{}))):null;
  return {price,shekelPrice,xp,relation,nextLevel:preview.level,cooldown:Math.round(merchantCooldown(state,merchant,preview.level,relation)*effect.cooldown)};
