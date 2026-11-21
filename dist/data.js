@@ -1,6 +1,20 @@
 import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ beetleBattery:{name:'Жучиная батарея',type:'resource',stack:true,value:null,icon:'tool',description:'Одна батарея навсегда подключается к герою и постоянно питает тяжёлый лазер. Рецепт и источник — скоро.'},
+ laserEmitter:{name:'Лазерный излучатель',type:'resource',stack:true,value:800,icon:'tool',description:'Источник направленного термического луча. Компонент лазерного оружия.'},
+ laserPistol:{name:'Лазерный пистолет',type:'weapon',combat:'ranged',weaponClass:'pistol',damageType:'thermal',min:35,max:180,maxDistance:2,equipmentCategory:10,stack:false,value:4000,icon:'gun',description:'35–180 термического урона. Пистолет, дистанция 0–2.'},
+ laserRifle:{name:'Лазерная винтовка',type:'weapon',combat:'ranged',weaponClass:'rifle',damageType:'thermal',min:50,max:220,maxDistance:3,equipmentCategory:10,stack:false,value:5000,icon:'gun',description:'50–220 термического урона. Винтовка, дистанция 0–3, один выстрел.'},
+ heavyLaser:{name:'Тяжёлый лазер',type:'weapon',combat:'ranged',weaponClass:'heavy',damageType:'thermal',min:40,max:180,shots:3,shotPenalty:20,maxDistance:3,equipmentCategory:10,requiresBeetleBattery:true,rangedSlotOnly:true,stack:false,value:6000,icon:'gun',description:'40–180 термического урона ×3, штраф −20 п.п. на выстрел, дистанция 0–3. Требует однократно подключить жучиную батарею к герою.'},
+ piercerBlade:{name:'Клинок пронзателя',type:'weapon',combat:'melee',min:25,max:140,strengthMultiplier:10,piercing:true,equipmentCategory:10,value:5000,rarity:'rare',stack:false,icon:'piercerBlade',description:'25–140 + Сила ×10 физического урона. Пробивающее: игнорирует поглощение защиты цели.'},
+ kolomenskayaBeetles:{name:'Живой жук с Коломенской',type:'resource',stack:true,value:null,icon:'bag',description:'Живой образец для исследования жуков. Источник получения — скоро.'},
+ kolomenskayaBeetleCorpse:{name:'Тушка жука с Коломенской',type:'resource',stack:true,value:null,icon:'bag',description:'Мёртвый образец для исследования жуков. Источник получения — скоро.'},
+ grassGum:{name:'Жвачка из травы',type:'stimulant',stack:false,value:700,icon:'stimulant',description:'10 применений. На время локации +1 Ловкости, +1 к обнаружению и +25% к скорости прохождения (время делится на 1,25).'},
+ pukGrassDecoction:{name:'Отвар из пук-травы',type:'food',stack:true,value:400,icon:'medical',description:'На станции снимает 2–5 + Сила РАД. Не уменьшает максимум здоровья и не даёт опыта за применение.'},
+ kevlarMaterial:{name:'Кевларовый материал',type:'resource',stack:true,value:700,rarity:'rare',icon:'bag',description:'Плотное многослойное полотно, обработанное химическим составом. Основа кевларовой брони.'},
+ kevlarLight:{name:'Лёгкая кевларовая броня',type:'body',armorClass:'light',equipmentCategory:10,stack:false,value:3000,armor:70,thermalArmor:40,ricochet:5,rarity:'rare',icon:'jacket',description:'Лёгкая броня. Поглощение 70/40, рикошет 5%. Без штрафа точности.'},
+ kevlarMedium:{name:'Средняя кевларовая броня',type:'body',armorClass:'medium',equipmentCategory:10,stack:false,value:3800,armor:85,thermalArmor:35,ricochet:10,accuracyPenalty:5,missionTimePenaltyPercent:10,evasionBonusCap:40,rarity:'rare',icon:'vestMetal',description:'Средняя броня. Поглощение 85/35, рикошет 10%. −5 п.п. точности, задания +10% времени, предел прибавки уклонения +40 п.п.'},
+ kevlarHeavy:{name:'Тяжёлая кевларовая броня',type:'body',armorClass:'heavy',equipmentCategory:10,stack:false,value:5000,armor:100,thermalArmor:45,ricochet:15,accuracyPenalty:10,missionTimePenaltyPercent:20,evasionBonusCap:25,rarity:'rare',icon:'heavyWorkshop',description:'Тяжёлая броня. Поглощение 100/45, рикошет 15%. −10 п.п. точности, задания +20% времени, предел прибавки уклонения +25 п.п.'},
 yatagan:{"name":"Ятаган","type":"weapon","combat":"melee","min":30,"max":160,"strengthMultiplier":10,"criticalBonus":5,"value":5200,"equipmentCategory":5,"stack":false,"icon":"knife"},
 abzats:{"name":"Абзац","type":"weapon","combat":"ranged","weaponClass":"heavy","secondaryWeaponClass":"shotgun","min":30,"max":220,"shots":5,"shotPenalty":25,"maxDistance":2,"usesHeavyAmmo":true,"ammoCost":10,"rangedSlotOnly":true,"value":2920,"equipmentCategory":5,"stack":false,"icon":"abzats"},
 doctorKit:{"name":"Аптечка доктора","type":"medicine","stack":true,"value":890,"icon":"doctorCase","description":"Лечит 40–100 + Восприятие ×10 HP. Снимает один негативный статус или одну дозу облучения."},
@@ -143,6 +157,18 @@ export const PERKS={
 };
 export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:13,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
+ laserEmitter:{name:'Лазерный излучатель',production:'science',level:12,research:'laser',ingredients:{electronicParts:3},cost:110,seconds:45,xp:50,chance:100,output:'laserEmitter',batch:true,noQuality:true},
+ laserPistol:{name:'Лазерный пистолет',production:'ranged',level:11,research:'laserPistol',ingredients:{laserEmitter:1,metalParts:2,springMechanism:1},cost:2820,seconds:90,xp:110,chance:100,output:'laserPistol'},
+ laserRifle:{name:'Лазерная винтовка',production:'ranged',level:12,research:'laserRifle',ingredients:{laserEmitter:2,steel:2,springMechanism:2},cost:2220,seconds:110,xp:130,chance:100,output:'laserRifle'},
+ heavyLaser:{name:'Тяжёлый лазер',production:'ranged',level:13,research:'heavyLaser',ingredients:{laserEmitter:3,steel:3,electronicParts:2},cost:1740,seconds:130,xp:150,chance:100,output:'heavyLaser'},
+ piercerBlade:{name:'Клинок пронзателя',production:'melee',level:11,research:'spike',ingredients:{piercerSpike:2,steel:3},cost:1960,seconds:110,xp:130,chance:100,output:'piercerBlade'},
+ grassGum:{name:'Жвачка из травы',production:'medicine',level:12,research:'accelerator',ingredients:{pukGrass:2,antiseptic:1},cost:70,seconds:45,xp:50,chance:100,output:'grassGum'},
+ pukGrassDecoction:{name:'Отвар из пук-травы',production:'medicine',level:11,research:'radiation',ingredients:{pukGrass:1,emptyBottle:1},cost:80,seconds:20,xp:35,chance:100,output:'pukGrassDecoction',batch:true,noQuality:true},
+ kevlarCoating:{name:'Кевларовое покрытие',production:'science',level:14,research:'kevlarCoating',ingredients:{kevlarMaterial:1,acid:1,strongTape:1},cost:200,seconds:60,xp:100,upgrade:true,target:'body',chance:60,postfix:'с кевларом',armorBonus:21,valueIncreasePercent:25,replaces:['reinforcedArmor','patchedArmor']},
+ kevlarMaterial:{name:'Кевларовый материал',production:'armor',level:11,research:'kevlar',ingredients:{acid:1,cloth:5,strongTape:1},cost:60,seconds:45,xp:40,chance:100,output:'kevlarMaterial',batch:true,noQuality:true},
+ kevlarLight:{name:'Лёгкая кевларовая броня',production:'armor',level:12,research:'kevlarLight',ingredients:{kevlarMaterial:2,toughLeather:2,strongTape:1},cost:950,seconds:100,xp:130,output:'kevlarLight'},
+ kevlarMedium:{name:'Средняя кевларовая броня',production:'armor',level:13,research:'kevlarMedium',ingredients:{kevlarMaterial:3,armorPlates:3,fullLeather:1},cost:720,seconds:120,xp:145,output:'kevlarMedium'},
+ kevlarHeavy:{name:'Тяжёлая кевларовая броня',production:'armor',level:14,research:'kevlarHeavy',ingredients:{kevlarMaterial:4,armorPlates:4,steel:2},cost:180,seconds:140,xp:160,output:'kevlarHeavy'},
 yatagan:{"name":"Ятаган","production":"melee","level":10,"ingredients":{"steel":4,"sharpBlade":3},"cost":2420,"seconds":100,"xp":120,"output":"yatagan"},
 abzats:{"name":"Абзац","production":"ranged","level":10,"ingredients":{"steel":4,"pipe":2,"springMechanism":4},"cost":520,"seconds":100,"xp":120,"output":"abzats"},
 doctorKit:{"name":"Аптечка доктора","production":"medicine","level":10,"ingredients":{"oldMedicines":2,"dressingKit":1},"cost":100,"seconds":50,"xp":60,"output":"doctorKit","batch":true,"chance":100},
@@ -195,7 +221,7 @@ hardArmor:{"name":"Твёрдый","production":"science","level":11,"ingredient
  lcu:{name:'LCU',production:'science',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',chance:70,prefix:'LCU',accuracyBonus:5,xp:15,valueIncreasePercent:8},
  patchedArmor:{name:'Штопанная броня',production:'science',level:1,cost:100,seconds:10,ingredients:{leather:2},upgrade:true,target:'body',chance:80,prefix:'Штопаный',armorBonus:7,xp:10,supersededBy:'reinforcedArmor',valueIncreasePercent:5},
  protectiveSuit:{name:'Защитный костюм',production:'science',level:6,cost:0,seconds:30,ingredients:{ghoulHide:6,toughLeather:2},output:'protectiveSuit',chance:100,xp:20},
- reinforcedArmor:{name:'Укреплённая броня',production:'science',level:7,cost:200,seconds:20,ingredients:{toughLeather:1},upgrade:true,target:'body',chance:65,prefix:'Укреплённый',armorBonus:14,thermalArmorBonus:7,xp:20,replaces:'patchedArmor',valueIncreasePercent:15},
+ reinforcedArmor:{name:'Укреплённая броня',production:'science',level:7,cost:200,seconds:20,ingredients:{toughLeather:1},upgrade:true,target:'body',chance:65,prefix:'Укреплённый',supersededBy:'kevlarCoating',armorBonus:14,thermalArmorBonus:7,xp:20,replaces:'patchedArmor',valueIncreasePercent:15},
  fullLeather:{name:'Целая кожа',production:'armor',level:2,cost:0,seconds:10,ingredients:{leather:4},output:'fullLeather',xp:10,batch:true},
  qualityJacket:{name:'Кожанка',production:'armor',level:3,cost:0,seconds:12,ingredients:{leather:3,fullLeather:1},output:'qualityJacket',xp:22},
  knife:{name:'Нож',production:'melee',level:1,cost:50,seconds:5,ingredients:{metal:1},output:'knife',xp:5,legacy:true},
@@ -209,9 +235,9 @@ hardArmor:{"name":"Твёрдый","production":"science","level":11,"ingredient
  psct:{name:'ПСЦТ',production:'upgrade',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',excludedWeaponClasses:['shotgun','flamethrower','crossbow'],chance:75,prefix:'ПСЦТ',bonus:20,accuracyBonus:-5,xp:15,valueIncreasePercent:8}
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
-export const MAX_PRODUCTION_LEVEL=13;
+export const MAX_PRODUCTION_LEVEL=14;
 export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7,pukGrassSearch:7};
-export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780};
+export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780,13:910};
 export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
 export const TRADE_EFFECTS={ '-15':{xp:.5,cooldown:2},'-10':{xp:.7,cooldown:1.5},0:{xp:1,cooldown:1},10:{xp:1.3,cooldown:.7},15:{xp:1.5,cooldown:.5}};
@@ -509,7 +535,7 @@ Object.assign(LEVEL_PERKS,{
  'scientist-experiment':{name:'Экспериментатор',profession:'scientist',minLevel:7,description:'+5 п.п. к успеху и качеству Науки. Один бонус на станцию, максимум 100%.'},
  'scientist-thirst':{name:'Жажда знаний',profession:'scientist',minLevel:9,description:'+10% опыта из всех источников. Локации длятся на 10% дольше.'},
  'scientist-mechanism':{name:'Уязвимость механизма',profession:'scientist',minLevel:8,description:'+20% урона и опыта за механических противников и прототипы.'},
- 'scientist-secret':{name:'Секретная разработка',profession:'scientist',minLevel:10,description:'Особая ветка исследований — Скоро.'}
+ 'scientist-secret':{name:'Секретная разработка',profession:'scientist',minLevel:10,description:'Открывает цепочку исследований лазерного оружия в исследовательском центре.'}
 });
 for(const [profession,profile] of Object.entries(PROFESSIONS)){
  for(const id of profile.perks??[]){

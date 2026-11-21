@@ -426,3 +426,13 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .research-finished + .btn{margin-top:14px}
 
 .hero-actions .btn.rest-required:disabled{opacity:1;filter:none;border-color:#ffbc46;background:#76501e;color:#fff0c7;box-shadow:0 0 9px #ffb52e66;cursor:default}
+
+.hansa-route-art{width:100%;display:block;border-radius:10px;max-height:320px;object-fit:cover;margin-bottom:12px}
+
+.hansa-route-stock{display:grid;gap:7px}.hansa-route-lot{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px}.hansa-route-lot .item-icon{width:38px;height:38px}.hansa-route-lot small{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}.hansa-route-lot .btn{padding:7px;min-height:34px;margin:0}.hansa-choice-result p{margin:6px 0;color:#acdabb}.hansa-dialogue{padding-left:10px;border-left:2px solid #7bc597}
+
+.hansa-result-loot{display:grid;gap:6px;margin:8px 0 14px}.hansa-result-loot>div{display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--line);border-radius:8px}.hansa-result-loot .item-icon{width:36px;height:36px}.hansa-result-loot small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+
+.research-filter-recovery{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:10px 12px}.research-filter-recovery strong{font-size:12px}.research-filter-recovery small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.research-filter-recovery .btn{flex:0 0 auto;margin:0;padding:7px 10px;font-size:11px;min-height:34px}.research-overview .research-metrics{align-content:center}
+
+.modal:has(.research-center) .modal-head{padding-bottom:5px}.modal:has(.research-center) .modal-body{padding-top:2px}.research-header-group{display:grid;gap:2px}.research-header-group>.card{margin:0}.research-slot{grid-template-columns:minmax(0,1fr)}.research-slow-choice{background:#4b4223;color:#f1dc8a;border-color:#b8a052}.research-slot-slow{background:#302e1f}.research-picker>summary{margin:0}

@@ -62,7 +62,7 @@ function applyDelayedDamage(combat,hero){
 function armorDamage(c,target,raw,type,random,piercing=false,preview=false,armorFactor=1,damageMultiplier=1){
  let armor=piercing?0:type==='thermal'?(target.thermalArmor??0):(target.armor??0);
  if(!piercing&&target.firstHitArmor&&!target.paddingSpent){armor+=target.firstHitArmor;target.paddingSpent=true;say(c,target.name+': ватник слетает.');}
- let damage=damageAfterArmor(raw,armor*armorFactor)*damageMultiplier;
+ let damage=damageAfterArmor(raw,armor*armorFactor)*damageMultiplier;if(type==='thermal'){damage*=target.thermalMultiplier??1;if(target.kolomQueen){target.armor=60;target.meltedUntil=c.round+1;}}
  if(!target.heavyHitUsed&&(target.halveHeavyHit&&damage>target.maxHp*.25||target.professionPerks?.includes('heavy-hold')&&damage>=target.maxHp*.25)){damage/=2;target.heavyHitUsed=true;}
  if(preview)return damage;
  return applyPartyDamage(c,target,damage,random);
@@ -113,6 +113,7 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
  }
  if(hero&&hit)saboteurFirstMeleeHit(actor,actor,target,weapon);
  if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
+ if(!hero&&hit&&target.hp>0&&(actor.kolomPoison||actor.kolomSting)){const roll=random.int(1,20),bonus=(target.strength??0)+(target.defenseCheckBonus??0)+scientistSafetyBonus(target);if(roll+bonus<=13){target.poisonDoses=Math.min(10,(target.poisonDoses??0)+1);target.strength=Math.max(0,target.strength-1);target.maxHp=Math.max(1,target.maxHp-10);target.hp=Math.min(target.hp,target.maxHp);target.agility=Math.max(0,target.agility-1);target.accuracy-=5;target.evasion-=5;if(target.strength<=0)target.hp=0;say(c,target.name+': Отравлен ('+target.poisonDoses+').');}}
  if(hero&&target.hp>0&&applyKnifePoison(target,weapon,damage,random))say(c,target.name+(target.boss?': яд, −15 п.п. точности на следующий ход.':': яд, пропускает следующий ход.'));
  if(burst){
   if(!burst.length)c.events.push({type:'очередь отряда',turn:c.round,actorName:actor.name,targetName:target.name,attacks:burst});
@@ -134,7 +135,7 @@ function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=n
  const living=opponents.filter(target=>target.hp>0&&(!grenadeTargets||grenadeTargets.includes(target.id)));
  const targets=actor.kind==='bandit'&&underfoot?[]:dark?(darkTarget?[darkTarget]:[]):living;
  if(underfoot||repeat&&actor.burningSelf)targets.push(actor);
- for(const target of targets){const dodge=random.int(1,20)+(target.agility??target.stealth??0)+(dark?0:target.nationality?.grenadeDodge??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
+ for(const target of targets){const dodge=!(target.thermalVulnerable&&(spec.damageType??'thermal')==='thermal')&&random.int(1,20)+(target.agility??target.stealth??0)+(dark?0:target.nationality?.grenadeDodge??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
  if(item==='molotov'&&!repeat){actor.burningRound=c.round+1;actor.burningSelf=underfoot;actor.burningTargets=grenadeTargets;}
 }
 function tryHeroGrenade(combat,hero,random){
@@ -148,6 +149,14 @@ function tryHeroGrenade(combat,hero,random){
  hero.grenadeThrown=true;
  blast(combat,hero,item,random,false,null,targets);
  return true;
+}
+
+// Scripted swarms use the same hit, armor, perk and poison resolution as battles.
+export function scenarioEnemyAttack(hero,enemy,random){
+ const combat={heroes:[hero],enemies:[enemy],events:[],round:1};
+ shot(combat,enemy,hero,{name:enemy.attackName??'Жало',type:'melee',min:enemy.damageMin,max:enemy.damageMax,armorFactor:enemy.armorFactor??1,damageType:enemy.damageType??'physical'},0,random);
+ applyDelayedDamage(combat,hero);
+ return combat.events;
 }
 export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  if(!['pending','running'].includes(combat.status))return combat;
@@ -211,6 +220,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(actor.burningRound&&combat.round>=actor.burningRound){delete actor.burningRound;blast(combat,actor,'molotov',random,true,null,actor.burningTargets);delete actor.burningTargets;}
    if(actor.hp<=0){if(updatePartyCasualties(combat)!=='running')return combat;continue;}
    if(actor.regeneration){const healed=Math.min(actor.regeneration,actor.maxHp-actor.hp);actor.hp+=healed;if(healed)say(combat,actor.name+': реген +'+healed+' = '+actor.hp);}
+   actor.movementLocked=Boolean(actor.webMovement);delete actor.webMovement;
    if(actor.entangled){const roll=random.int(1,20),success=roll+actor.strength>13;if(success)actor.entangled=false;say(combat,`${actor.name}: освобождение ${roll} + ${actor.strength} против 13 — ${success?'успех':'опутан'}, ход потрачен.`);continue;}
    if(tryHeroGrenade(combat,actor,random)&&updatePartyCasualties(combat)!=='running')return combat;
    if(actor.hp<=0)continue;
@@ -273,7 +283,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(w.flame){
      const targets=[target,...combat.enemies.filter(enemy=>enemy!==target&&enemy.hp>0&&(actor.distances[enemy.id]??0)<=weaponMaxDistance(actor,w))].map(enemy=>({target:enemy,distance:actor.distances[enemy.id]??0}));
      const hits=flameAttack(actor,w,targets,random).map(hit=>{
-      const damage=armorDamage(combat,hit.target,hit.raw,'thermal',random);
+      const damage=armorDamage(combat,hit.target,hit.target.thermalVulnerable&&hit.dodged?hit.raw*2:hit.raw,'thermal',random);
       return {targetName:hit.target.name,damage,dodged:hit.dodged,ratHp:Math.max(0,hit.target.hp)};
      });
      combat.events.push({type:'огнемёт',turn:combat.round,actorName:actor.name,weapon:w.item,targets:hits});
@@ -281,6 +291,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);
    actor.ownTurnDone=true;
+  }else if(actor.kolomWeb&&!actor.webUsed){const t=partyEnemyTarget(actor,combat.heroes,random);actor.webUsed=true;if(t&&random.int(1,20)+(t.agility??0)<=13)t.webMovement=true;say(combat,actor.name+': паутина мешает следующему перемещению.');
   }else if(actor.webAttack){
    actor.plannedAttacks??=combat.heroes.some(h=>h.hp>0&&!h.dead&&!h.entangled)?['web','main']:['main','main'];
    while(actor.hp>0&&actor.plannedAttacks.length){
@@ -313,12 +324,14 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   }else{
    if(actor.regeneration)actor.hp=Math.min(actor.maxHp,actor.hp+actor.regeneration);
    const target=partyEnemyTarget(actor,combat.heroes,random);if(!target)continue;let distance=target.distances?.[actor.id]??0;
-   if(distance>0&&!actor.rush){target.distances[actor.id]=distance-1;say(combat,actor.name+' сближается до '+(distance-1));}
+   if(actor.kolomQueen||actor.kolomSlime)actor.attackTurns=(actor.attackTurns??0)+1;actor.kolomSting=actor.kolomQueen&&actor.attackTurns%3===0;if(actor.kolomQueen&&combat.round>(actor.meltedUntil??0))actor.armor=100;
+   if(actor.kolomSlime&&actor.attackTurns%3===0){const dodged=random.int(1,20)+(target.agility??0)>13;if(!dodged)armorDamage(combat,target,random.int(40,80),'thermal',random);say(combat,actor.name+': радиоактивная слизь — '+(dodged?'уворот':'попадание'));}
+   else if(distance>0&&!actor.rush){target.distances[actor.id]=distance-1;say(combat,actor.name+' сближается до '+(distance-1));}
    else if(distance>1){target.distances[actor.id]=distance-1;say(combat,actor.name+' сближается до '+(distance-1));}
    else{const rush=distance===1?actor.rush:null;
     if(actor.doubleStrikeEvery)actor.attackTurns=(actor.attackTurns??0)+1;
     const fast=actor.doubleStrikeEvery&&actor.attackTurns%actor.doubleStrikeEvery===0;
-    for(let i=0;i<(fast?2:1)&&target.hp>0;i++)shot(combat,actor,target,{name:fast?'Быстрый удар':rush?'Рывок':actor.attackName??'Укус',type:'melee',min:(rush?.min??actor.damageMin)-(fast?20:0),max:(rush?.max??actor.damageMax)-(fast?20:0),accuracyBonus:fast?-10:rush?.accuracyBonus??0,damageType:actor.damageType??'physical'},distance,random);
+    for(let i=0;i<(fast?2:1)&&target.hp>0;i++)shot(combat,actor,target,{name:fast?'Быстрый удар':rush?'Рывок':actor.attackName??'Укус',type:'melee',armorFactor:actor.armorFactor??(actor.kolomSting?.5:1),min:(actor.kolomSting?70:rush?.min??actor.damageMin)-(fast?20:0),max:(actor.kolomSting?110:rush?.max??actor.damageMax)-(fast?20:0),accuracyBonus:fast?-10:rush?.accuracyBonus??0,damageType:actor.damageType??'physical'},distance,random);
     if(rush)target.distances[actor.id]=0;target.enemyOpeningDone=true;}
   }
   if(updatePartyCasualties(combat)!=='running')return combat;
