@@ -622,6 +622,7 @@ export function itemRarityRank(row,seen=new Set()){
 }
 function ingredientRarity(state,recipe,qty=1){let rank=0;for(const [id,count]of Object.entries(recipe.ingredients)){let remaining=count*qty;for(const row of state.inventory.filter(x=>x.item===id)){if(remaining<=0)break;rank=Math.max(rank,itemRarityRank(row));remaining-=Math.min(remaining,row.qty);}}return rank;}
 export function itemTier(row){return Math.min(3,(row?.upgrades??[]).length);}
+export function itemUpgradeLimit(row){return Math.min(ITEMS[row?.item]?.upgradeLimit??3,itemQuality(row)>=1?3:2);}
 const replacedRecipes=r=>Array.isArray(r?.replaces)?r.replaces:r?.replaces?[r.replaces]:[];
 export function canUpgrade(row,recipeId){
  const recipe=RECIPES[recipeId],upgrades=row?.upgrades??[];
@@ -634,7 +635,7 @@ export function canUpgrade(row,recipeId){
   &&(!recipe.rejectsPiercing||!ITEMS[row.item]?.piercing)
   &&!recipe.excludedWeaponClasses?.includes(ITEMS[row.item]?.weaponClass)
   &&!recipe.excludedWeaponClasses?.includes(ITEMS[row.item]?.secondaryWeaponClass)
-  &&(itemTier(row)<(ITEMS[row.item]?.upgradeLimit??3)||replacing)
+  &&((upgrades.length<itemUpgradeLimit(row))||replacing)
   &&!upgrades.some(upgrade=>upgrade.recipe===recipeId||replacedRecipes(RECIPES[upgrade.recipe]).includes(recipeId)));
 }
 export function isRecipeSuperseded(state,recipeId){
