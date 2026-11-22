@@ -1,3 +1,4 @@
+import {playKolomFrames} from './kolom-jrpg-animation.js';
 import {kolomEntry,kolomBody} from './kolomenskaya-ui.js';
 import {researchProjectAvailable} from './game.js';
 import {itemDisplayName} from './game.js';
@@ -935,7 +936,7 @@ function renderModal(){if(state.pendingScientistCheck&&!modal)modal={type:'scien
   const second=h.secondStimulant?.charges>0?h.secondStimulant:null;
   const sanitary=h.profession==='medic'&&(h.perk==='medic-sanitary'||h.levelPerks?.some(p=>p.perk==='medic-sanitary'));
   const options=state.inventory.filter(row=>ITEMS[row.item]?.type==='stimulant').map(row=>
-   btn('Взять: '+esc(itemName(row))+' · '+describe(row)+' · '+(row.charges??10)+' зарядов','packStimulant',`data-item="${row.item}" data-uid="${esc(row.uid)}" ${busy||h.stimulants>0&&(!sanitary||second||equipped.item===row.item)||second?.item===row.item?'disabled':''}`,'full secondary')
+   btn('Взять: '+esc(itemName(row))+' · '+describe(row)+' · '+(row.charges??ITEMS[row.item].baseCharges??10)+' зарядов','packStimulant',`data-item="${row.item}" data-uid="${esc(row.uid)}" ${busy||h.stimulants>0&&(!sanitary||second||equipped.item===row.item)||second?.item===row.item?'disabled':''}`,'full secondary')
   ).join('');
   return modalShell('Стимуляторы',`<p class="note">${sanitary?'Две ячейки для разных стимуляторов. Оба действуют одновременно.':'Одна ячейка для стимулятора.'} За каждую локацию или вылазку расходуется одно применение.</p><p>Снаряжено: ${h.stimulants>0?esc(itemName(equipped))+', '+h.stimulants+' применений · '+describe(equipped):'нет'}.</p>${second?`<p>${esc(itemName(second))} · ${second.charges} применений · ${describe(second)}</p>${btn('Снять второй стимулятор','unpackStimulant','data-slot="second" '+(busy?'disabled':''),'secondary')}`:''}${options||'<p class="note">В инвентаре нет стимуляторов.</p>'}${h.stimulants?btn('Снять стимулятор','unpackStimulant',busy?'disabled':'','secondary'):''}`);
  }
@@ -1025,13 +1026,15 @@ function renderModal(){if(state.pendingScientistCheck&&!modal)modal={type:'scien
   const timer=shop.refreshAt==null?'<p class="note">Обновление через 30 минут после первой покупки.</p>':
    `<div class="hansa-cooldown">${jobMeter({startedAt:shop.refreshAt-HANSA_REFRESH_MS,endsAt:shop.refreshAt})}</div>`.replace('class="countdown"','class="countdown" aria-label="До обновления"');
   const level=shop.level??0,xp=shop.xpTenths??0,target=hansaXpThreshold(level);
+  const refreshPrice=200*level,refreshWaiting=(shop.manualRefreshAt??0)>Date.now();
+  const refreshButton=btn(refreshWaiting?'Обновить магазин · '+sec(shop.manualRefreshAt)+' сек.':'Обновить магазин · '+money(refreshPrice)+' А','refreshHansaShop',refreshWaiting||state.money<refreshPrice?'disabled':'','full secondary');
   const experience=`<section class="hansa-experience"><div class="row between"><strong>Опыт магазина · ур. ${level}</strong><span class="mono">${money(xp)} / ${money(target)} XP</span></div><progress value="${xp}" max="${target}" aria-label="Опыт магазина Ганзы"></progress></section>`;
   const slots=shop.slots.map((lot,slot)=>{
    if(!lot)return '<div class="hansa-lot hansa-lot-empty">Пусто</div>';
    const price=hansaPrice(state,lot);
    return `<div class="hansa-lot">${icon(ITEMS[lot.item].icon)}<div class="hansa-lot-details"><strong>${esc(itemName(lot))}${lot.qty>1?` ×${num(lot.qty)}`:""}</strong><small>${esc(ITEMS[lot.item].type==='weapon'?weaponDescription(lot).replace('Физический урон: ','Урон ').replace('Термический урон: ','Терм. урон ').replaceAll('п.п. точности','точн.').replaceAll('дистанция','дист.'):ITEMS[lot.item].type==='body'?armorTradeDescription(lot):ITEMS[lot.item].description??'')}</small></div>${btn("Купить · "+money(price)+" А","buyHansaLot",`data-slot="${slot}" data-lot="${esc(lot.id)}" ${state.money<price?"disabled":""}`,"secondary hansa-buy")}</div>`;
   });
-  return modalShell(shop.izyaInterest?"Ганза и процент Изи":"Магазин из Ганзы",`${timer}<p class="note">Уровень в скобках — минимальный уровень героя для экипировки.</p><div class="hansa-stock">${slots.join("")}</div>${experience}`);
+  return modalShell(shop.izyaInterest?"Ганза и процент Изи":"Магазин из Ганзы",`${timer}${refreshButton}<p class="note">Уровень в скобках — минимальный уровень героя для экипировки.</p><div class="hansa-stock">${slots.join("")}</div>${experience}`);
  }
  if(modal.type==='durenExpedition')return modalShell('Вылазка с Дурнем',npcPortrait('duren')+'<p class="note">Дурень согласился идти с тобой в старые архивы. Сценарий вылазки появится позже.</p>');
  if(modal.type==='shekelDurenQuest'){
@@ -1352,6 +1355,21 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(a==='kolomAccept'){commit({type:'acceptKolom'});return;}
  if(a==='kolomStart'){const id=document.querySelector('#kolom-hero')?.value;if(commit({type:'startKolom',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),riskConfirmed:Boolean(document.querySelector('#kolom-risk')?.checked)})){state.kolomPreparing=false;}return;}
  if(a==='kolomPack'){const id=document.querySelector('#kolom-hero')?.value;state.kolomPreparationIds=[id,document.querySelector('#kolom-second')?.value];commit({type:'fillPartySupplies',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),category:el.dataset.category});return;}
+ if(['jrpgTarget','jrpgSelect','jrpgExecute'].includes(a)){
+  const mission=state.interactiveMission,combat=mission?.combat;
+  const fighter=combat?.heroes.find(h=>h.id===combat.waitingHeroId);
+  if(!fighter)return;
+  const prefs=fighter.manualPrefs??{},kind=el.dataset.kind??prefs.kind??'attack';
+  const execute=a==='jrpgExecute'||a==='jrpgSelect'&&prefs.armed&&kind===(prefs.kind??'attack');
+  if(a==='jrpgTarget'){commit({type:'kolomChoice',node:'combat',choice:'manualPrefs',prefs:{targetId:el.dataset.id}});return;}
+  if(!execute){commit({type:'kolomChoice',node:'combat',choice:'manualPrefs',prefs:{kind,armed:true}});return;}
+  const container=overlay.querySelector('.kj-controls');
+  const value=key=>container?.querySelector('[data-jrpg-field="'+key+'"]')?.value;
+  const command={kind,revision:combat.manualRevision??0,slot:value('slot'),mode:value('mode'),aim:value('aim'),item:value('item'),targetId:kind==='heal'?value('patient'):(combat.enemies.find(e=>e.id===prefs.targetId&&e.hp>0)??combat.enemies.find(e=>e.hp>0))?.id};
+  if(!commit({type:'kolomChoice',node:'combat',choice:'manual',command}))return;
+  playKolomFrames(overlay,combat, state.interactiveMission?.combat);
+  return;
+ }
  if(a==='kolomChoice'){commit({type:'kolomChoice',node:el.dataset.node,choice:el.dataset.choice,targetHeroId:el.dataset.target});return;}
  if(a==='kolomClose'){close();view='station';render();return;}
  if(a==='hansaQuest'){if(hansaQuestAvailable(state)&&!state.hansaQuestAccepted)show(a);return;}
@@ -1361,6 +1379,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(a==='startHansaExpedition'){if(commit({type:a,heroId:el.dataset.id}))show('hansaRoute');return;}
  if(a==='skipHansaExpedition'){if(commit({type:a,heroId:modal.heroId})){view='shop';show('hansaShop');render();}return;}
  if(a==='hansaShop'){if(state.hansaShop)show(a);return;}
+ if(a==='refreshHansaShop'){commit({type:a},'Ассортимент Ганзы обновлён.');return;}
  if(a==='buyHansaLot'){commit({type:a,slot:Number(el.dataset.slot),lotId:el.dataset.lot},'Товар получен.');return;}
  if(a==='durenExpedition'){if(durenExpeditionAvailable(state))show(a);return;}
  if(a==='heavyAmmoMenu'){show(a);return;}
@@ -1476,3 +1495,11 @@ function nationalityChoices(target,action){
  const offers=state.nationalityOffers?.[target]??[];
  return offers.length?offers.map(o=>{const n=NATIONALITIES[o.id];return `<button class="offer nationality-offer" data-action="${action}" data-nationality="${o.id}"><span class="row"><span class="portrait small hero-portrait">${heroPortraitSvg({nationalityId:o.id,headwear:n.headwear,gender:o.gender})}</span><span><strong>${esc(n[o.gender])}</strong>&nbsp;&nbsp;<span class="subtitle">${esc(n.nationality)}</span></span></span><p>${esc(n.description)}</p>${n.restriction||n.startDescription?`<p class="note">${esc(n.restriction||'')}${n.startDescription?`${n.restriction?' · ':''}При найме: ${esc(n.startDescription)}`:''}</p>`:''}</button>`;}).join(''):'<p class="warning">Свободных национальностей не осталось. Пул восстановится при «Всё сначала».</p>';
 }
+
+overlay.addEventListener('change',event=>{
+ const field=event.target.dataset.jrpgField;
+ if(!field)return;
+ const prefs={[field]:event.target.value};
+ if(field==='slot')prefs.mode='single';
+ commit({type:'kolomChoice',node:'combat',choice:'manualPrefs',prefs});
+});

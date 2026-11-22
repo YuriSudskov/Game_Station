@@ -923,7 +923,7 @@ export function stimulantEffects(item,quality=0,hero={}){
  if(item==='znka')return {rad:3,decontamination:1};
  if(item==='hansaAntirad')return {halveRadiation:1};
  if(item==='strongPainkiller')return {armor:15,thermal:7,accuracy:-5};
- if(item==='piercerKebab')return {hp:0,hpPercent:0,accuracy:0,strength:1,evasion:scale,armor:10*scale};
+ if(item==='piercerKebab')return {hp:0,hpPercent:0,accuracy:0,strength:1,evasion:5*scale,armor:10*scale};
  return item==='cardioStimulator'
   ? {hp:0,hpPercent:(15+2*rank)*scale,accuracy:0}
   : {hp:(40+5*rank)*scale,hpPercent:0,accuracy:5*scale};
@@ -1538,7 +1538,7 @@ export const HANSA_REFRESH_MS=30*60*1000;
 export const hansaXpThreshold=level=>1000*(level+1);
 export function unlockHansaShop(s,random=Math.random){
  s.completedLocations.hansaExpedition=true;
- s.hansaShop??={slots:hansaStock(s,random),refreshAt:null,level:0,xpTenths:0,assortmentVersion:2};
+ s.hansaShop??={slots:hansaStock(s,random),refreshAt:null,level:0,xpTenths:0,assortmentVersion:3};
 }
 export const HANSA_ASSORTMENT={
  materials:{0:['cloth','metal','leather','pipe','fullLeather','metalParts','springMechanism'],3:['strongTape','armorPlates','rareMushrooms'],6:['acid','steel','hardChitinPlates']},
@@ -1546,32 +1546,34 @@ export const HANSA_ASSORTMENT={
  armor:{0:['pilotJacket','shieldUni'],3:['heavyVest','plasticGuardArmor'],6:['beetleArmor','militaryVest']},
  weapons:{0:['browning','ak74','rpk'],3:['ak47'],6:['rox','brenTen','m60'],10:['zauerM','rox3']}
 };
-export const HANSA_QUALITY_CHANCES={0:[100],3:[75,25],6:[60,30,10],10:[55,30,12,3]};
+export const HANSA_QUALITY_CHANCES={0:[100],3:[85,15],6:[70,25,5],10:[55,30,12,3],15:[40,35,18,6,1]};
+export const hansaSlotCount=level=>4+[3,5,8,10,13,15].filter(n=>level>=n).length;
 const hansaFilterLot=level=>({id:uid(),item:'gasMaskFilter',qty:4+level});
-function hansaStock(state,random){
- const level=state.hansaShop?.level??0;
- const tiers=category=>Object.entries(HANSA_ASSORTMENT[category]).filter(([min])=>level>=Number(min)).map(([,items])=>items);
- const pick=items=>items.splice(Math.floor(random()*items.length),1)[0];
- const lot=(item,qty=1,quality=0)=>({id:uid(),item,qty,...(quality?{quality}:{})});
- const supplies=[...tiers('materials').flat(),...tiers('stimulants').flat()];
- const materialLots=Array.from({length:2},()=>{
-  const item=pick(supplies);
-  if(ITEMS[item].type==='stimulant')return lot(item);
-  const unitPrice=ITEMS[item].value*tradePercent(state,'buyPercent')*115/10000||ITEMS[item].value*1.15;
-  const min=Math.max(2,Math.ceil(499.5/unitPrice));
-  const max=Math.max(min,Math.ceil(2000.5/unitPrice)-1);
-  return lot(item,min+Math.floor(random()*(max-min+1)));
- });
- const armor=tiers('armor').flat();
- const weaponTiers=tiers('weapons');
- const featured=pick([...weaponTiers.at(-1)]);
- const weapons=weaponTiers.flat().filter(item=>item!==featured);
+export function hansaStock(state,random=Math.random){
+ const level=Math.min(15,state.hansaShop?.level??0),category=level>=8?10:level>=3?5:0;
+ const pool=kind=>Object.entries(HANSA_ASSORTMENT[kind]).filter(([min])=>level>=Number(min)).flatMap(([,items])=>items);
+ const weapons=['pistol','ashot','bastard',...pool('weapons')].filter(id=>(ITEMS[id].equipmentCategory??0)<=category);
+ const armor=pool('armor').filter(id=>(ITEMS[id].equipmentCategory??0)<=category);
+ const supplies=[...pool('materials'),...pool('stimulants')];
+ const pick=rows=>rows[Math.floor(random()*rows.length)];
  const chances=Object.entries(HANSA_QUALITY_CHANCES).filter(([min])=>level>=Number(min)).at(-1)[1];
- let roll=random()*100;
- const quality=chances.findIndex(chance=>(roll-=chance)<0)+1;
- return [hansaFilterLot(level),...materialLots,lot(pick(armor)),lot(pick(armor)),lot(pick(weapons)),lot(pick(weapons),1,1),lot(featured,1,quality)];
-}
-export const hansaPrice=(s,lot)=>roundRatio(itemValue(lot)*lot.qty,tradePercent(s,'buyPercent')*(s.hansaShop?.izyaInterest?125:115),10000);
+ const quality=()=>{let roll=random()*100;return Math.max(0,chances.findIndex(chance=>(roll-=chance)<0));};
+ const slots=[hansaFilterLot(level)];
+ const used=new Set();
+ for(let i=1;i<hansaSlotCount(level);i++){
+  const type=(i-1)%3,source=type===0?supplies:type===1?armor:weapons;
+  const unique=source.filter(id=>!used.has(id)),item=pick(unique.length?unique:source);used.add(item);
+  const gear=['weapon','body'].includes(ITEMS[item].type);
+  let qty=1;
+  if(!gear&&ITEMS[item].type!=='stimulant'){
+   const price=ITEMS[item].value*tradePercent(state,'buyPercent')*115/10000||ITEMS[item].value*1.15;
+   const min=Math.max(2,Math.ceil(499.5/price)),max=Math.max(min,Math.ceil(2000.5/price)-1);
+   qty=min+Math.floor(random()*(max-min+1));
+  }
+  slots.push({id:uid(),item,qty,...(gear?{quality:quality()}:{})});
+ }
+ return slots;
+}export const hansaPrice=(s,lot)=>roundRatio(itemValue(lot)*lot.qty,tradePercent(s,'buyPercent')*(s.hansaShop?.izyaInterest?125:115),10000);
 export const hansaMissionPrice=(s,lot)=>hansaRoutePrice(s,s.interactiveMission,lot,{tradePercent});
 export const hansaMissionDuty=s=>hansaDuty(s,s.interactiveMission,s.heroes.find(h=>h.id===s.interactiveMission.heroIds[0]),{itemValue,tradePercent});
 
@@ -1609,14 +1611,14 @@ function purchaseMerchantShekels(s,npc,random,guaranteed=false){
 }
 export function visit(s,now=Date.now(),random=Math.random){let changed=advanceResearch(s,now);changed=advanceStationConstruction(s,now)||changed;
  const shop=s.hansaShop;
- if(shop&&(shop.refreshAt==null?!shop.assortmentVersion:now>=shop.refreshAt)){
+ if(shop&&(shop.assortmentVersion!==3||shop.refreshAt!=null&&now>=shop.refreshAt)){
   shop.slots=hansaStock(s,random);
   shop.refreshAt=null;
-  shop.assortmentVersion=2;
+  shop.assortmentVersion=3;
   changed=true;
  }else if(shop&&shop.assortmentVersion===1){
   if(shop.slots[0])shop.slots[0]=hansaFilterLot(shop.level??0);
-  shop.assortmentVersion=2;
+  shop.assortmentVersion=3;
   changed=true;
  }
  if(s.shekelDump&&ready(s.shekelDump,now)&&!s.shekelDump.result){
@@ -2341,7 +2343,7 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
  }
  case 'prepareNationalities':{prepareNationalityOffers(s,random,action.target??'hire');break;}
  case 'updateNationality':{const hero=idleHero(s);requireThat(!hero.nationalityVersion,'Национальность уже обновлена.');applyNationality(s,hero,action,'update:'+hero.id);addHistory(s,hero.name+': национальность обновлена.',now);break;}
- case 'packStimulant':{const hero=idleHero(s,true);const item=action.item??'combatStimulator';requireThat(ITEMS[item]?.type==='stimulant','Это не стимулятор.');const row=s.inventory.find(x=>x.item===item&&(!action.uid||x.uid===action.uid));requireThat(row,'Нет стимулятора.');const bonusApplied=Boolean(row.stimulantBonusApplied),extra=hero.profession==='medic'&&hasMedicPerk(hero,'charges')&&!bonusApplied;const charges=extra?Math.floor((row.charges??10)*1.5):(row.charges??10);const stimulantBonusApplied=bonusApplied||extra;
+ case 'packStimulant':{const hero=idleHero(s,true);const item=action.item??'combatStimulator';requireThat(ITEMS[item]?.type==='stimulant','Это не стимулятор.');const row=s.inventory.find(x=>x.item===item&&(!action.uid||x.uid===action.uid));requireThat(row,'Нет стимулятора.');const bonusApplied=Boolean(row.stimulantBonusApplied),extra=hero.profession==='medic'&&hasMedicPerk(hero,'charges')&&!bonusApplied;const charges=extra?Math.floor((row.charges??ITEMS[item].baseCharges??10)*1.5):(row.charges??ITEMS[item].baseCharges??10);const stimulantBonusApplied=bonusApplied||extra;
   requireThat(!(hero.stimulants>0&&(hero.stimulantItem??'combatStimulator')===item)&&!(hero.secondStimulant?.charges>0&&hero.secondStimulant.item===item),'Такой стимулятор уже снаряжён.');
   if(hero.stimulants>0){requireThat(hero.profession==='medic'&&hasMedicPerk(hero,'sanitary')&&!(hero.secondStimulant?.charges>0),'Все слоты стимуляторов заняты.');hero.secondStimulant={item,quality:itemQuality(row),charges,stimulantBonusApplied};}
   else{hero.stimulantItem=item;hero.stimulantQuality=itemQuality(row);hero.stimulants=charges;hero.stimulantBonusApplied=stimulantBonusApplied;}removeRow(s,row.uid);break;}
@@ -2353,6 +2355,17 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
   break;
  }
  case 'skipHansaExpedition':throw Error('Платный пропуск заменён поездкой с Васьком.');
+ case 'refreshHansaShop':{
+  const shop=s.hansaShop;
+  requireThat(shop,'Магазин Ганзы ещё не открыт.');
+  requireThat(now>=(shop.manualRefreshAt??0),'Обновление магазина ещё на кулдауне.');
+  pay(s,200*(shop.level??0));
+  shop.slots=hansaStock(s,random);
+  shop.refreshAt=null;
+  shop.assortmentVersion=3;
+  shop.manualRefreshAt=now+30000;
+  break;
+ }
  case 'buyHansaLot':{
   const shop=s.hansaShop,lot=shop?.slots[action.slot];
   requireThat(lot&&lot.id===action.lotId,'Лот уже недоступен.');
@@ -2362,8 +2375,8 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
   shop.slots[action.slot]=null;
   shop.refreshAt??=now+HANSA_REFRESH_MS;
   shop.level??=0;
-  shop.xpTenths=(shop.xpTenths??0)+price;
-  while(shop.xpTenths>=hansaXpThreshold(shop.level)){
+  shop.xpTenths=(shop.xpTenths??0)+price/2;
+  while(shop.level<15&&shop.xpTenths>=hansaXpThreshold(shop.level)){
    shop.xpTenths-=hansaXpThreshold(shop.level);
    shop.level++;
   }

@@ -1,0 +1,27 @@
+.kj-battle{color:var(--text,#ece9d9)}.kj-heading{display:flex;justify-content:space-between;gap:8px}
+.kj-initiative{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;list-style:none;padding:0;margin:8px 0}
+.kj-initiative li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px;background:#25352a;color:#d5dec9;border-radius:4px;font-size:12px}.kj-initiative li[aria-current]{background:#d4e49b;color:#172014}
+.kj-arena{position:relative;height:clamp(306px,43vw,400px);overflow:hidden;background:#263027 url('./kolom-jrpg-arena.png') center/cover;border-radius:8px}
+.kj-unit{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-55%);display:grid;justify-items:center;gap:0;width:clamp(76px,19%,155px);padding:0;border:0;background:transparent!important;min-height:0;color:#ece9d9}
+.kj-unit:disabled{opacity:1}.kj-label{display:block;background:#142219ed;border-radius:4px;padding:3px 5px;width:100%;font-size:11px;line-height:1.2}
+.kj-label small{display:block;font-size:10px}.kj-label progress{display:block;width:100%;height:4px;accent-color:#b4cc79}
+.kj-unit[aria-pressed=true] .kj-label{outline:2px solid #d4e49b}
+.kj-sprite{display:block;position:relative;width:clamp(68px,13vw,115px);aspect-ratio:1;filter:drop-shadow(1px 3px 2px #111a)}
+.kj-sprite::after{content:'';position:absolute;inset:0;background-repeat:no-repeat}
+.kj-sprite.hero-sprite::after{background-image:url('./kolom-jrpg-heroes.png');background-size:200% 200%;background-position:var(--sprite-x) var(--sprite-y)}
+.kj-sprite.enemy-sprite::after{background-image:url('./kolom-jrpg-enemies.png');background-size:200% 100%;background-position:var(--sprite-x) 0}
+.kj-unit.foe[style*="--cell:1"] .kj-sprite{width:clamp(115px,24vw,190px)}
+.kj-distance{position:absolute;right:0;top:0;background:#17241d;color:#d4e49b;padding:2px 6px;border-radius:4px;font-size:12px}
+.kj-unit.fallen{opacity:.5}.kj-unit.fallen .kj-sprite,.kj-unit.prone .kj-sprite{transform:rotate(-60deg) scale(.8)}
+.kj-controls{margin-top:10px}.kj-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:6px 0}.kj-actions button{padding:8px 2px;font-size:12px}.kj-actions button[aria-pressed=true]{background:#d4e49b;color:#172014}
+.kj-fields{display:flex;flex-wrap:wrap;gap:6px}.kj-fields label{flex:1 1 110px;min-width:0;font-size:12px}.kj-fields select{display:block;max-width:100%;width:100%}
+.kj-float{position:absolute;right:0;top:0;background:#24241d;color:#ffd6ba;padding:3px;animation:kj-float .4s ease-out both;pointer-events:none}
+@keyframes kj-float{to{transform:translateY(-28px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.kj-float{animation:none}}
+
+.kj-sprite.enemy-sprite{aspect-ratio:1.5}
+.kj-label{overflow-wrap:anywhere}.kj-label small{font-size:10px}
+.kj-unit.foe[style*="--cell:1"]{width:clamp(100px,25%,185px)}
+.kj-arena .kj-unit{transition:left .21s ease,top .21s ease}
+
+.kj-actions button:last-child{grid-column:1/-1}

@@ -65,3 +65,4 @@ main{margin-top:12px}header{margin-bottom:8px}.battlefield .miniature{max-width:
 .battlefield .lunging .miniature{animation:lunge .3s ease-out;--lunge:-30%}
 .battlefield .spot-h4.lunging .miniature{--lunge:30%}
 @keyframes lunge{45%{transform:translateX(var(--lunge)) scale(1.08)}}
+.interactive-stage-image{display:block;max-width:100%;height:auto}

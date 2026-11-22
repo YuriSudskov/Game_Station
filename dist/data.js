@@ -57,7 +57,7 @@ doctorKit:{"name":"Аптечка доктора","type":"medicine","stack":true
  shepherdPet:{equipmentCategory:0,"pendingDistribution":true,"name":"Пёс - Овчарка","type":"pet","stack":false,"value":3600,"description":"+4 к поиску ценного и обнаружению.","effect":{"loot":4,"detect":4},"portrait":"🐕","icon":"bag"},
  mouseVasya:{equipmentCategory:0,"pendingDistribution":true,"name":"Мышь - Вася","type":"pet","stack":false,"value":2400,"description":"+1 Восприятие.","effect":{"perception":1},"portrait":"🐁","icon":"bag"},
  piercerSpike:{name:'Шип-пронзатель',type:'resource',stack:true,value:800,rarity:'rare',icon:'bag',description:'Редкий реагент с Пронзателя.'},
- piercerKebab:{name:'Шашлык из Пронзателя',type:'stimulant',stack:false,value:1000,rarity:'rare',icon:'stimulant',description:'10 применений. На одно прохождение: +1 Силы, +1 п.п. уклонения и +10 физического поглощения.'},
+ piercerKebab:{baseCharges:5,name:'Шашлык из Пронзателя',type:'stimulant',stack:false,value:1000,rarity:'rare',icon:'stimulant',description:'5 применений. На одно прохождение: +1 Силы, +5 п.п. уклонения и +10 физического поглощения.'},
  pukGrass:{name:'Пук-трава',type:'resource',stack:true,value:200,icon:'bag',description:'Трава для исследования.'},
  machete:{equipmentCategory:0,name:'Мачете',type:'weapon',combat:'melee',min:20,max:100,stack:false,value:500,icon:"macheteBlade",description:'Оружие ближнего боя.'},
  brenTen:{equipmentCategory:5,name:'Bren Ten',type:'weapon',combat:'ranged',maxDistance:2,weaponClass:'pistol',min:30,max:170,requiredHeroLevel:5,stack:false,value:4000,rarity:'rare',icon:"brenTen"},
