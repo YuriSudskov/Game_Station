@@ -1,3 +1,4 @@
+import {KOLOM_ENEMIES} from './kolomenskaya.js';
 import {heroConfig,heroMaximumHp} from './game.js';
 import {bandageHeal,damageAfterArmor,evasionAtDistance,hits,rng} from './combat.js';
 import {ITEMS,MATURE_GUARD,TECHNOPARK} from './data.js';
@@ -5,11 +6,6 @@ import {partyBattleExperience} from './party-combat.js';
 
 const root = document.querySelector('#battle');
 const announcement = document.querySelector('#announcement');
-const weapons = {
- side: {name:'Двустволка', modes:[['single','Одиночный',1],['double','Дуплет',2]], damage:40, range:2},
- ppsh:{name:'ППШ', modes:[['single','Одиночный',1],['burst','Очередь',ITEMS.ppsh.shots]], min:ITEMS.ppsh.min, max:ITEMS.ppsh.max, range:ITEMS.ppsh.maxDistance, burstPenalty:ITEMS.ppsh.shotPenalty},
- sniper:{...ITEMS.mosin, modes:[['single','Одиночный',1],['bayonet','Удар штыком',1]], range:4}
-};
 const zones = [
  ['body','Корпус',1,0], ['head','Голова',2,-30],
  ['arm','Рука',1,-20], ['leg','Нога',1,-20]
@@ -18,15 +14,14 @@ const actions = [['attack','Атака'],['grenade','Граната'],['heal','�
 const alive = unit => unit.hp > 0;
 const roll = chance => Math.random() * 100 < chance;
 const int = (min,max) => min+Math.floor(Math.random()*(max-min+1));
-const guard = i => {
- const stats=i===5?MATURE_GUARD:TECHNOPARK.enemy;
- return {...stats,id:'g'+i,name:i===5?stats.name:stats.name+' '+i,max:stats.hp,distance:[2,2,3,4,4][i-1]};
-};
-function levelThreeHero(profession,loadout){
- const hero={profession,level:3,perk:'none'};
+function testHero(id,name,weapon,rangedWeapon,quality,rangedQuality){
+ const hero={id,name,profession:'assault',level:7,perk:'none',body:'metalMediumArmor',weapon,rangedWeapon,weaponDetails:{quality},rangedWeaponDetails:{quality:rangedQuality}};
  hero.hp=hero.maxHp=heroMaximumHp(hero);
- const stats=heroConfig({},hero,'technopark').hero;
- return {...stats,...hero,...loadout,max:hero.maxHp};
+ const stats=heroConfig({},hero,'surface').hero;
+ return {...stats,...hero,max:hero.maxHp,ammo:{main:100,side:100},grenades:{tinGrenade:1},meds:{medicKit:1,bandage:1}};
+}
+function enemy(id,stats,distance){
+ return {...stats,id,max:stats.hp,distance};
 }
 const select = (id, label, options, current) => `<label>${label}<select id="${id}">${options.map(([value,name])=>`<option value="${value}" ${value===current?'selected':''}>${name}</option>`).join('')}</select></label>`;
 
@@ -34,20 +29,24 @@ const medicineIds=['medicKit','dressingKit','bandage'];
 const grenadeDamage={pipeGrenade:[55,25],tinGrenade:[35,15]};
 const stocked=(stock,ids=Object.keys(stock))=>ids.filter(id=>stock[id]>0);
 const supplyOptions=(stock,ids)=>stocked(stock,ids).map(id=>[id,ITEMS[id].name+' ×'+stock[id]]);
-const weaponFor=(hero,slot)=>weapons[slot==='main'?hero.primary:'side'];
+const weaponFor=(hero,slot)=>{
+ const weapon=hero.weapons[slot==='main'?'main':'ranged'];
+ return {...weapon,range:weapon.maxDistance??4,burstPenalty:weapon.shotPenalty??0,
+ modes:weapon.flame?[['single','Струя огня',1]]:weapon.shots?[['single','Одиночный',1],['burst','Очередь',weapon.shots]]:weapon.damageRolls?[['single','Одиночный',1],['double','Дуплет',weapon.damageRolls]]:[['single','Одиночный',1]]};
+};
 let enemyCursor, shooting;
 let heroes, enemies, round, actorIndex, phase, choice, log, impact, totals;
 function start(){
  heroes = [
-  levelThreeHero('assault',{id:'h3',name:'Боец с ППШ',primary:'ppsh',ammo:{main:40,side:6},grenades:{tinGrenade:1},meds:{bandage:1}}),
-  levelThreeHero('sniper',{id:'h4',name:'Снайпер',primary:'sniper',ammo:{main:12,side:6},grenades:{pipeGrenade:1},meds:{dressingKit:1}})
+  testHero('h3','Штурмовик · АК47','ak47','rox',2,0),
+  testHero('h4','Штурмовик · Обрез','sawedOff','ppsh',2,1)
  ];
- enemies = [1,2,3,4].map(i=>guard(i));
+ enemies = [enemy('g1',KOLOM_ENEMIES.queen,3),enemy('g2',KOLOM_ENEMIES.spider,1),enemy('g3',KOLOM_ENEMIES.spider,2)];
  shooting=false;
  round = 1;
  actorIndex = 0;
  phase = 'hero';
- log = ['Четыре Стража атакуют ремонтную бригаду.'];
+ log = ['Паучья матка и два скорпионо-паука преграждают путь.'];
  totals = {damage:0,healing:0,shots:0,grenades:0,meds:0};
  impact = {};
  resetChoice();
@@ -107,7 +106,7 @@ function initiative(){
  const remaining=phase==='hero'?heroes.slice(actorIndex+1).filter(ready):[];
  const foes=enemies.slice(phase==='enemy'?(enemyCursor??-1)+1:0).filter(alive);
  const nextRound=heroes.filter(ready);
- const upcoming=round===1?[...foes,...nextRound,...enemies.filter(alive),guard(5)]:[...foes,...nextRound,...enemies.filter(alive)];
+ const upcoming=[...foes,...nextRound,...enemies.filter(alive)];
  return '<ol class="initiative" aria-label="Очередь ходов">'+[current,...remaining,...upcoming].filter(Boolean).slice(0,4).map((unit,index)=>'<li'+(current&&index===0?' aria-current="step"':'')+' title="'+unit.name+'">'+unit.name+'</li>').join('')+'</ol>';
 }
 function treat(source,patient,item){
@@ -139,7 +138,7 @@ function render(focus){
   const execute={grenade:'Бросить',heal:'Применить лечение'}[choice.action];
   panel = `<section class="panel turn-panel" ${shooting?'inert':''}><h2>Ход · ${hero.name}</h2><div class="moves">${actions.map(([id,label])=>`<button data-move="${id}" aria-pressed="${id===choice.action}">${label}</button>`).join('')}</div>${fields.length?`<div class="field ${choice.action==='attack'?'attack-fields':''}">${fields.join('')}</div>`:''}<div class="turn-submit"><p>${targetName?`Цель · <strong>${targetName}</strong>`:''}${hint?`<small class="muted">${hint}</small>`:''}</p>${execute?`<button id="execute" class="confirm" ${problem?'disabled':''}>${execute}</button>`:''}</div></section>`;
  } else if(phase==='enemy'){
-  panel = '<section class="panel"><h2>Ход Стражей</h2><p>Противники действуют по очереди.</p></section>';
+  panel = '<section class="panel"><h2>Ход пауков</h2><p>Противники действуют по очереди.</p></section>';
  }else if(phase==='escaped'){
   const xp=partyBattleExperience({enemies});
   const names=heroes.filter(alive).map(unit=>unit.name+' · '+xp+' опыта').join(' / ');
@@ -154,7 +153,7 @@ function render(focus){
   const result = {victory:'Победа',defeat:'Поражение',escaped:'Отряд отступил'}[phase];
   panel = `<section class="panel"><h2 id="result" tabindex="-1">${result}</h2><p>Раундов: ${round} · Повержено Стражей: ${enemies.filter(unit=>!alive(unit)).length} из ${enemies.length}</p><p>${heroes.map(unit=>unit.name+' · '+(alive(unit)?unit.hp+'/'+unit.max+' HP':'повержен')).join(' / ')}</p><p>Нанесено урона: ${totals.damage} · Восстановлено HP: ${totals.healing}</p><p>Потрачено: выстрелов ${totals.shots}, гранат ${totals.grenades}, аптечек ${totals.meds}.</p><button id="restart" class="confirm">Сыграть заново</button></section>`;
  }
- root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>Встреча со Стражами</span></div>${['hero','enemy'].includes(phase)?initiative():''}<div class="battlefield">${heroes.map(unit=>unitCard(unit,false)).join('')}${enemies.map(unit=>unitCard(unit,true)).join('')}</div></section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
+ root.innerHTML = `<section class="arena" aria-label="Поле боя"><div class="round"><strong>Раунд ${round}</strong><span>Матка Коломенской</span></div>${['hero','enemy'].includes(phase)?initiative():''}<div class="battlefield">${heroes.map(unit=>unitCard(unit,false)).join('')}${enemies.map(unit=>unitCard(unit,true)).join('')}</div></section>${panel}<section class="panel"><h2>Журнал боя</h2><ol class="events">${log.slice(-6).reverse().map(text=>`<li>${text}</li>`).join('')}</ol></section>`;
  if(focus) root.querySelector(focus)?.focus({preventScroll:true});
 }
 function confirmAction(){
@@ -196,16 +195,18 @@ function fireShots(hero,target){
  const bayonet=mode==='bayonet';
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const delay=count>1?(reduced?90:210):(reduced?180:420);
- const accuracy=hero.accuracy-target.distance*(weapon.distancePenalty??7)+penalty-(mode==='burst'?weapon.burstPenalty:mode==='double'?6:0);
+ const accuracy=hero.accuracy+(weapon.accuracyBonus??0)-target.distance*(weapon.distancePenalty??7)+penalty-(mode==='burst'?weapon.burstPenalty:mode==='double'?6:0);
  shooting=true;
  function fire(index){
   impact={[hero.id]:bayonet?{lunge:true}:{firing:true}};
   if(!bayonet){hero.ammo[choice.slot]--;totals.shots++;}
-  if(hits(int(1,100),accuracy,target.evasion)){
+  if(weapon.flame||hits(int(1,100),accuracy,target.evasion)){
    const min=bayonet?weapon.bayonet.min:weapon.min??weapon.damage;
    const max=bayonet?weapon.bayonet.max:weapon.max??weapon.damage+8;
    const raw=min+Math.floor(Math.random()*(max-min+1));
-   const dealt=damage(target,damageAfterArmor(raw,weapon.piercing&&!bayonet?0:target.armor)*multiplier);
+   const armor=weapon.flame?target.thermalArmor:weapon.piercing&&!bayonet?0:target.armor;
+   const dealt=damage(target,damageAfterArmor(raw,armor)*multiplier*(weapon.flame?(target.thermalMultiplier??1):1));
+   if(weapon.flame&&target.kolomQueen)target.armor=60;
    totals.damage+=dealt;
    if(alive(target)&&zone==='arm'&&roll(50))target.armWound=true;
    if(alive(target)&&zone==='leg'&&roll(50))target.prone=true;
@@ -226,7 +227,7 @@ function fireShots(hero,target){
 }
 function endHeroTurn(){
  if(!enemies.some(alive)){
-  if(round>1){ finish('victory'); return; }
+  finish('victory'); return;
   enemyCursor=null;
   phase = 'enemy';
   render();
@@ -255,10 +256,7 @@ function enemyTurn(index){
  if(enemyIndex<0){
   if(heroes.filter(alive).every(unit=>unit.retreating)){finish('escaped');return;}
   round++;
-  if(round===2){
-   enemies.push(guard(5));
-   add('Матёрый Страж вступает в бой на дистанции 4+.');
-  }
+
   actorIndex = heroes.findIndex(unit=>alive(unit)&&!unit.retreating);
   phase = 'hero';
   resetChoice();

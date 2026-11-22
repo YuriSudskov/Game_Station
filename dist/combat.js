@@ -245,7 +245,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const inRange=(weapon,distance)=>weapon?.type==='ranged'&&distance<=weaponMaxDistance(h,weapon);
   const counterAttack=turn=>{
     const weapon=reloading&&reloadWeapon===main?main?.bayonet:main;if(!weapon||weapon.flame||(weapon.usesHeavyAmmo&&!(h.heavyAmmo>0)))return;
-    counterUsed=true;if(weapon.reloadMain){reloading=true;reloadWeapon=weapon;}
+    counterUsed=true;if(weapon.reloadMain){reloading=true;reloadWeapon=weapon.quickReloadBase??weapon;}
     const count=weapon.shots?weapon.shots+(h.burstBonus??0):1;
     for(let attack=1;attack<=count&&ratHp>0;attack++){
       if(weapon.usesHeavyAmmo){if(!(h.heavyAmmo>0))break;h.heavyAmmo--;}
@@ -318,7 +318,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     }
     if(reloadTurn){
       reloading=false;
-      const target=reloadWeapon??main;reloadWeapon=null;weapon=h.professionPerks?.includes('sniper-reload')&&inRange(target,distance)?{...target,quickReloadShot:true,accuracyBonus:(target.accuracyBonus??0)-15}:distance===0?target.bayonet:null;
+      const target=reloadWeapon??main;reloadWeapon=null;weapon=h.professionPerks?.includes('sniper-reload')&&inRange(target,distance)?{...target,quickReloadShot:true,quickReloadBase:target,accuracyBonus:(target.accuracyBonus??0)-10}:distance===0?target.bayonet:null;
       note('перезарядка',{turn,distance,weapon:target.item});
     }
     const openingTurn=heroTurn&&!ambush&&!h.openingExtraAttackSpent;
@@ -346,7 +346,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     }
     else if(!heroTurn&&distance>(r.attackRange??0)&&!rush) { distance--; note('сближение',{turn,actor:r.name??'крыса',distance}); }
     else {
-      if(heroTurn&&weapon.reloadMain&&(weapon===main||weapon.reloadEverySlot||weapon.quickReloadShot)){reloading=true;reloadWeapon=weapon;}
+      if(heroTurn&&weapon.reloadMain&&(weapon===main||weapon.reloadEverySlot||weapon.quickReloadShot)){reloading=true;reloadWeapon=weapon.quickReloadBase??weapon;}
       const actor=heroTurn?'герой':(r.name??'крыса');
       const powerSwing=!heroTurn&&r.previousAttackHit?r.powerSwing:null;
       const escortTarget=!heroTurn&&caravan?.hp>0&&r.attackTarget!=='hero';

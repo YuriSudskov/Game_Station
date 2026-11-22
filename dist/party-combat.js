@@ -248,7 +248,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(actor.reloading){
     actor.reloading=false;
     const targetWeapon=actor.reloadWeapon;
-    weapon=actor.professionPerks?.includes('sniper-reload')&&targetWeapon&&distance<=weaponMaxDistance(actor,targetWeapon)?{...targetWeapon,quickReloadShot:true,accuracyBonus:(targetWeapon.accuracyBonus??0)-15}:distance===0?targetWeapon?.bayonet:null;
+    weapon=actor.professionPerks?.includes('sniper-reload')&&targetWeapon&&distance<=weaponMaxDistance(actor,targetWeapon)?{...targetWeapon,quickReloadShot:true,quickReloadBase:targetWeapon,accuracyBonus:(targetWeapon.accuracyBonus??0)-10}:distance===0?targetWeapon?.bayonet:null;
     actor.reloadWeapon=null;
     say(combat,actor.name+': перезарядка.');
     if(!weapon)continue;
@@ -266,7 +266,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     say(combat,actor.name+': '+(weapon.name??ITEMS[weapon.item]?.name??'оружие')+' заклинило. Ход пропущен.');
     continue;
    }
-   if(weapon.reloadMain&&(weapon===main||weapon.reloadEverySlot||weapon.quickReloadShot)){actor.reloading=true;actor.reloadWeapon=weapon;}
+   if(weapon.reloadMain&&(weapon===main||weapon.reloadEverySlot||weapon.quickReloadShot)){actor.reloading=true;actor.reloadWeapon=weapon.quickReloadBase??weapon;}
    if(actor.tauntFirstTurn&&!actor.ownTurnDone){target.accuracy+=10;target.evasion-=20;}
    let sequence=Array.from({length:heroAttackStats(actor,weapon,distance).attacks},()=>weapon);
    if(dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
