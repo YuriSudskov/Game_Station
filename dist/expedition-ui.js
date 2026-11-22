@@ -1,0 +1,3 @@
+export function sceneSummary(text=''){return String(text).match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0]??String(text);}
+export function sceneCopy(text,esc){const full=String(text??''),short=sceneSummary(full);return '<p class="note expedition-summary">'+esc(short)+'</p>'+(short.length<full.length?'<details class="expedition-description"><summary>Подробнее</summary><p>'+esc(full.slice(short.length).trim())+'</p></details>':'');}
+export function expeditionMeta({radiation=0,names=[],scene,test=false},esc){return '<div class="expedition-head-meta"><span>'+esc(radiation)+' РАД</span><span>'+names.map(esc).join(', ')+'</span>'+(scene?'<span>Сцена '+esc(scene)+'</span>':'')+(test?'<span>Для теста</span>':'')+'</div>';}

@@ -1,3 +1,4 @@
+import {sceneCopy} from './expedition-ui.js';
 import {manualBattleBody} from './kolom-jrpg.js';
 import {KOLOM_SCENES,kolomAvailable,kolomLocal} from './kolomenskaya.js';
 import {ITEMS} from './data.js';
@@ -36,9 +37,9 @@ export function kolomBody(s,{btn,esc,health,heroPortrait,renderLog}){
  if(node==='final')choices=b('Завершить вылазку и сдать задание','finish');
  const fight=a.combat,art=node==='combat'?'combat-'+(fight.enemies.some(e=>e.kolomQueen)?'queen':fight.enemies.some(e=>e.kolomSlime)?'worm':'spiders'):['recovery','casualty'].includes(node)?'recovery':node;
 
- const title=(node==='combat'||report)?'Бой с '+fight.enemies.map(e=>e.name).filter((name,i,all)=>all.indexOf(name)===i).join(', '):scene[1];
+ const title=(node==='combat'||report)?'Бой с '+(fight.enemies.some(e=>e.kolomQueen)?'Маткой Коломенской':fight.enemies.some(e=>e.kolomSlime)?'червём':'пауками'):scene[1];
  const portraits='<div class="recovery-party" role="group" aria-label="Участники вылазки">'+party.map(member=>'<button type="button" class="offer recovery-hero '+(member.id===h.id?'selected':'')+'" aria-pressed="'+(member.id===h.id)+'" data-action="kolomChoice" data-node="'+node+'" data-choice="pick" data-target="'+member.id+'"><span class="row">'+heroPortrait(member)+'<strong>'+esc(member.name)+'</strong></span>'+health(member)+'<span class="subtitle">Отравление: '+(member.poisonDoses??0)+'</span></button>').join('')+'</div>';
  const battle=(report||node==='combat'&&fight.status!=='pending')?'<section class="battle-log result-log">'+(node==='combat'&&fight.enemies.some(e=>e.kolomQueen)?'<p>Порядок ходов: '+fight.order.map(x=>esc(x.name)).join(' → ')+'</p>':'')+renderLog(fight.events)+'</section>'+(report?'<p class="note gold">Противники повержены.</p><p class="note">Опыт за бой: '+a.combatXp+' на отряд · по '+Math.round(a.combatXp/party.length*10)/10+' базового опыта каждому. Личные бонусы учитываются при завершении вылазки.</p>':''):'';
- const journal='<details class="battle-log result-log" open><summary>Ход вылазки · пояснения и броски</summary>'+a.events.map(t=>'<p>'+esc(t)+'</p>').join('')+'</details>';
- return '<div class="zil-scene-meta"><span class="pill alert">'+a.locationRadiation+' РАД</span><span>'+party.map(member=>esc(member.name)).join(', ')+'</span><span class="pill">Сцена '+scene[0]+'</span></div><img class="interactive-stage-image" src="./kolom-scenes/'+art+'.svg" alt="'+esc(title)+'"><h3>'+esc(title)+'</h3><p class="note">'+(report?'Бой завершён. Ознакомьтесь с отчётом и перейдите к восстановлению.':esc(scene[2]))+'</p>'+portraits+battle+journal+'<div class="research-options">'+choices+b('Отступить на станцию','retreat')+'</div>';
+ const journal=a.events.length>(a.sceneLogStart??a.events.length)?'<details class="battle-log result-log" open><summary>Ход вылазки · пояснения и броски</summary>'+a.events.slice(a.sceneLogStart??a.events.length).map(t=>'<p>'+esc(t)+'</p>').join('')+'</details>':'';
+ return '<img class="interactive-stage-image" src="./kolom-scenes/'+art+'.jpg" alt="'+esc(title)+'"><h3 class="expedition-scene-title">'+esc(title)+'</h3>'+sceneCopy(report?'Бой завершён — можно перейти к восстановлению.':node==='combat'?'Противники преграждают путь — приготовьтесь к бою.':scene[2],esc)+''+portraits+battle+journal+'<div class="research-options">'+choices+b('Отступить на станцию','retreat')+'</div>';
 }

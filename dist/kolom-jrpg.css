@@ -25,3 +25,22 @@
 .kj-arena .kj-unit{transition:left .21s ease,top .21s ease}
 
 .kj-actions button:last-child{grid-column:1/-1}
+/* Shared game controls; arena target buttons retain their own layout. */
+.kj-actions .btn{min-height:45px;padding:10px 12px;border-radius:7px;background:#252d23;border:1px solid #46513c;color:var(--text);font-size:13px;font-weight:650;cursor:pointer}
+.kj-actions .btn[aria-pressed=true]{background:var(--gold,#c8ad76);border-color:var(--gold,#c8ad76);color:#1e2117}
+.kj-fields select{font:inherit;color:var(--text);background:var(--panel,#182119);border:1px solid var(--line,#46513c);border-radius:7px;min-height:44px;padding:8px}
+
+.kj-unit.poisoned .kj-sprite::after{filter:sepia(.9) saturate(2.8) hue-rotate(45deg)}
+.kj-hit-flash::after{filter:brightness(0) invert(1)!important}
+.kj-red-flash::after{filter:brightness(.7) sepia(1) saturate(12) hue-rotate(320deg)!important}
+.kj-tracer{position:absolute;z-index:8;pointer-events:none;height:2px;background:#fff0b0;transform-origin:left center;box-shadow:0 0 5px #fff2be}
+.kj-tracer.web{height:3px;background:repeating-linear-gradient(90deg,#e1ece2 0 5px,transparent 5px 9px)}
+.kj-tracer.fire{height:9px;background:linear-gradient(90deg,#ffe59a,#ef612788);box-shadow:0 0 10px #ee6a28}
+.kj-tracer.grenade{height:3px;background:#ff5959;box-shadow:0 0 10px #ff3030}
+.kj-action-notice{position:absolute;left:5px;right:5px;top:5px;z-index:9;pointer-events:none;text-align:center;background:#101c16eb;color:#f3eedc;padding:5px;border-radius:4px;font-size:12px}
+.kj-float{z-index:12;white-space:nowrap;animation-duration:.65s;font-weight:700}
+.kj-float.kj-miss{color:#fff;background:#101711d9;font-size:16px}
+.kj-float.kj-critical{color:#ff5858;background:#120d0deb;font-size:23px;font-weight:900;left:0;right:auto}
+.kj-poison-text{color:#b8f38b}.kj-web-text{color:#e3eee4}
+
+.kj-tracer.shot{height:1px;box-shadow:none}

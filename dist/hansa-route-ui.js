@@ -1,9 +1,11 @@
+import {manualBattleBody} from './kolom-jrpg.js';
 import {ITEMS} from './data.js';
 import {HANSA_SCENES} from './hansa-route.js';
 export function hansaRouteBody(s,{btn,esc,money,itemName,health,price,duty,renderLog,inventoryItemIcon,weaponDescription,armorDescription}){
  const a=s.interactiveMission,h=s.heroes.find(h=>h.id===a.heroIds[0]),node=a.node;
  const b=(label,choice,disabled=false,cls='secondary')=>btn(label,'hansaRouteChoice',`data-node="${node}" data-choice="${choice}" ${disabled?'disabled':''}`,cls);
  if(a.transition)return '<img class="hansa-route-art" src="./vasek-scenes/'+node+'.webp" alt="'+esc(HANSA_SCENES[node][0])+'"><h3>'+esc(HANSA_SCENES[node][0])+' · результат</h3><section class="hansa-choice-result hansa-transition" aria-live="polite">'+a.transition.lines.map(t=>'<p>'+esc(t)+'</p>').join('')+'</section>'+b(a.transition.label,'nextScene',false,'mission-start full');
+ if(a.combat?.manual&&a.combat.manualStarted&&['pending','running'].includes(a.combat.status))return manualBattleBody({...a,battleTitle:'Бой на дрезине'},s.heroes);
  const back=b('Вернуться к торговцам','back'),customs=b('Идти к кордону Ганзы','customs'),izya=b('Встретиться с Изей Кацманом','izya');
  const stock=lots=>'<div class="hansa-route-stock">'+lots.map((lot,i)=>{const item=ITEMS[lot.item],description=item.type==='weapon'?weaponDescription(lot,false,h):item.type==='body'?armorDescription(lot):item.description??'';return '<div class="hansa-route-lot"><span class="item-icon">'+inventoryItemIcon(lot.item)+'</span><div><strong>'+esc(itemName(lot))+(lot.qty>1?' ×'+lot.qty:'')+'</strong><small>'+esc(description)+'</small></div>'+btn(lot.sold?'Куплено':money(price(s,lot))+' А','hansaRouteBuy',`data-index="${i}" ${lot.sold||s.money<price(s,lot)?'disabled':''}`,'secondary')+'</div>';}).join('')+'</div>'+btn('Купить все оставшиеся','hansaRouteBuy','data-index="-1" '+(lots.every(l=>l.sold)?'disabled':''),'secondary full');
  let actions='';

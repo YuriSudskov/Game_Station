@@ -24,7 +24,7 @@ function render(){
  })+'<p><button data-action="previewReset">Начать пробу заново</button></p>';
 }
 function commit(action){
- try{const previous=state.interactiveMission?.combat;state=act(state,action);localStorage.setItem(key,JSON.stringify(state));render();if(action.choice==='manual')playKolomFrames(root,previous,state.interactiveMission?.combat);}catch(e){document.querySelector('#announcement').className='';document.querySelector('#announcement').textContent=e.message;}
+ try{const previous=state.interactiveMission?.combat;state=act(state,action);localStorage.setItem(key,JSON.stringify(state));render();if(['fight','manual'].includes(action.choice))playKolomFrames(root,previous,state.interactiveMission?.combat);}catch(e){document.querySelector('#announcement').className='';document.querySelector('#announcement').textContent=e.message;}
 }
 root.addEventListener('change',event=>{
  const field=event.target.dataset.jrpgField;if(!field)return;

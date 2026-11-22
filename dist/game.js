@@ -1,3 +1,4 @@
+import {validateManualAction} from './kolom-jrpg.js';
 import {runKolom} from './kolomenskaya.js';
 import {runHansa,hansaRoutePrice,hansaDuty} from './hansa-route.js';
 import {doctorKitCure} from './doctor-kit.js';
@@ -1083,6 +1084,7 @@ function ordinaryLocationLoot(kind,result){
  return [];
 }
 function makeRun(s,hero,kind,at,seed,allowSpecial=true){
+ if(kind==='pukGrassSearch')requireThat(s.completedLocations?.technoparkRoof,'Сначала отремонтируй Технопарк.');
  startStimulant(hero,kind);const config=heroConfig(s,hero,kind),run=createRun(s,hero,kind,at,seed,allowSpecial,config);
  if(heavyAmmoWeapon(hero)&&run.result){
   run.result.heavyAmmoRemaining=config.hero.heavyAmmo;
@@ -1236,6 +1238,7 @@ export function trainingLocations(state,hero){
  return Object.keys(LOCATION_LEVELS).filter(kind=>!locationOwner(state,kind)&&!activeSpecialLocation(state,kind)&&!trainingBlock(state,hero,kind));
 }
 function trainingBlock(state,hero,kind){
+ if(kind==='pukGrassSearch'&&!state.completedLocations?.technoparkRoof)return 'Сначала отремонтируй Технопарк';
  if(kind==='patrol'&&!patrolReady())return 'Патрулирование пока недоступно';
  if(kind==='surfaceShops'&&!state.completedLocations.surface)return 'Сначала осмотри окрестности станции';
  if(kind==='zilTunnels'&&!state.completedLocations.zilRoute)return 'Сначала открой путь на ЗИЛ';
@@ -2002,7 +2005,7 @@ function roofChoice(s,active,id,now,random){
  case 'attack':{
   requireThat(active.repair.attackAt!=null&&now>=active.repair.attackAt,'Стражи ещё не появились.');
   active.repair.attackAt=null;active.repair.endsAt=null;
-  const combat=battle('roofAttack','roofTimer',Array(4).fill(TECHNOPARK.enemy));
+  const combat=battle('roofAttack','roofTimer',Array(4).fill(TECHNOPARK.enemy));combat.manual=true;
   combat.reinforcement={...clone(MATURE_GUARD),id:'roof-mature-guard',maxHp:MATURE_GUARD.hp};
   break;
  }
@@ -2167,7 +2170,9 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
  case 'interactiveCombatReport':{const combat=s.interactiveMission?.pendingCombat;requireThat(combat?.status==='recovery','Бой ещё не завершён.');combat.reportSeen=true;break;}
  case 'interactiveCombat':{
   const active=s.interactiveMission,combat=active?.pendingCombat;requireThat(combat,'Нет группового боя.');attachTeaCompanion(active,combat,random);for(const fighter of combat.heroes){if(active.focusUsed?.[fighter.id])fighter.focusBattleUsed=true;fighter.perceptionRerollUsed=Boolean(active.perceptionRerolls?.[fighter.id]);const hero=s.heroes.find(h=>h.id===fighter.id);if(!hero)continue;fighter.favoriteShots=active.favoriteShots?.[fighter.id]??fighter.favoriteShots??0;for(const key of ['bandages','dressingKits','doctorKits','medicKits'])fighter[key]=hero[key]??0;fighter.autoStimulatorUsed=Boolean(active.autoStimulatorUsed?.[fighter.id]);}
-  advancePartyCombat(combat,rng(Math.floor(random()*4294967296)));
+  if(combat.manual){for(const unit of [...combat.heroes,...combat.enemies])unit.maxHp??=unit.hp;if(action.prefs){const fighter=combat.heroes.find(h=>h.id===combat.waitingHeroId);requireThat(fighter,'Нет хода героя.');fighter.manualPrefs={...fighter.manualPrefs,...action.prefs};break;}if(combat.waitingHeroId){validateManualAction(combat,action.command);combat.manualAction=clone(action.command);combat.manualRevision=(combat.manualRevision??0)+1;}combat.manualStarted=true;combat.frames=[];}
+  advancePartyCombat(combat,rng(Math.floor(random()*4294967296)),combat.manual?{maxActors:100}:{});
+  if(combat.status==='escaped'){finishLostInteractiveMission(s,active,'escaped',now,random);break;}
   const companion=active.teaCompanion,follower=combat.heroes.find(fighter=>fighter.id===companion?.id);
   if(follower){companion.hp=follower.hp;if(follower.hp<=0&&!companion.fled){companion.fled=true;s[companion.merchant].teaScarred=true;releaseTeaCompanion(s,active,now);combat.events.push({type:'событие отряда',text:follower.name+' убегает из боя.'});if(combat.status==='casualty'&&combat.casualtyDecision.fallenIds.every(id=>id===follower.id)){combat.heroes=combat.heroes.filter(fighter=>fighter.id!==follower.id);decidePartyCasualty(combat,'fight');}}}
 
@@ -2274,7 +2279,7 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
      return {...spec,kind:'bandit',name:'Бандит',level:banditLevel,body:bandit.body,hp:bandit.hp,criticalChance:3,
       stealth:spec.agility,firearm:spec.weapons.main,grenades:loadout.grenades,experience:15,loot:[]};
     });
-    active.pendingCombat={...preparePartyCombat(fighters,enemies,rolls),nextNode:'stationInside',heroIds:[...active.heroIds]};
+    active.pendingCombat={...preparePartyCombat(fighters,enemies,rolls),nextNode:'stationInside',heroIds:[...active.heroIds],manual:true};
    }
    break;
   }
@@ -2287,6 +2292,12 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
    if(active.teaSolo&&!active.teaFind){active.teaFind=merchantSellerOffers(s,'duren',random)[0];(active.items??=[]).push(active.teaFind);}
    const {entries,money}=receiveAdventureLoot(s,active);
    if(active.testRun&&active.teaFind){receive(s,[active.teaFind]);entries.push(active.teaFind);}
+   if(!active.teaSolo&&!active.teaCompanion)for(const battle of battles){
+    for(const id of active.heroIds){const hero=s.heroes.find(h=>h.id===id);if(!hero)continue;
+     if(!battle.experienceAwarded&&battle.heroXp?.[id]==null){const share=(battle.experience??0)/active.heroIds.length;const gained=adventureExperience(active,hero,share);levelUp(hero,gained);(battle.heroXp??={})[id]=gained;}
+    }
+    battle.experiencePerHero??=(battle.experience??0)/active.heroIds.length;battle.experienceAwarded=true;
+   }
    const teaXp=active.teaSolo||active.teaCompanion?awardTeaAdventureXp(s,active,combatXp+extraXp):null;
    if(active.teaRepeat)(s.teaRepeats??={})[active.id]=true;
    releaseTeaCompanion(s,active,now);

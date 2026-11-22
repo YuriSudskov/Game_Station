@@ -1,7 +1,17 @@
-import {ITEMS} from './data.js';
-import {weaponMaxDistance,canThrowGrenade} from './combat.js';
+import {ITEMS,PERKS,LEVEL_PERKS} from './data.js';
+import {weaponMaxDistance,canThrowGrenade,dualPistolsActive} from './combat.js';
 export const healingSupplies={doctorKit:'doctorKits',medicKit:'medicKits',dressingKit:'dressingKits',bandage:'bandages'};
 export const grenadeSupplies={dynamite:'dynamites',lu216:'lu216Grenades',molotov:'molotovs',pipeGrenade:'grenades',tinGrenade:'tinGrenades'};
+export function manualAttackModes(hero,weapon){
+ if(!weapon)return [];
+ return [['single',weapon.type==='melee'?'Один удар':weapon.flame?'Струя огня':'Одиночный'],
+ ...(weapon.shots?[['burst','Очередь']]:[]),
+ ...(weapon.damageRolls?[['double','Дуплет']]:[]),
+ ...(weapon.weaponClass==='pistol'&&hero.pistolAttacks>1?[['pistolDouble','Двойной выстрел · −15 п.п.']]:[]),
+ ...(weapon.type==='melee'&&hero.attacksPerTurn>1?[['meleeDouble','Двойной удар']]:[]),
+ ...(weapon.weaponClass==='pistol'&&dualPistolsActive(hero)?[['paired','Из двух пистолетов']]:[]),
+ ...(weapon.bayonet?[['bayonet','Штык']]:[])];
+}
 export function validateManualAction(combat,action){
  if(!action||action.revision!==(combat.manualRevision??0))throw Error('Этот ход уже изменился.');
  const hero=combat.heroes.find(h=>h.id===combat.waitingHeroId);
@@ -18,7 +28,7 @@ export function validateManualAction(combat,action){
  }else{
   const weapon=hero.weapons?.[action.slot];
   if(!weapon||!['body','head','arm','leg'].includes(action.aim))throw Error('Выбери оружие и прицел.');
-  if(!['single','burst','double','bayonet'].includes(action.mode)||action.mode==='burst'&&!weapon.shots||action.mode==='double'&&!weapon.damageRolls||action.mode==='bayonet'&&!weapon.bayonet)throw Error('Этот режим недоступен.');
+  if(!manualAttackModes(hero,weapon).some(([id])=>id===action.mode))throw Error('Этот режим недоступен.');
   if(action.mode==='bayonet'&&distance!==0)throw Error('Штык доступен только вплотную.');
   if(weapon.usesHeavyAmmo&&!(hero.heavyAmmo>0))throw Error('Нет зарядов тяжёлого оружия.');
  }
@@ -30,7 +40,7 @@ export function manualBattleBody(mission,party){
  const prefs=hero?.manualPrefs??{};
  const slot=prefs.slot&&hero?.weapons?.[prefs.slot]?prefs.slot:hero?.weapons?.main?'main':'ranged';
  const weapon=hero?.weapons?.[slot];
- const modes=[['single','Одиночный'],...(weapon?.shots?[['burst','Очередь']]:[]),...(weapon?.damageRolls?[['double','Дуплет']]:[]),...(weapon?.bayonet?[['bayonet','Штык']]:[])];
+ const modes=manualAttackModes(hero,weapon);
  const mode=modes.some(([id])=>id===prefs.mode)?prefs.mode:'single';
  const target=combat.enemies.find(e=>e.id===prefs.targetId&&e.hp>0)??combat.enemies.find(e=>e.hp>0);
  const active=combat.order.findIndex(e=>e.id===(hero?.id??combat.order[combat.actorIndex]?.id));
@@ -43,14 +53,16 @@ export function manualBattleBody(mission,party){
   const placementDistance=enemy?Math.min(...combat.heroes.filter(h=>h.hp>0).map(h=>Math.min(4,h.distances?.[unit.id]??0))):0;
   const x=enemy?48+placementDistance*8:17+index*11,y=enemy?(unit.kolomQueen?32:index===1?63:87):54+index*29;
   const state=(unit.manualProne?' Лежит':'')+(unit.manualArm?' Ранена рука':'')+(unit.poisonDoses?' Яд '+unit.poisonDoses:'')+(unit.retreating?' Отступает':'');
-  return '<button class="kj-unit '+(enemy?'foe':'hero')+(unit.hp<=0?' fallen':'')+(unit.manualProne?' prone':'')+'" style="--x:'+x+'%;--y:'+y+'%;--sprite-x:'+(cell%2*100)+'%;--sprite-y:'+Math.floor(cell/2)*100+'%;--cell:'+cell+'" data-action="jrpgTarget" data-id="'+esc(unit.id)+'" '+(!enemy?'disabled':'')+' aria-pressed="'+(enemy&&target?.id===unit.id)+'"><span class="kj-sprite '+(enemy?'enemy-sprite':'hero-sprite')+'"></span><span class="kj-label">'+esc(enemy?(unit.kolomQueen?'Матка':'Скорпион-паук '+index):unit.name)+'<small><span data-jrpg-hp>'+Math.round(unit.hp)+'</span>'+' / '+Math.round(unit.maxHp??unit.hp)+' HP'+esc(state)+'</small><progress max="'+(unit.maxHp??unit.hp)+'" value="'+unit.hp+'"></progress></span>'+(enemy?'<b class="kj-distance">'+(distance===4?'4+':distance)+'</b>':'')+'</button>';
+  return '<button class="kj-unit '+(enemy?'foe':'hero')+(unit.hp<=0?' fallen':'')+(unit.manualProne?' prone':'')+(unit.poisonDoses?' poisoned':'')+'" style="--x:'+x+'%;--y:'+y+'%;--sprite-x:'+(cell%2*100)+'%;--sprite-y:'+Math.floor(cell/2)*100+'%;--cell:'+cell+'" data-action="jrpgTarget" data-id="'+esc(unit.id)+'" '+(!enemy?'disabled':'')+' aria-pressed="'+(enemy&&target?.id===unit.id)+'"><span class="kj-sprite '+(enemy?(mission.battleTitle?'generic-enemy-sprite':'enemy-sprite'):'hero-sprite')+'">'+(enemy&&mission.battleTitle?'<svg viewBox="0 0 80 100" aria-hidden="true"><path d="M24 92 27 63 17 67 12 56 29 39 28 22 38 12 52 18 54 37 66 53 60 66 53 62 58 92 46 92 40 72 36 92Z" fill="#72705b" stroke="#151d17" stroke-width="4"/><path d="M27 51 66 38 69 44 33 61M32 30 48 30" stroke="#1c211a" stroke-width="5"/></svg>':'')+'</span><span class="kj-label">'+esc(enemy?(unit.kolomQueen?'Матка':unit.name):unit.name)+'<small><span data-jrpg-hp>'+Math.round(unit.hp)+'</span>'+' / '+Math.round(unit.maxHp??unit.hp)+' HP'+esc(state)+'</small><progress max="'+(unit.maxHp??unit.hp)+'" value="'+unit.hp+'"></progress></span>'+(enemy?'<b class="kj-distance">'+(distance===4?'4+':distance)+'</b>':'')+'</button>';
  };
+ const abilities=(hero?.professionPerks??[]).map(id=>[id,PERKS[id]??LEVEL_PERKS[id]]).filter(([id,p])=>p&&id!=='none');
+ const abilityText=abilities.length?'<details class="kj-abilities"><summary>Перки и способности</summary>'+abilities.map(([id,p])=>'<p><strong>'+esc(p.name)+'</strong> · '+esc(p.description)+'</p>').join('')+'<p>Любимые патроны: '+(hero.favoriteShots??0)+' / 5 использовано. Первый выстрел: '+(hero.sniperShots?.fired?'сделан':'впереди')+'. Первое попадание: '+(hero.sniperShots?.firstHit?'состоялось':'впереди')+'.</p></details>':'';
  const selected=prefs.kind??'attack';
  let fields='';
  if(hero){
-  if(selected==='attack')fields=picker('slot','Оружие',Object.entries(hero.weapons??{}).filter(([,w])=>w).map(([id,w])=>[id,(id==='main'?'Основное':'Дополнительное')+' · '+(w.name??ITEMS[w.item]?.name)]),slot)+picker('mode','Режим',modes,mode)+picker('aim','Прицел',[['body','Корпус'],['head','Голова'],['arm','Рука'],['leg','Нога']],prefs.aim??'body');
+  if(selected==='attack')fields=picker('slot','Оружие',Object.entries(hero.weapons??{}).filter(([,w])=>w).map(([id,w])=>[id,(id==='main'?'Основное':'Дополнительное')+' · '+(w.name??ITEMS[w.item]?.name)+' · дистанция '+(w.minDistance??0)+'–'+(Number.isFinite(weaponMaxDistance(hero,w))?weaponMaxDistance(hero,w):'любая')]),slot)+picker('mode','Режим',modes,mode)+picker('aim','Прицел',[['body','Корпус'],['head','Голова'],['arm','Рука'],['leg','Нога']],prefs.aim??'body');
   if(selected==='grenade')fields=picker('item','Граната',Object.entries(grenadeSupplies).filter(([,key])=>hero[key]>0).map(([id,key])=>[id,ITEMS[id].name+' ×'+hero[key]]),prefs.item);
   if(selected==='heal')fields=picker('item','Лечение',Object.entries(healingSupplies).filter(([,key])=>hero[key]>0).map(([id,key])=>[id,ITEMS[id].name+' ×'+hero[key]]),prefs.item)+picker('patient','Кого лечить',combat.heroes.filter(h=>h.hp>0).map(h=>[h.id,h.name]),prefs.patient??hero.id);
  }
- return '<section class="kj-battle" data-round="'+combat.round+'"><div class="kj-heading"><strong>Матка Коломенской</strong><span>Раунд '+combat.round+'</span></div><ol class="kj-initiative">'+queue.map((e,i)=>'<li '+(!i?'aria-current="step"':'')+'>'+esc(e.name)+'</li>').join('')+'</ol><div class="kj-arena">'+combat.heroes.map((h,i)=>card(h,i,false)).join('')+combat.enemies.map((h,i)=>card(h,i,true)).join('')+'</div><div class="kj-controls">'+(hero?'<h3>Ход · '+esc(hero.name)+'</h3><div class="kj-actions">'+[['attack','Атака'],['grenade','Граната'],['heal','Лечение'],['retreat','Отступить'],['wait',hero?.reloading?'Перезарядить':'Пропустить ход']].map(([id,name])=>'<button data-action="jrpgSelect" data-kind="'+id+'" aria-pressed="'+(selected===id)+'">'+name+'</button>').join('')+'</div><div class="kj-fields">'+fields+'</div><p class="note">'+(target?'Цель · '+esc(target.name):'')+'</p>'+(['heal','grenade'].includes(selected)?'<button data-action="jrpgExecute">'+(selected==='heal'?'Применить лечение':'Бросить')+'</button>':'<p class="note">Повторное нажатие команды выполняет действие.</p>'):(combat.status==='victory'?'<h3>Победа</h3><p>Опыт за бой · '+mission.combatXp+' на отряд</p>':combat.status==='escaped'?'<h3>Отряд отступил</h3><p>Опыт за поверженных · '+combat.enemies.filter(e=>e.hp<=0).reduce((n,e)=>n+(e.experience??0),0)+' на отряд</p>':'<button data-action="kolomChoice" data-node="combat" data-choice="manual">Продолжить бой</button>'))+'</div></section>';
+ return '<section class="kj-battle" data-round="'+combat.round+'"><div class="kj-heading"><strong>'+esc(mission.battleTitle??'Матка Коломенской')+'</strong><span>Раунд '+combat.round+'</span></div><ol class="kj-initiative">'+queue.map((e,i)=>'<li '+(!i?'aria-current="step"':'')+'>'+esc(e.name)+'</li>').join('')+'</ol><div class="kj-arena '+(mission.battleTitle?'kj-expedition-arena':'')+'" style="'+(mission.battleTitle?'background-image:url('+({hansaRoute:'./vasek-scenes/ghoulBattle.webp',zilRoute:'./zil-bandit-battle.webp',roofRoute:'./roof-scenes/technopark-19.webp'}[mission.id]??'./kolom-jrpg-arena.png')+')':'')+'">'+combat.heroes.map((h,i)=>card(h,i,false)).join('')+combat.enemies.map((h,i)=>card(h,i,true)).join('')+'</div><div class="kj-controls">'+(hero?'<h3>Ход · '+esc(hero.name)+'</h3>'+abilityText+'<div class="kj-actions">'+[['attack','Атака'],['grenade','Граната'],['heal','Лечение'],['retreat','Отступить'],['wait',hero?.reloading?'Перезарядить':'Пропустить ход']].map(([id,name])=>'<button class="btn secondary" data-action="jrpgSelect" data-kind="'+id+'" aria-pressed="'+(selected===id)+'">'+name+'</button>').join('')+'</div><div class="kj-fields">'+fields+'</div><p class="note">'+(target?'Цель · '+esc(target.name):'')+'</p>'+(['heal','grenade'].includes(selected)?'<button class="btn" data-action="jrpgExecute">'+(selected==='heal'?'Применить лечение':'Бросить')+'</button>':'<p class="note">Повторное нажатие команды выполняет действие.</p>'):(combat.status==='victory'?'<h3>Победа</h3><p>Опыт за бой · '+mission.combatXp+' на отряд</p>':combat.status==='escaped'?'<h3>Отряд отступил</h3><p>Опыт за поверженных · '+combat.enemies.filter(e=>e.hp<=0).reduce((n,e)=>n+(e.experience??0),0)+' на отряд</p>':'<button class="btn secondary" data-action="kolomChoice" data-node="combat" data-choice="manual">Продолжить бой</button>'))+'</div></section>';
 }

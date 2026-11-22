@@ -1,3 +1,4 @@
+import {validateManualAction} from './kolom-jrpg.js';
 import {ITEMS,CARAVAN} from './data.js';
 import {rng} from './combat.js';
 import {preparePartyCombat,advancePartyCombat,decidePartyCasualty,beginPartyRecovery} from './party-combat.js';
@@ -59,11 +60,11 @@ function runHansaAction(s,action,now,random,c){
  else if(['tunnel1','tunnel2'].includes(a.node)){need(choice==='go','Выбор недоступен.');a.afterBattle=a.node==='tunnel1'?'tunnel2':'paveletskaya';if(roll.int(1,100)<=35)a.node='ghoulBattle';else{say('Удалось проехать без нападения.');a.node=a.afterBattle;}}
  else if(a.node==='ghoulBattle'){
   if(!a.combat){if(choice==='grenades'){need(grenadeKeys.reduce((n,k)=>n+(h[k]??0),0)>=2,'Нужно две гранаты у героя.');let n=2;for(const k of grenadeKeys){const used=Math.min(n,h[k]??0);h[k]=(h[k]??0)-used;n-=used;}say('Две гранаты позволили оторваться от упырей.');a.node=a.afterBattle;}
-   else{need(choice==='fight','Выбор недоступен.');a.combat=preparePartyCombat([{...c.heroConfig(s,h,'surface').hero,id:h.id,name:h.name,hp:h.hp},a.vasek],[clone(CARAVAN.enemy),clone(CARAVAN.enemy)],roll);}}
+   else{need(choice==='fight','Выбор недоступен.');a.combat=preparePartyCombat([{...c.heroConfig(s,h,'surface').hero,id:h.id,name:h.name,hp:h.hp,maxHp:c.effectiveMaxHp(h),...Object.fromEntries(supplies.map(k=>[k,h[k]??0]))},a.vasek],[clone(CARAVAN.enemy),clone(CARAVAN.enemy)],roll);a.combat.manual=!a.jrpgBattleUsed;a.jrpgBattleUsed=true;}}
   else if(choice==='turn'){
-   const b=a.combat;if(b.status==='casualty')decidePartyCasualty(b,'fight');advancePartyCombat(b,roll);a.turns=(a.turns??0)+1;const hero=b.heroes.find(x=>x.id===h.id),v=b.heroes.find(x=>x.id==='hansa-vasek');h.hp=Math.max(0,hero.hp);h.dead=h.hp<=0;for(const k of supplies)if(hero[k]!=null)h[k]=hero[k];a.vasek.hp=v.hp;
+   const b=a.combat;if(action.prefs){const f=b.heroes.find(h=>h.id===b.waitingHeroId);need(f,'Нет хода героя.');f.manualPrefs={...f.manualPrefs,...action.prefs};return s;}if(b.manual){for(const unit of [...b.heroes,...b.enemies])unit.maxHp??=unit.hp;if(b.waitingHeroId){validateManualAction(b,action.command);b.manualAction=clone(action.command);b.manualRevision=(b.manualRevision??0)+1;}b.manualStarted=true;b.frames=[];}if(b.status==='casualty')decidePartyCasualty(b,'fight');advancePartyCombat(b,roll,b.manual?{maxActors:100}:{});a.turns=(a.turns??0)+1;const hero=b.heroes.find(x=>x.id===h.id),v=b.heroes.find(x=>x.id==='hansa-vasek');h.hp=Math.max(0,hero.hp);h.dead=h.hp<=0;for(const k of supplies)if(hero[k]!=null)h[k]=hero[k];a.vasek.hp=v.hp;
    for(const e of b.enemies)if(e.hp<=0&&!e.hansaLoot){e.hansaLoot=true;a.killed=(a.killed??0)+1;a.xp+=CARAVAN.mission.killXp;for(const x of CARAVAN.loot)if(roll.int(1,100)<=x.chance)a.loot.push({item:x.id,qty:1});}
-   if(v.hp<=0||b.status==='defeat'){say('Васёк повержен. Поездка сорвалась; он восстановится через двойной кулдаун.');a.node='return';a.failedTrip=true;}
+   if(b.status==='escaped'){say('Отряд отступил с дрезины.');a.node='return';}else if(v.hp<=0||b.status==='defeat'){say('Васёк повержен. Поездка сорвалась; он восстановится через двойной кулдаун.');a.node='return';a.failedTrip=true;}
    else if(b.status==='victory'){beginPartyRecovery(b);h.dead=false;h.hp=b.heroes.find(x=>x.id===h.id).hp;}
   }else if(choice==='continue'){need(a.combat.status==='recovery','Бой ещё идёт.');a.combat=null;a.node=a.afterBattle;}
   else if(choice==='treatment'){
