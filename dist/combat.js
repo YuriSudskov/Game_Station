@@ -25,7 +25,7 @@ export function flameAttack(hero,weapon,targets,random){
  });
 }
 export function applyKnifePoison(target,weapon,damage,random){
- if(!weapon?.poison||damage<=0||random.int(1,100)>20)return false;
+ if(!weapon?.poison||damage<=0||random.int(1,100)>(weapon.poisonChance??20))return false;
  if(target.boss)target.poisonAccuracy=true;
  else target.skipNextTurn=true;
  return true;

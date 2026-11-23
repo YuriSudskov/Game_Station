@@ -4,24 +4,24 @@ import {runHansa,hansaRoutePrice,hansaDuty} from './hansa-route.js';
 import {doctorKitCure} from './doctor-kit.js';
 
 export const RESEARCH_PROJECTS={
- pukGrass:{sample:'pukGrass',name:'Пук-трава',type:'Биологическое',difficulty:14,text:'Общее исследование завершено. Полученные сведения позволяют выращивать пук-траву в агроферме. Открыты два независимых исследования: средство от радиации и сильный стимулятор-ускоритель. Можно завершить оба.',item:'pukGrass'},
- radiation:{name:'Отвар из пук-травы',type:'Медицинская технология',difficulty:16,reward:{production:'medicine',level:11,name:'Отвар из пук-травы',soon:false},text:'Мы нашли способ приготовить из пук-травы безопасный отвар. Он снимает 2–5 + Сила РАД, не уменьшает максимум здоровья и не даёт опыта за применение. Открыт рецепт Медицины 11-го уровня: пук-трава и пустая бутылка, изготовление 8 А, 20 секунд.'},
- accelerator:{name:'Жвачка из травы',type:'Медицинская технология',difficulty:17,reward:{production:'medicine',level:12,name:'Жвачка из травы',soon:false},text:'Плотная травяная смесь бодрит и помогает замечать опасности. Открыт рецепт Медицины 12-го уровня: Жвачка из травы. 10 применений, +1 Ловкости, +1 к обнаружению, +25% к скорости прохождения локаций.'},
- beetles:{sampleAny:['kolomenskayaBeetles','kolomenskayaBeetleCorpse'],name:'Жуки с Коломенской: общее исследование',type:'Биологическое',difficulty:40,text:'Образцы показали: жуки накапливают радиацию в огромных количествах. Их укус оказывает парализующее действие — это свойство потенциально пригодно для создания отравляющего оружия. Насыщенные радиацией ткани также могут послужить основой источника электроэнергии. Вводные данные открывают два независимых исследования: «Отрава из жуков» и «Жучьи батареи».'},
- beetlePoison:{name:'Отрава из жуков',type:'Оружейная технология',requires:'beetles',difficulty:50,reward:{production:'melee',level:12,name:'Отравленное оружие',soon:true,prefix:'Отравленный',paralysisTurns:1,triggerChance:10,requiresDamage:true,bossEffect:'poisonAccuracy'},text:'Соединения из тканей жуков могут на короткое время обездвижить противника. Исследование откроет рецепт Цеха 12-го уровня: улучшение «Отравленный», с шансом 10% после попадания с уроном заставляет обычного противника пропустить следующий ход. На босса действует снижение точности, как у отравленного ножа. Состав и стоимость рецепта — скоро.'},
- beetleBatteries:{name:'Жучьи батареи',type:'Энергетическая технология',requires:'beetles',difficulty:60,reward:{production:'science',name:'Прототип жучьей батареи',soon:true},text:'Радиоактивные ткани жуков могут служить источником электроэнергии. Исследование откроет изготовление прототипа в Науке и дальнейшее улучшение батарей. Параметры — скоро.'},
- beetleBatteryImprovement:{name:'Улучшение жучьих батарей',type:'Энергетическая технология',requires:'beetleBatteries',difficulty:70,reward:{production:'science',name:'Качественная жучиная батарея',replaces:'Прототип жучьей батареи',soon:true},text:'Мы усовершенствовали конструкцию источника питания. Рецепт прототипа заменяется качественной жучиной батареей. Свойства обеих батарей и параметры изготовления будут определены отдельно.'},
- radioactiveGrenade:{name:'Радиоактивная граната',type:'Оружейная технология',requires:'beetleBatteryImprovement',difficulty:60,reward:{production:'science',name:'Радиоактивная граната',soon:true},proposedRecipeLevel:15,design:{targetRadiationRules:'hero',poisonDamage:0,radiationMin:12,radiationMax:24,subtractTargetRadProtection:true,dodgeDc:14,dodgeRadiationMultiplier:0.5,poisonOnDodge:false,failedDodgeSkipNextTurnChance:50},text:'Исследование направленного выброса радиоактивного содержимого жучиных батарей. Граната даёт 12–24 облучения минус РАД-защита цели. Уклонение против сложности 14: при успехе половина облучения без отравления; при провале полное облучение и 50% шанс пропустить следующий ход. Облучение противников действует по правилам героев. Отравление не наносит дополнительного урона. Рецепт Науки — скоро; согласован 15-й уровень.'},
- spike:{name:'Исследование шипа пронзателя',sample:'piercerSpike',type:'Оружейная технология',difficulty:40,reward:{name:'Клинок пронзателя',production:'melee',level:11,soon:false},text:'Мы изучили твёрдую структуру шипа и научились закреплять его в стальной основе. Открыт Клинок пронзателя — рецепт Цеха 11-го уровня. Его пробивающий удар игнорирует поглощение защиты цели.'},
- laser:{"name":"Лазерное оружие","type":"Оружейная технология","requiresPerk":"scientist-secret","difficulty":35,"reward":{"production":"science","level":12,"name":"Лазерный излучатель","soon":false},"text":"Направленный луч превращает энергию в термический удар. Открыта технология лазерного оружия, рецепт излучателя Науки 12-го уровня и исследование пистолета."},
- laserPistol:{"name":"Лазерный пистолет","requires":"laser","difficulty":40,"reward":{"production":"ranged","level":11,"name":"Лазерный пистолет","soon":false},"text":"Компактный излучатель помещён в пистолетный корпус. Открыт рецепт Стрелкового оружия 11-го уровня: 35–180 термического урона, дистанция 0–2."},
- laserRifle:{"name":"Лазерная винтовка","requires":"laserPistol","difficulty":45,"reward":{"production":"ranged","level":12,"name":"Лазерная винтовка","soon":false},"text":"Два излучателя и прочный корпус позволяют создать мощный направленный импульс. Открыт рецепт Стрелкового оружия 12-го уровня: 50–220 термического урона, дистанция 0–3."},
- heavyLaser:{"name":"Тяжёлый лазер","requires":"laserRifle","difficulty":50,"reward":{"production":"ranged","level":13,"name":"Тяжёлый лазер","soon":false},"text":"Три излучателя работают очередью. Открыт рецепт тяжёлого лазера, Стрелковое оружие 13-го уровня. Однократно подключённая к герою жучиная батарея обеспечивает постоянное питание."},
- kevlar:{"sample":"acid","name":"Кевларовый материал","type":"Технологическое","difficulty":30,"reward":{"production":"armor","level":11,"name":"Кевларовый материал","soon":false},"text":"Мы научились превращать ткань и кислотный состав в прочное многослойное полотно. Открыт рецепт кевларового материала: Броня, уровень 11."},
- kevlarLight:{"name":"Лёгкая кевларовая броня","type":"Технологическое","difficulty":30,"requires":"kevlar","reward":{"production":"armor","level":12,"name":"Лёгкая кевларовая броня","soon":false},"text":"Гибкие слои кевлара защищают лучше хитина и не сковывают движения. Открыт рецепт лёгкой кевларовой брони: Броня, уровень 12."},
- kevlarMedium:{"name":"Средняя кевларовая броня","type":"Технологическое","difficulty":30,"requires":"kevlarLight","reward":{"production":"armor","level":13,"name":"Средняя кевларовая броня","soon":false},"text":"Кевларовая подкладка удерживает осколки, а пластины принимают основной удар. Открыт рецепт средней кевларовой брони: Броня, уровень 13."},
- kevlarHeavy:{"name":"Тяжёлая кевларовая броня","type":"Технологическое","difficulty":30,"requires":"kevlarMedium","reward":{"production":"armor","level":14,"name":"Тяжёлая кевларовая броня","soon":false},"text":"Многослойный кевлар и стальной каркас образуют тяжёлый защитный комплект для самых опасных переходов. Открыт рецепт тяжёлой кевларовой брони: Броня, уровень 14."},
- kevlarCoating:{"name":"Кевларовое покрытие","type":"Технологическое","difficulty":30,"requires":"kevlarHeavy","reward":{"production":"science","level":14,"name":"Кевларовое покрытие","soon":false,"postfix":"с кевларом","physicalArmor":21,"replaces":"Укрепление брони · Наука 7"},"text":"Внешний кевларовый слой распределяет удар и удерживает осколки. Открыта технология «Кевларовое покрытие»: Наука, рецепт 14 уровня. Заменяет укрепление брони: постфикс «с кевларом», +21 физической защиты. Открыт рецепт покрытия: успех 60%, +21 физической защиты, +25% к цене брони. Заменяет штопанное или укреплённое улучшение."}
+ pukGrass:{sample:'pukGrass',name:'Пук-трава',type:'Биологическое',difficulty:112,text:'Общее исследование завершено. Полученные сведения позволяют выращивать пук-траву в агроферме. Открыты два независимых исследования: средство от радиации и сильный стимулятор-ускоритель. Можно завершить оба.',item:'pukGrass'},
+ radiation:{name:'Отвар из пук-травы',type:'Медицинская технология',difficulty:128,reward:{production:'medicine',level:11,name:'Отвар из пук-травы',soon:false},text:'Мы нашли способ приготовить из пук-травы безопасный отвар. Он снимает 2–5 + Сила РАД, не уменьшает максимум здоровья и не даёт опыта за применение. Открыт рецепт Медицины 11-го уровня: пук-трава и пустая бутылка, изготовление 8 А, 20 секунд.'},
+ accelerator:{name:'Жвачка из травы',type:'Медицинская технология',difficulty:136,reward:{production:'medicine',level:12,name:'Жвачка из травы',soon:false},text:'Плотная травяная смесь бодрит и помогает замечать опасности. Открыт рецепт Медицины 12-го уровня: Жвачка из травы. 10 применений, +1 Ловкости, +1 к обнаружению, +25% к скорости прохождения локаций.'},
+ beetles:{sampleAny:['kolomenskayaBeetles','kolomenskayaBeetleCorpse'],name:'Жуки с Коломенской: общее исследование',type:'Биологическое',difficulty:320,text:'Образцы показали: жуки накапливают радиацию в огромных количествах. Их укус оказывает парализующее действие — это свойство потенциально пригодно для создания отравляющего оружия. Насыщенные радиацией ткани также могут послужить основой источника электроэнергии. Вводные данные открывают два независимых исследования: «Отрава из жуков» и «Жучьи батареи».'},
+ beetlePoison:{name:'Отрава из жуков',type:'Оружейная технология',requires:'beetles',difficulty:400,reward:{production:'melee',level:12,name:'Парализующее оружие',soon:false,prefix:'Парализующий',paralysisTurns:1,triggerChance:10,requiresDamage:true,bossEffect:'poisonAccuracy'},text:'Соединения из тканей жуков могут на короткое время обездвижить противника. Исследование откроет рецепт Цеха 12-го уровня: улучшение «Отравленный», с шансом 10% после попадания с уроном заставляет обычного противника пропустить следующий ход. На босса действует снижение точности, как у отравленного ножа. Улучшение «Парализующий»: тушка жука, 30 А, 60 секунд, 100 XP, успех 60%, +25% к цене.'},
+ beetleBatteries:{name:'Жучьи батареи',type:'Энергетическая технология',requires:'beetles',difficulty:480,reward:{production:'science',name:'Жучиная батарея',level:13,soon:false},text:'Радиоактивные ткани жуков могут служить источником электроэнергии. Открыт рецепт Науки 13-го уровня: жучиная батарея. Тушка жука, сталь и кислота; 15 А, 3 минуты, 80 XP. Постоянно питает оборудование; после каждого прохода или вылазки 5% шанс получить 1 РАД независимо от защиты.'},
+ beetleBatteryImprovement:{name:'Улучшение жучьих батарей',type:'Энергетическая технология',requires:'beetleBatteries',difficulty:560,reward:{production:'science',name:'Улучшенная жучиная батарея',level:13,replaces:'Жучиная батарея',soon:false},text:'Мы усовершенствовали конструкцию источника питания. Рецепт обычной батареи заменяется улучшенной. Наука 13: тушка жука, 2 стали, бронепластина и 2 кислоты; 30 А, 5 минут, 140 XP. Постоянное питание без риска облучения.'},
+ radioactiveGrenade:{name:'Радиоактивная граната',type:'Оружейная технология',requires:'beetleBatteryImprovement',difficulty:480,reward:{production:'science',name:'Радиоактивная граната',soon:true},proposedRecipeLevel:15,design:{targetRadiationRules:'hero',poisonDamage:0,radiationMin:12,radiationMax:24,subtractTargetRadProtection:true,dodgeDc:14,dodgeRadiationMultiplier:0.5,poisonOnDodge:false,failedDodgeSkipNextTurnChance:50},text:'Исследование направленного выброса радиоактивного содержимого жучиных батарей. Граната даёт 12–24 облучения минус РАД-защита цели. Уклонение против сложности 14: при успехе половина облучения без отравления; при провале полное облучение и 50% шанс пропустить следующий ход. Облучение противников действует по правилам героев. Отравление не наносит дополнительного урона. Рецепт Науки — скоро; согласован 15-й уровень.'},
+ spike:{name:'Исследование шипа пронзателя',sample:'piercerSpike',type:'Оружейная технология',difficulty:320,reward:{name:'Клинок пронзателя',production:'melee',level:11,soon:false},text:'Мы изучили твёрдую структуру шипа и научились закреплять его в стальной основе. Открыт Клинок пронзателя — рецепт Цеха 11-го уровня. Его пробивающий удар игнорирует поглощение защиты цели.'},
+ laser:{"name":"Лазерное оружие","type":"Оружейная технология","requiresPerk":"scientist-secret","difficulty":280,"reward":{"production":"science","level":12,"name":"Лазерный излучатель","soon":false},"text":"Направленный луч превращает энергию в термический удар. Открыта технология лазерного оружия, рецепт излучателя Науки 12-го уровня и исследование пистолета."},
+ laserPistol:{"name":"Лазерный пистолет","requires":"laser","difficulty":320,"reward":{"production":"ranged","level":11,"name":"Лазерный пистолет","soon":false},"text":"Компактный излучатель помещён в пистолетный корпус. Открыт рецепт Стрелкового оружия 11-го уровня: 35–180 термического урона, дистанция 0–2."},
+ laserRifle:{"name":"Лазерная винтовка","requires":"laserPistol","difficulty":360,"reward":{"production":"ranged","level":12,"name":"Лазерная винтовка","soon":false},"text":"Два излучателя и прочный корпус позволяют создать мощный направленный импульс. Открыт рецепт Стрелкового оружия 12-го уровня: 50–220 термического урона, дистанция 0–3."},
+ heavyLaser:{"name":"Тяжёлый лазер","requires":"laserRifle","difficulty":400,"reward":{"production":"ranged","level":13,"name":"Тяжёлый лазер","soon":false},"text":"Три излучателя работают очередью. Открыт рецепт тяжёлого лазера, Стрелковое оружие 13-го уровня. Однократно подключённая к герою жучиная батарея обеспечивает постоянное питание."},
+ kevlar:{"sample":"acid","name":"Кевларовый материал","type":"Технологическое","difficulty":240,"reward":{"production":"armor","level":11,"name":"Кевларовый материал","soon":false},"text":"Мы научились превращать ткань и кислотный состав в прочное многослойное полотно. Открыт рецепт кевларового материала: Броня, уровень 11."},
+ kevlarLight:{"name":"Лёгкая кевларовая броня","type":"Технологическое","difficulty":240,"requires":"kevlar","reward":{"production":"armor","level":12,"name":"Лёгкая кевларовая броня","soon":false},"text":"Гибкие слои кевлара защищают лучше хитина и не сковывают движения. Открыт рецепт лёгкой кевларовой брони: Броня, уровень 12."},
+ kevlarMedium:{"name":"Средняя кевларовая броня","type":"Технологическое","difficulty":240,"requires":"kevlarLight","reward":{"production":"armor","level":13,"name":"Средняя кевларовая броня","soon":false},"text":"Кевларовая подкладка удерживает осколки, а пластины принимают основной удар. Открыт рецепт средней кевларовой брони: Броня, уровень 13."},
+ kevlarHeavy:{"name":"Тяжёлая кевларовая броня","type":"Технологическое","difficulty":240,"requires":"kevlarMedium","reward":{"production":"armor","level":14,"name":"Тяжёлая кевларовая броня","soon":false},"text":"Многослойный кевлар и стальной каркас образуют тяжёлый защитный комплект для самых опасных переходов. Открыт рецепт тяжёлой кевларовой брони: Броня, уровень 14."},
+ kevlarCoating:{"name":"Кевларовое покрытие","type":"Технологическое","difficulty":240,"requires":"kevlarHeavy","reward":{"production":"science","level":14,"name":"Кевларовое покрытие","soon":false,"postfix":"с кевларом","physicalArmor":21,"replaces":"Укрепление брони · Наука 7"},"text":"Внешний кевларовый слой распределяет удар и удерживает осколки. Открыта технология «Кевларовое покрытие»: Наука, рецепт 14 уровня. Заменяет укрепление брони: постфикс «с кевларом», +21 физической защиты. Открыт рецепт покрытия: успех 60%, +21 физической защиты, +25% к цене брони. Заменяет штопанное или укреплённое улучшение."}
 };
 export function researchProjectAvailable(state,id){const p=RESEARCH_PROJECTS[id],c=state.researchCenter??{};if(!p||c.completed?.[id]||c.jobs?.some(j=>j?.id===id))return false;if(p.requiresPerk&&!getHeroes(state).some(h=>h.perk===p.requiresPerk||h.levelPerks?.some(choice=>choice.perk===p.requiresPerk)))return false;if(p.sampleAny&&!state.inventory?.some(row=>p.sampleAny.includes(row.item)&&row.qty>0))return false;if(p.sample&&!state.inventory?.some(row=>row.item===p.sample&&row.qty>0))return false;if(p.requires&&!c.completed?.[p.requires])return false;if(['radiation','accelerator'].includes(id))return Boolean(c.completed?.pukGrass);return true;}
 export function researchLeader(state){return getHeroes(state).find(hero=>hero.id===state.researchCenter?.leaderId);}
@@ -101,7 +101,7 @@ function researchAction(state,action,now){
   const job=center.jobs[action.slot];requireThat(job&&job.remaining<=0,'Исследование ещё не завершено.');
   const project=RESEARCH_PROJECTS[job.id],leader=researchLeader(state);
   requireThat(leader&&!leader.dead,'Назначь живого руководителя для сдачи исследования.');
-  levelUp(leader,heroExperience(leader,20*project.difficulty));
+  levelUp(leader,heroExperience(leader,2*project.difficulty));
   (center.completed??={})[job.id]=true;center.lastResult=job.id;center.jobs[action.slot]=null;
   state.researchUnlocks=[...new Set([...(state.researchUnlocks??[]),job.id==='pukGrass'?'pukAgroFarm':job.id])];
  }else if(action.type==='researchClaimFilters'){
@@ -633,6 +633,7 @@ export function canUpgrade(row,recipeId){
   &&(recipe.target==='body'?ITEMS[row.item]?.type==='body':(ITEMS[row.item]?.combat===(recipe.target??'melee')||((recipe.target??'melee')==='melee'&&ITEMS[row.item]?.bayonet)))
   &&(!recipe.weaponClasses||recipe.weaponClasses.includes(ITEMS[row.item]?.weaponClass)||recipe.weaponClasses.includes(ITEMS[row.item]?.secondaryWeaponClass))
   &&(!recipe.armorClasses||recipe.armorClasses.includes(ITEMS[row.item]?.armorClass))
+  &&(!recipe.rejectsPoison||!ITEMS[row.item]?.poison)
   &&(!recipe.rejectsPiercing||!ITEMS[row.item]?.piercing)
   &&!recipe.excludedWeaponClasses?.includes(ITEMS[row.item]?.weaponClass)
   &&!recipe.excludedWeaponClasses?.includes(ITEMS[row.item]?.secondaryWeaponClass)
@@ -758,7 +759,7 @@ export function inventorySlotCost(state){
  return (40+10*k+3*k*k)*10;
 }
 export const shelfCost=s=>20*(s.shelves.length-STARTING_SHELVES+1)*10;
-export function canReceive(s,entries){const inventory=clone(s.inventory);for(const e of entries)if(e.item!=='gasMaskFilter')addToInventory(inventory,e.item,e.qty,e);return inventory.length<=Math.max(inventoryCapacity(s),s.inventory.length);}
+export function canReceive(s,entries){const inventory=clone(s.inventory);for(const e of entries)if(e.item!=='gasMaskFilter')addToInventory(inventory,e.item,e.qty,e);const red=s.inventory.slice(inventoryCapacity(s));if(red.some(row=>(inventory.find(x=>x.uid===row.uid)?.qty??0)>row.qty))return false;return inventory.length<=Math.max(inventoryCapacity(s),s.inventory.length);}
 const craftableLootItems=new Set(Object.values(RECIPES)
  .filter(recipe=>!recipe.upgrade&&!recipe.legacy).map(recipe=>recipe.output));
 function lootWithQuality(entries,seed){
@@ -771,7 +772,7 @@ function lootWithQuality(entries,seed){
    ?{...entry,qty:1,quality:quality+1}:{...entry,qty:1});
  });
 }
-function receive(s,entries){requireThat(canReceive(s,entries),'В инвентаре не хватает места. Освободи ячейки и вернись за результатом.');for(const e of entries)if(e.item==='gasMaskFilter')s.filters=(s.filters??0)+e.qty;else addToInventory(s.inventory,e.item,e.qty,e);}
+function receive(s,entries){const temporary=Boolean(s.interactiveMission?.allowTemporaryReward);if(temporary)delete s.interactiveMission.allowTemporaryReward;requireThat(temporary||canReceive(s,entries),'В инвентаре не хватает места. Освободи ячейки и вернись за результатом.');for(const e of entries)if(e.item==='gasMaskFilter')s.filters=(s.filters??0)+e.qty;else addToInventory(s.inventory,e.item,e.qty,e);}
 export function maxCraftQuantity(s,recipeId){const r=RECIPES[recipeId],p=r&&s.productions[r.production];if(!r?.batch||r.upgrade||!p||p.job||p.level<r.level)return 0;return Math.max(0,Math.min(1000,r.cost>0?Math.floor(s.money/r.cost):1000,...Object.entries(r.ingredients).map(([item,n])=>Math.floor(countItem(s,item)/n))));}
 function removeItem(s,item,qty,craftMode=null){
  requireThat(Number.isInteger(qty)&&qty>0,'Неверное количество.');
@@ -806,7 +807,9 @@ export function heroAttributes(hero){const p=PROFESSIONS[hero.profession??'sabot
 export function adventureCooldownRemaining(hero,now=Date.now()){
  return Math.max(0,(hero?.adventureCooldownUntil??0)-now);
 }
+export function batteryRadiation(hero,random=Math.random){if(hero.beetleBatteryConnected&&!hero.improvedBeetleBatteryConnected&&!hero.dead&&random()<.05){hero.radiation=(hero.radiation??0)+1;hero.hp=Math.min(hero.hp,effectiveMaxHp(hero));return true;}return false;}
 function startAdventureCooldown(state,active,now){
+ if(!active.batteryRadiationApplied){active.batteryRadiationApplied=true;for(const id of active.heroIds)batteryRadiation(state.heroes.find(h=>h.id===id)??{});}
  for(const id of active.heroIds){
   const hero=state.heroes.find(member=>member.id===id);
   if(!hero||hero.dead||hero.hp<=0)continue;
@@ -883,7 +886,7 @@ c.hero.thermalArmor+=(h.nationalityBonuses?.thermalArmor??0)+(h.hobby?.option===
    min:out.min+(u.minBonus??0),max:out.max+(u.maxBonus??0),
    bonus:out.bonus+(u.bonus??0),accuracyBonus:out.accuracyBonus+(u.accuracyBonus??0)
   }),{min:(details?.legacyWeaponMin??range.min)+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)+heavyAccuracy});
- return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,secondaryWeaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,flame,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,poison:ITEMS[item].poison,criticalBonus:ITEMS[item].criticalBonus??0,armorFactor:upgrades.reduce((factor,u)=>factor*(u.armorFactor??1),1),blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
+ return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,secondaryWeaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,flame,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,poison:ITEMS[item].poison||upgrades.some(u=>RECIPES[u.recipe]?.poisonChance),poisonChance:ITEMS[item].poison?20:Math.max(0,...upgrades.map(u=>RECIPES[u.recipe]?.poisonChance??0)),criticalBonus:ITEMS[item].criticalBonus??0,armorFactor:upgrades.reduce((factor,u)=>factor*(u.armorFactor??1),1),blocksAimedShots:upgrades.some(u=>u.blocksAimedShots||RECIPES[u.recipe]?.blocksAimedShots),...bonuses(combat,{min,max}),
   bayonet:bayonet?{item,type:'melee',isBayonet:true,...bonuses('melee',bayonet)}:null};
 };
  c.hero.id=h.id;c.hero.name=h.name;c.hero.accuracy-=5*(h.poisonDoses??0);c.hero.evasion-=5*(h.poisonDoses??0);c.hero.radiation=h.radiation??0;
@@ -1383,7 +1386,7 @@ export function advanceSeries(state,now=Date.now()){
    }
    const nationalBonus=nationalityClaimBonus(worker,run);job.nationalityBonus=(job.nationalityBonus??0)+nationalBonus;job.money+=nationalBonus;
    if(e?.heavyAmmoRemaining!=null)worker.heavyAmmo=e.heavyAmmoRemaining;
-   finishStimulant(worker,run);if(worker.mark==='regeneration')worker.hp=effectiveMaxHp(worker);if(run.kind!=='rest'){
+   finishStimulant(worker,run);if(run.kind!=='rest')batteryRadiation(worker);if(worker.mark==='regeneration')worker.hp=effectiveMaxHp(worker);if(run.kind!=='rest'){
     if(doctorsWith(state,'rounds',worker).length){
      const dose=jobRadiation(job)-(job.appliedRadiation??0);
      job.appliedRadiation=(job.appliedRadiation??0)+dose;
@@ -1460,7 +1463,7 @@ function startCraftRun(s,recipeId,qty,now,random,mode='manual'){
 }
 export function autoRecipeAvailable(s,id){
  const r=Object.hasOwn(RECIPES,id)?RECIPES[id]:null;
- return Boolean(r&&!r.batch&&!r.upgrade&&!r.legacy&&ITEMS[r.output]&&r.output!=='gasMaskFilter'&&(r.outputQty??1)===1&&s.productions[r.production].level>=r.level&&!isRecipeSuperseded(s,id));
+ return Boolean(r&&(!r.batch||r.autoAllowed)&&!r.upgrade&&!r.legacy&&ITEMS[r.output]&&r.output!=='gasMaskFilter'&&(r.outputQty??1)===1&&s.productions[r.production].level>=r.level&&!isRecipeSuperseded(s,id));
 }
 export function maxAutoQuantity(s,id){
  if(!autoRecipeAvailable(s,id))return 0;
@@ -1485,7 +1488,7 @@ export function advanceAutoProduction(s,now,random){
   if(now<job.run.endsAt)break;
   changed=true;
   for(const row of job.run.outputs){
-   if(job.keep.includes(itemQuality(row)))job.items.push(row);
+   if(recipe.autoKeep||job.keep.includes(itemQuality(row)))job.items.push(row);
    else job.money+=itemValue(row)*row.qty;
   }
   if(recipe.refundOnFailure&&job.run.successes===0){
@@ -1745,7 +1748,7 @@ function collectAdventureCombatLoot(active,combat,rolls){
  for(const enemy of defeated){
   if(enemy.kind==='bandit'){
    const weapon=enemy.firearm?.item;
-   if(weapon)drops[weapon]=(drops[weapon]??0)+1;
+   if(weapon){if(enemy.weaponDetails?.upgrades?.length)(active.items??=[]).push({item:weapon,qty:1,...clone(enemy.weaponDetails)});else drops[weapon]=(drops[weapon]??0)+1;}
    const armor=enemy.body??'ghoulJacket';
    drops[armor]=(drops[armor]??0)+1;
    if(enemy.grenades>0)drops.pipeGrenade=(drops.pipeGrenade??0)+enemy.grenades;
@@ -1822,7 +1825,7 @@ const firstNewLevel=h.level+1,job=h.job,bonus=claimBonus(h,job),nationalBonus=na
   h.hp=Math.min(h.hp,effectiveMaxHp(h));
   addHistory(s,`${h.name}: Облучён (${h.radiation}).`,now);
  }
- if(job.kind!=='series')finishStimulant(h,job);h.hp=Math.min(h.hp,effectiveMaxHp(h));if(!h.dead&&h.mark==='regeneration'&&job.kind!=='rest')h.hp=effectiveMaxHp(h);
+ if(job.kind!=='series'){finishStimulant(h,job);if(job.kind!=='rest')batteryRadiation(h,random);}h.hp=Math.min(h.hp,effectiveMaxHp(h));if(!h.dead&&h.mark==='regeneration'&&job.kind!=='rest')h.hp=effectiveMaxHp(h);
  if(h.dead&&job.kind==='series')s.filters+=job.filters??0;if(!h.dead){s.filters+=job.kind==='series'?job.filters??0:job.result?.filters??0;paySideJob(s,h,firstNewLevel,now);}if(job.kind!=='series'&&job.kind!=='rest'){const healed=healAtMedicTent(s,h,job.endsAt);doctorRounds(s,h,job,job.seed,now);if(healed)addHistory(s,'Палатка медика · '+h.name+': +'+Math.round(healed*10)/10+' HP.',now);}h.lastHeavyReload=job.kind==='rest'?null:settleHeavyAmmo(s,h,job.kind==='series'?{heavyAmmoRemaining:job.worker.heavyAmmo,heavyAmmoSpent:job.reports.reduce((total,run)=>total+(run.result?.heavyAmmoSpent??0),0)}:job.result,now);recordKeeperProgress(s,h,job);const completedLocation=job.kind==='series'?job.location:job.kind;if(['mission','help','patrol','technopark','caravan','surface','zilTunnels','surfaceShops','pukGrassSearch'].includes(completedLocation)&&!h.dead&&(job.kind!=='series'||job.completed>0)){
  h.lastCompletedLocation=completedLocation;
  if(!s.completedLocations[completedLocation]){
@@ -1997,21 +2000,23 @@ function roofChoice(s,active,id,now,random){
  case 'slow':
  case 'fast':{
   if(id==='slow')pay(s,3000);
-  const duration=id==='slow'?300000:120000;
-  const attack=rolls.int(1,100)<=(id==='slow'?35:65);
-  active.repair={endsAt:now+duration,attackAt:attack?now+duration/2:null,remaining:duration/2};
+  const duration=300000;
+  const attack=rolls.int(1,100)<=85;
+  active.repair={guarded:id==='slow',peaceful:!attack,endsAt:now+duration,attackAt:attack?now+duration/2:null,remaining:duration/2};
   active.node='roofTimer';break;
  }
  case 'attack':{
   requireThat(active.repair.attackAt!=null&&now>=active.repair.attackAt,'Стражи ещё не появились.');
   active.repair.attackAt=null;active.repair.endsAt=null;
   const combat=battle('roofAttack','roofTimer',Array(4).fill(TECHNOPARK.enemy));combat.manual=true;
-  combat.reinforcement={...clone(MATURE_GUARD),id:'roof-mature-guard',maxHp:MATURE_GUARD.hp};
+  if(active.repair.guarded)for(let i=0;i<2;i++){const unit={profession:'assault',level:3,perk:'evasion',weapon:'bastard',body:'kazakVest'};const hp=heroMaximumHp(unit);const fighter={...heroConfig(s,unit,'surface').hero,id:'sm-guard-'+i,name:'Штурмовик SM '+(i+1),hp,maxHp:hp,npcAlly:true};fighter.armor=itemArmor({item:'kazakVest'});fighter.thermalArmor=itemThermalArmor({item:'kazakVest'});fighter.accuracy-=ITEMS.kazakVest.accuracyPenalty??0;combat.heroes.push(fighter);combat.order.push({id:fighter.id,name:fighter.name,side:'hero',bonus:fighter.initiative??0,roll:rolls.int(1,20),total:0});}combat.order.forEach(x=>{if(x.id?.startsWith('sm-guard-'))x.total=x.roll+(x.bonus??0);});combat.order.sort((a,b)=>b.total-a.total);
+  combat.waves=[{round:3,enemies:Array.from({length:2},(_,i)=>({...clone(TECHNOPARK.enemy),id:'roof-wave3-'+i,maxHp:TECHNOPARK.enemy.hp}))}];
+  combat.waves.unshift({round:2,enemies:[{...clone(MATURE_GUARD),id:'roof-mature-guard',maxHp:MATURE_GUARD.hp}]});
   break;
  }
  case 'complete':
   requireThat(active.repair.attackAt==null&&active.repair.endsAt!=null&&now>=active.repair.endsAt,'Ремонт ещё идёт.');
-  s.completedLocations.repairMaterials=true;s.completedLocations.technoparkRoof=true;
+  if(active.repair.peaceful){active.lastChecks=[{text:'Ремонт крыши прошёл спокойно.'}];active.history.push({node:'roofTimer',checks:active.lastChecks});}s.completedLocations.repairMaterials=true;s.completedLocations.technoparkRoof=true;
   s.keeperQuest={stage:7,status:'completed',progress:0};active.node='roofFinal';
   break;
  case 'finish':{
@@ -2044,12 +2049,12 @@ function roofChoice(s,active,id,now,random){
  }
 }
 
-function actInternal(state,action,now=Date.now(),random=Math.random){const s=normalizeGame(state);requireThat(!s.teaGameOver,'Чай погиб. Начни всё сначала.');visit(s,now,random);advanceSeries(s,now);if(action.heroId){for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;}s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===action.heroId);requireThat(selected,'Сталкер не найден.');s.hero=selected;s.selectedHeroId=selected.id;}const h=s.hero,previousAmmoWeapon=heavyAmmoWeapon(h),previousWeapons=[h?.weapon,h?.rangedWeapon];
+function actInternal(state,action,now=Date.now(),random=Math.random){const s=normalizeGame(state);if(action.allowTemporaryReward&&s.interactiveMission)s.interactiveMission.allowTemporaryReward=true;requireThat(!s.teaGameOver,'Чай погиб. Начни всё сначала.');visit(s,now,random);advanceSeries(s,now);if(action.heroId){for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;}s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===action.heroId);requireThat(selected,'Сталкер не найден.');s.hero=selected;s.selectedHeroId=selected.id;}const h=s.hero,previousAmmoWeapon=heavyAmmoWeapon(h),previousWeapons=[h?.weapon,h?.rangedWeapon];
  if(['acceptKolom','startKolom','kolomChoice'].includes(action.type))return runKolom(s,action,now,random,{needsAdventureRecovery,radiationBlocksMissions,startStimulant,finishStimulant,heroConfig,heroAttributes,heroMaximumHp,effectiveMaxHp,adventureExperience,levelUp,receive,startAdventureCooldown,bandageHeal,healAtMedicTent,settleHeavyAmmo});
  if(action.type==='startHansaExpedition'||['hansaRouteChoice','hansaRouteBuy'].includes(action.type))return runHansa(s,action,now,random,{hansaHeroAvailable,radiationBlocksMissions,merchantFighter,teaSpartaPercent,startStimulant,finishStimulant,tradePercent,itemValue,itemName,receive,levelUp,adventureExperience,startAdventureCooldown,merchantCooldown,unlockHansaShop,hansaStock,merchantSellerOffers,heroConfig,heroAttributes,effectiveMaxHp,bandageHeal,addHistory,pay,heroEffectiveStrength,heroMaximumHp,nationalityHealing,hasMedicPerk});
 
  switch(action.type){
- case 'connectBeetleBattery':{const hero=idleHero(s);requireThat(!hero.beetleBatteryConnected,'Батарея уже подключена.');removeItem(s,'beetleBattery',1);hero.beetleBatteryConnected=true;addHistory(s,hero.name+': жучиная батарея подключена навсегда.',now);break;}
+ case 'connectBeetleBattery':{const hero=idleHero(s);const item=action.item??'beetleBattery';requireThat(['beetleBattery','improvedBeetleBattery'].includes(item),'Нет такой батареи.');requireThat(!hero.improvedBeetleBatteryConnected&&(!hero.beetleBatteryConnected||item==='improvedBeetleBattery'),'Батарея уже подключена.');removeItem(s,item,1);hero.beetleBatteryConnected=true;if(item==='improvedBeetleBattery')hero.improvedBeetleBatteryConnected=true;addHistory(s,hero.name+': жучиная батарея подключена навсегда.',now);break;}
  case 'testAdventureReset':{
   requireThat(!s.interactiveMission,'Сначала заверши текущую вылазку.');
   s.testAdventureReplay={};
@@ -2271,13 +2276,14 @@ function actInternal(state,action,now=Date.now(),random=Math.random){const s=nor
     });
     const enemies=[
      {weapon:'bastard',perk:'bandit-blur',grenades:1},
-     {weapon:'browning',perk:'bandit-survivor',grenades:0}
+     {weapon:'browning',perk:'bandit-survivor',grenades:0},
+     {weapon:'crowbar',body:'shieldUni',weaponDetails:{upgrades:[{id:'sharpen',prefix:'Заточенный',bonus:7,valueIncreasePercent:5}]},frontline:true,perk:'bandit-survivor',grenades:0}
     ].map(loadout=>{
      const bandit={profession:'bandit',level:banditLevel,body:'ghoulJacket',...loadout};
      bandit.hp=heroMaximumHp(bandit);
-     const spec=heroConfig(s,bandit,'surface').hero;
+     const spec=heroConfig(s,bandit,'surface').hero;const equipment=heroConfig(s,{...bandit,level:Math.max(bandit.level,5)},'surface').hero;spec.weapons=equipment.weapons;spec.armor=itemArmor({item:bandit.body});spec.thermalArmor=itemThermalArmor({item:bandit.body});
      return {...spec,kind:'bandit',name:'Бандит',level:banditLevel,body:bandit.body,hp:bandit.hp,criticalChance:3,
-      stealth:spec.agility,firearm:spec.weapons.main,grenades:loadout.grenades,experience:15,loot:[]};
+      stealth:spec.agility,frontline:Boolean(loadout.frontline),weaponDetails:bandit.weaponDetails,firearm:spec.weapons.main,grenades:loadout.grenades,experience:15,loot:[]};
     });
     active.pendingCombat={...preparePartyCombat(fighters,enemies,rolls),nextNode:'stationInside',heroIds:[...active.heroIds],manual:true};
    }

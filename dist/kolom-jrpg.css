@@ -5,7 +5,7 @@
 .kj-unit{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-55%);display:grid;justify-items:center;gap:0;width:clamp(76px,19%,155px);padding:0;border:0;background:transparent!important;min-height:0;color:#ece9d9}
 .kj-unit:disabled{opacity:1}.kj-label{display:block;background:#142219ed;border-radius:4px;padding:3px 5px;width:100%;font-size:11px;line-height:1.2}
 .kj-label small{display:block;font-size:10px}.kj-label progress{display:block;width:100%;height:4px;accent-color:#b4cc79}
-.kj-unit[aria-pressed=true] .kj-label{outline:2px solid #d4e49b}
+.kj-unit[aria-pressed=true] .kj-label{outline:1px solid #ff5959}
 .kj-sprite{display:block;position:relative;width:clamp(68px,13vw,115px);aspect-ratio:1;filter:drop-shadow(1px 3px 2px #111a)}
 .kj-sprite::after{content:'';position:absolute;inset:0;background-repeat:no-repeat}
 .kj-sprite.hero-sprite::after{background-image:url('./kolom-jrpg-heroes.png');background-size:200% 200%;background-position:var(--sprite-x) var(--sprite-y)}
@@ -22,9 +22,10 @@
 .kj-sprite.enemy-sprite{aspect-ratio:1.5}
 .kj-label{overflow-wrap:anywhere}.kj-label small{font-size:10px}
 .kj-unit.foe[style*="--cell:1"]{width:clamp(100px,25%,185px)}
-.kj-arena .kj-unit{transition:left .21s ease,top .21s ease}
+.kj-arena .kj-unit{transition:none}
 
-.kj-actions button:last-child{grid-column:1/-1}
+.kj-actions button[data-kind="reload"]{grid-column:1}
+.kj-actions button[data-kind="wait"]{grid-column:2/-1}
 /* Shared game controls; arena target buttons retain their own layout. */
 .kj-actions .btn{min-height:45px;padding:10px 12px;border-radius:7px;background:#252d23;border:1px solid #46513c;color:var(--text);font-size:13px;font-weight:650;cursor:pointer}
 .kj-actions .btn[aria-pressed=true]{background:var(--gold,#c8ad76);border-color:var(--gold,#c8ad76);color:#1e2117}
@@ -44,3 +45,10 @@
 .kj-poison-text{color:#b8f38b}.kj-web-text{color:#e3eee4}
 
 .kj-tracer.shot{height:1px;box-shadow:none}
+.kj-unit.compact-unit{width:clamp(65px,14%,100px)}.kj-unit.compact-unit .kj-sprite{width:clamp(48px,8vw,72px)}.kj-unit.compact-unit .kj-label{font-size:10px}
+.kj-sprite.custom-sprite{aspect-ratio:1;display:flex;align-items:flex-end;justify-content:center}.kj-figure{display:block;max-width:100%;height:100%;object-fit:contain;pointer-events:none}.kj-sprite.custom-sprite:after{display:none}
+
+.kj-unit.active-hero .kj-sprite{filter:drop-shadow(1px 0 0 #d4e49b) drop-shadow(-1px 0 0 #d4e49b) drop-shadow(0 1px 0 #d4e49b) drop-shadow(0 -1px 0 #d4e49b)}
+.kj-unit.foe[aria-pressed=true] .kj-sprite{filter:drop-shadow(1px 0 0 #ff5959) drop-shadow(-1px 0 0 #ff5959) drop-shadow(0 1px 0 #ff5959) drop-shadow(0 -1px 0 #ff5959)}
+.kj-unit.active-hero .kj-label{outline:1px solid #d4e49b}
+.kj-unit.acting-enemy .kj-label{outline:1px solid #ffc36b}

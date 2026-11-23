@@ -1,14 +1,15 @@
 import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
- beetleBattery:{name:'Жучиная батарея',type:'resource',stack:true,value:null,icon:'tool',description:'Одна батарея навсегда подключается к герою и постоянно питает тяжёлый лазер. Рецепт и источник — скоро.'},
+ improvedBeetleBattery:{name:'Улучшенная жучиная батарея',type:'resource',stack:true,value:3000,icon:'tool',description:'Постоянное питание оборудования без риска облучения.'},
+ beetleBattery:{name:'Жучиная батарея',type:'resource',stack:true,value:1000,icon:'tool',description:'5% шанс получить 1 РАД после локации или вылазки независимо от защиты. Одна батарея навсегда подключается к герою и постоянно питает тяжёлый лазер. Изготавливается в Науке.'},
  laserEmitter:{name:'Лазерный излучатель',type:'resource',stack:true,value:800,icon:'tool',description:'Источник направленного термического луча. Компонент лазерного оружия.'},
  laserPistol:{name:'Лазерный пистолет',type:'weapon',combat:'ranged',weaponClass:'pistol',damageType:'thermal',min:35,max:180,maxDistance:2,equipmentCategory:10,stack:false,value:4000,icon:'gun',description:'35–180 термического урона. Пистолет, дистанция 0–2.'},
  laserRifle:{name:'Лазерная винтовка',type:'weapon',combat:'ranged',weaponClass:'rifle',damageType:'thermal',min:50,max:220,maxDistance:3,equipmentCategory:10,stack:false,value:5000,icon:'gun',description:'50–220 термического урона. Винтовка, дистанция 0–3, один выстрел.'},
  heavyLaser:{name:'Тяжёлый лазер',type:'weapon',combat:'ranged',weaponClass:'heavy',damageType:'thermal',min:40,max:180,shots:3,shotPenalty:20,maxDistance:3,equipmentCategory:10,requiresBeetleBattery:true,rangedSlotOnly:true,stack:false,value:6000,icon:'gun',description:'40–180 термического урона ×3, штраф −20 п.п. на выстрел, дистанция 0–3. Требует однократно подключить жучиную батарею к герою.'},
  piercerBlade:{name:'Клинок пронзателя',type:'weapon',combat:'melee',min:25,max:140,strengthMultiplier:10,piercing:true,equipmentCategory:10,value:5000,rarity:'rare',stack:false,icon:'piercerBlade',description:'25–140 + Сила ×10 физического урона. Пробивающее: игнорирует поглощение защиты цели.'},
- kolomenskayaBeetles:{name:'Живой жук с Коломенской',type:'resource',stack:true,value:null,icon:'bag',description:'Живой образец для исследования жуков. Источник получения — скоро.'},
- kolomenskayaBeetleCorpse:{name:'Тушка жука с Коломенской',type:'resource',stack:true,value:null,icon:'bag',description:'Мёртвый образец для исследования жуков. Источник получения — скоро.'},
+ kolomenskayaBeetles:{name:'Живой жук с Коломенской',type:'resource',stack:true,value:200,icon:'bag',description:'Живой образец для исследования жуков. Источник получения — скоро.'},
+ kolomenskayaBeetleCorpse:{name:'Тушка жука с Коломенской',type:'resource',stack:true,value:100,icon:'bag',description:'Мёртвый образец для исследования жуков. Источник получения — скоро.'},
  grassGum:{name:'Жвачка из травы',type:'stimulant',stack:false,value:700,icon:'stimulant',description:'10 применений. На время локации +1 Ловкости, +1 к обнаружению и +25% к скорости прохождения (время делится на 1,25).'},
  pukGrassDecoction:{name:'Отвар из пук-травы',type:'food',stack:true,value:400,icon:'medical',description:'На станции снимает 2–5 + Сила РАД. Не уменьшает максимум здоровья и не даёт опыта за применение.'},
  kevlarMaterial:{name:'Кевларовый материал',type:'resource',stack:true,value:700,rarity:'rare',icon:'bag',description:'Плотное многослойное полотно, обработанное химическим составом. Основа кевларовой брони.'},
@@ -157,6 +158,9 @@ export const PERKS={
 };
 export const CONFIG={hero:{criticalChance:5,maxHp:180,strength:2,agility:3,intelligence:1,perception:2,initiative:3,accuracy:10,evasion:60,armor:0,weaponMin:10,weaponMax:30},rat:{hp:80,initiative:2,stealth:4,agility:2,accuracy:5,evasion:60,armor:10,damageMin:20,damageMax:30},mission:{searches:4,searchDc:10,lootDc:7,seconds:13,baseXp:10,findXp:1,killXp:5,lootXp:3},loot:[{id:'metal',name:'Металлический мусор',chance:100},{id:'meat',name:'Крысиное мясо',chance:50},{id:'tooth',name:'Золотой зуб',chance:10}],trial:{combatTurnLimit:300,damageMode:'integer'}};
 export const RECIPES={
+ paralyzingWeapon:{name:'Парализующее оружие',production:'melee',level:12,research:'beetlePoison',ingredients:{kolomenskayaBeetleCorpse:1},cost:300,seconds:60,xp:100,upgrade:true,target:'melee',chance:60,prefix:'Парализующий',poisonChance:10,rejectsPoison:true,valueIncreasePercent:25},
+ beetleBattery:{name:'Жучиная батарея',production:'science',level:13,research:'beetleBatteries',ingredients:{kolomenskayaBeetleCorpse:1,steel:1,acid:1},cost:150,seconds:180,xp:80,chance:100,output:'beetleBattery',autoAllowed:true,autoKeep:true,batch:true,noQuality:true,supersededBy:'improvedBeetleBattery'},
+ improvedBeetleBattery:{name:'Улучшенная жучиная батарея',production:'science',level:13,research:'beetleBatteryImprovement',ingredients:{kolomenskayaBeetleCorpse:1,steel:2,armorPlates:1,acid:2},cost:300,seconds:300,xp:140,chance:100,output:'improvedBeetleBattery',autoAllowed:true,autoKeep:true,batch:true,noQuality:true},
  laserEmitter:{name:'Лазерный излучатель',production:'science',level:12,research:'laser',ingredients:{electronicParts:3},cost:110,seconds:45,xp:50,chance:100,output:'laserEmitter',batch:true,noQuality:true},
  laserPistol:{name:'Лазерный пистолет',production:'ranged',level:11,research:'laserPistol',ingredients:{laserEmitter:1,metalParts:2,springMechanism:1},cost:2820,seconds:90,xp:110,chance:100,output:'laserPistol'},
  laserRifle:{name:'Лазерная винтовка',production:'ranged',level:12,research:'laserRifle',ingredients:{laserEmitter:2,steel:2,springMechanism:2},cost:2220,seconds:110,xp:130,chance:100,output:'laserRifle'},
@@ -235,9 +239,9 @@ hardArmor:{"name":"Твёрдый","production":"science","level":11,"ingredient
  psct:{name:'ПСЦТ',production:'upgrade',level:2,cost:150,seconds:12,ingredients:{},upgrade:true,target:'ranged',excludedWeaponClasses:['shotgun','flamethrower','crossbow'],chance:75,prefix:'ПСЦТ',bonus:20,accuracyBonus:-5,xp:15,valueIncreasePercent:8}
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
-export const MAX_PRODUCTION_LEVEL=14;
+export const MAX_PRODUCTION_LEVEL=20;
 export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7,pukGrassSearch:7};
-export const PRODUCTION_XP={1:10,2:30,3:60,4:100,5:150,6:210,7:280,8:360,9:450,10:550,11:660,12:780,13:910};
+export const PRODUCTION_XP=Object.fromEntries(Array.from({length:MAX_PRODUCTION_LEVEL-1},(_,i)=>{const level=i+1;return [level,5*level*(level+1)];}));
 export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
 export const TRADE_EFFECTS={ '-15':{xp:.5,cooldown:2},'-10':{xp:.7,cooldown:1.5},0:{xp:1,cooldown:1},10:{xp:1.3,cooldown:.7},15:{xp:1.5,cooldown:.5}};

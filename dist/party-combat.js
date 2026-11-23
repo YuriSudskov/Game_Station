@@ -1,3 +1,4 @@
+import {prepareMagazines,reloadMagazine} from './jrpg-magazines.js';
 import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
 import {applyKnifePoison} from './combat.js';
 // Shared setup for interactive party encounters. Combat resolution is added separately.
@@ -15,7 +16,7 @@ export function preparePartyCombat(heroes,enemies,random,{ambush=enemies.some(e=
 }
 
 export function updatePartyCasualties(combat){
- const fallen=combat.heroes.filter(hero=>hero.dead||hero.hp<=0),alive=combat.heroes.filter(hero=>!hero.dead&&hero.hp>0),known=new Set(combat.fallenIds??[]),fresh=fallen.filter(hero=>!known.has(hero.id));
+ const fallen=combat.heroes.filter(hero=>!hero.npcAlly&&(hero.dead||hero.hp<=0)),alive=combat.heroes.filter(hero=>!hero.npcAlly&&!hero.dead&&hero.hp>0),known=new Set(combat.fallenIds??[]),fresh=fallen.filter(hero=>!known.has(hero.id));
  for(const hero of fallen){hero.hp=0;hero.dead=true;known.add(hero.id);}combat.fallenIds=[...known];
  if(!alive.length){combat.status='defeat';delete combat.casualtyDecision;return combat.status;}
  if(fresh.length){combat.status='casualty';combat.casualtyDecision={fallenIds:fresh.map(hero=>hero.id),survivorIds:alive.map(hero=>hero.id)};combat.events.push({type:'потеря отряда',text:fallen.map(hero=>hero.name).join(', ')+' повержен. Бой приостановлен: сбежать с оставшимся героем или драться до последнего.'});}
@@ -174,10 +175,11 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(enemy.poisonAccuracy){delete enemy.poisonAccuracy;enemy.skipNextTurn=true;}
   }
  }
+ if(combat.manual)for(const member of combat.heroes)prepareMagazines(member);
  combat.status='running';combat.actorIndex??=0;combat.round??=1;
  if(!combat.initialized){
   combat.initialized=true;
-  for(const h of combat.heroes){h.distances??={};for(const e of combat.enemies){const dc=9+(e.stealth??0),check=perceptionCheck(h,random,(h.perception??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.initialPerceptionBonus??0)+(h.perceptionCheckBonus??0)-(h.checkPenalty??0),dc,{events:combat.events});h.distances[e.id]=Math.min(h.maxStartingDistance??3,distanceFromMargin(check.total-dc,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0));h.battleStartHp=h.hp;}}
+  for(const h of combat.heroes){h.distances??={};for(const e of combat.enemies){const dc=9+(e.stealth??0),check=perceptionCheck(h,random,(h.perception??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.initialPerceptionBonus??0)+(h.perceptionCheckBonus??0)-(h.checkPenalty??0),dc,{events:combat.events});h.distances[e.id]=Math.min(h.maxStartingDistance??3,distanceFromMargin(check.total-dc,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0));h.battleStartHp=h.hp;}const front=combat.enemies.filter(e=>e.frontline),rear=combat.enemies.filter(e=>!e.frontline);if(front.length&&rear.length){const back=Math.max(1,...rear.map(e=>h.distances[e.id]));for(const e of rear)h.distances[e.id]=back;for(const e of front)h.distances[e.id]=back-1;}} 
   // Every participating hero has their own opening grenade or Mark.
   combat.openingIndex=0;
   if(combat.ambushTarget){
@@ -203,6 +205,8 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  }
  for(let count=0;count<maxActors;count++){
   if(combat.status!=='running')return combat;
+  if(!combat.enemies.some(e=>e.hp>0)){const future=(combat.waves??[]).filter(w=>!w.arrived);if(future.length)combat.round=Math.max(combat.round,Math.min(...future.map(w=>w.round)));}
+  for(const wave of combat.waves??[]){if(!wave.arrived&&combat.round>=wave.round){wave.arrived=true;for(const enemy of wave.enemies){combat.enemies.push(enemy);combat.order.push({id:enemy.id,name:enemy.name,side:'enemy'});for(const hero of combat.heroes)(hero.distances??={})[enemy.id]=3;say(combat,enemy.name+' присоединяется к бою.');}}}
   if(combat.reinforcement&&(!combat.enemies.some(e=>e.hp>0)||combat.actorIndex>=combat.order.length&&!combat.pendingActor)){
    const enemy=combat.reinforcement;
    combat.enemies.push(enemy);
@@ -215,7 +219,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    for(const member of combat.heroes)applyDelayedDamage(combat,member);
    if(updatePartyCasualties(combat)!=='running')return combat;
    combat.status='victory';combat.experience=partyBattleExperience(combat);return combat;}
-  if(combat.actorIndex>=combat.order.length&&!combat.pendingActor){combat.actorIndex=0;combat.round++;if(combat.manual&&combat.heroes.filter(h=>h.hp>0&&!h.dead).every(h=>h.retreating)){combat.status='escaped';return combat;}}if(combat.round>300){for(const member of combat.heroes)applyDelayedDamage(combat,member);if(updatePartyCasualties(combat)!=='running')return combat;combat.status='limit';say(combat,'Бой остановлен: достигнут предел 300 раундов.');return combat;}
+  if(combat.actorIndex>=combat.order.length&&!combat.pendingActor){combat.actorIndex=0;combat.round++;if(combat.manual&&combat.heroes.filter(h=>h.hp>0&&!h.dead).every(h=>h.retreating)){combat.status='escaped';return combat;}}for(const wave of combat.waves??[]){if(!wave.arrived&&combat.round>=wave.round){wave.arrived=true;for(const enemy of wave.enemies){combat.enemies.push(enemy);combat.order.push({id:enemy.id,name:enemy.name,side:'enemy'});for(const hero of combat.heroes)(hero.distances??={})[enemy.id]=3;say(combat,enemy.name+' присоединяется к бою.');}}}if(combat.round>300){for(const member of combat.heroes)applyDelayedDamage(combat,member);if(updatePartyCasualties(combat)!=='running')return combat;combat.status='limit';say(combat,'Бой остановлен: достигнут предел 300 раундов.');return combat;}
   const entry=combat.pendingActor??combat.order[combat.actorIndex++];
   const hero=entry.side==='hero',actor=(hero?combat.heroes:combat.enemies).find(x=>x.id===entry.id);if(!actor||actor.hp<=0)continue;
   if(combat.manual&&hero&&!actor.retreating&&!combat.manualAction){
@@ -224,7 +228,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   if(combat.manual&&hero&&combat.manualAction){
    delete combat.pendingActor;delete combat.waitingHeroId;
   }
-  if(combat.manual)combat.manualActorId=actor.id;
+  if(combat.manual){combat.manualActorId=actor.id;if(!hero)(combat.frames??=[]).push({kind:'turn',actorId:actor.id});}
   const manualAction=hero?combat.manualAction:null;
   const applyAfterTurn=hero&&actor.delayedDamage>0;
   const appliedArmHit=actor.saboteurArmHit,appliedTrip=actor.saboteurTrip;
@@ -237,10 +241,20 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(actor.hp<=0){if(updatePartyCasualties(combat)!=='running')return combat;continue;}
    if(actor.regeneration){const healed=Math.min(actor.regeneration,actor.maxHp-actor.hp);actor.hp+=healed;if(healed)say(combat,actor.name+': реген +'+healed+' = '+actor.hp);}
    actor.movementLocked=Boolean(actor.webMovement);delete actor.webMovement;
-   if(actor.entangled){const roll=random.int(1,20),success=roll+actor.strength>13;if(success)actor.entangled=false;say(combat,`${actor.name}: освобождение ${roll} + ${actor.strength} против 13 — ${success?'успех':'опутан'}, ход потрачен.`);continue;}
+   if(actor.entangled){const roll=random.int(1,20),success=roll+actor.strength>13;if(success)actor.entangled=false;if(combat.manual)combat.frames.push({kind:'escapeWeb',actorId:actor.id,targetId:actor.id,success,hp:actor.hp,maxHp:actor.maxHp});say(combat,`${actor.name}: освобождение ${roll} + ${actor.strength} против 13 — ${success?'успех':'опутан'}, ход потрачен.`);continue;}
    if(!combat.manual&&tryHeroGrenade(combat,actor,random)&&updatePartyCasualties(combat)!=='running')return combat;
    if(actor.hp<=0)continue;
    if(manualAction){
+    if(manualAction.kind==='reload'){
+     const slot=manualAction.slot,weapon=actor.weapons[slot];
+     const magazine=reloadMagazine(actor,slot);
+     say(combat,actor.name+': '+(weapon.name??weapon.item)+' — перезарядка '+magazine.rounds+'/'+magazine.capacity+'.');
+     combat.frames.push({kind:'reload',actorId:actor.id,targetId:actor.id,hp:actor.hp,maxHp:actor.maxHp,hit:true});
+     const reloadTarget=combat.enemies.find(enemy=>enemy.id===manualAction.targetId&&enemy.hp>0);
+     if(actor.professionPerks?.includes('sniper-reload')&&weapon.reloadMain&&reloadTarget&&(actor.distances[reloadTarget.id]??0)<=weaponMaxDistance(actor,weapon)){
+      Object.assign(manualAction,{kind:'attack',mode:'single',aim:'body',reloadShot:true});
+     }else continue;
+    }
     if(manualAction.kind==='wait'&&!actor.reloading){say(combat,actor.name+': пропускает ход.');continue;}
     if(manualAction.kind==='retreat'){actor.retreating=true;say(combat,actor.name+': готовится отступить.');continue;}
     if(manualAction.kind==='heal'){
@@ -276,10 +290,11 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(rushAttack)weapon={...(main?.type==='melee'?main:actor.weapons.ranged),saboteurRush:true};
    if(manualAction?.kind==='attack'){
     weapon=actor.weapons[manualAction.slot];
+    if(manualAction.reloadShot)weapon={...weapon,quickReloadShot:true,accuracyBonus:(weapon.accuracyBonus??0)-10};
     if(manualAction.mode==='bayonet')weapon=weapon.bayonet;
     else if(manualAction.mode==='single')weapon={...weapon,shots:undefined,damageRolls:undefined,shotPenalty:0,manualSingle:true};
    }
-   if(actor.reloading){
+   if(!combat.manual&&actor.reloading){
     actor.reloading=false;
     const targetWeapon=actor.reloadWeapon;
     weapon=actor.professionPerks?.includes('sniper-reload')&&targetWeapon&&distance<=weaponMaxDistance(actor,targetWeapon)?{...targetWeapon,quickReloadShot:true,quickReloadBase:targetWeapon,accuracyBonus:(targetWeapon.accuracyBonus??0)-10}:distance===0?targetWeapon?.bayonet:null;
@@ -296,11 +311,12 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     continue;
    }
    if(weaponJammed(weapon,random)){
+    if(combat.manual)combat.frames.push({kind:'jam',actorId:actor.id,targetId:actor.id,weapon:weapon.name??ITEMS[weapon.item]?.name,hp:actor.hp,maxHp:actor.maxHp});
     actor.ownTurnDone=true;
     say(combat,actor.name+': '+(weapon.name??ITEMS[weapon.item]?.name??'оружие')+' заклинило. Ход пропущен.');
     continue;
    }
-   if(weapon.reloadMain&&(weapon===main||combat.manual&&manualAction?.slot==='main'||weapon.reloadEverySlot||weapon.quickReloadShot)){actor.reloading=true;actor.reloadWeapon=weapon.quickReloadBase??weapon;}
+   if(!combat.manual&&weapon.reloadMain&&(weapon===main||combat.manual&&manualAction?.slot==='main'||weapon.reloadEverySlot||weapon.quickReloadShot)){actor.reloading=true;actor.reloadWeapon=weapon.quickReloadBase??weapon;}
    if(actor.tauntFirstTurn&&!actor.ownTurnDone){target.accuracy+=10;target.evasion-=20;}
    let sequence=Array.from({length:heroAttackStats(combat.manual&&manualAction?.mode!=='paired'?{...actor,dualPistols:false}:actor,weapon,distance).attacks},()=>weapon);
    if(combat.manual&&manualAction?.mode==='single'&&!weapon.quickReloadShot)sequence=[weapon];
@@ -315,11 +331,19 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    for(const w of sequence){
     const attackNumber=w===weapon?++primaryAttack:0;
     if(target.hp<=0)break;
+    if(combat.manual&&w.type==='ranged'&&!w.isBayonet){
+     const slot=manualAction?.mode==='paired'?(w===main?'main':'ranged'):manualAction.slot;
+     const magazine=actor.jrpgMagazines[slot],cost=w.damageRolls??1;
+     if(!magazine||magazine.rounds<cost)break;
+     magazine.rounds-=cost;
+    }
     if(w.usesHeavyAmmo){if(!(actor.heavyAmmo>0))break;actor.heavyAmmo--;}
     if(w.flame){
      if(combat.manual)combat.manualEffect={kind:'fire'};
      const targets=[target,...combat.enemies.filter(enemy=>enemy!==target&&enemy.hp>0&&(actor.distances[enemy.id]??0)<=weaponMaxDistance(actor,w))].map(enemy=>({target:enemy,distance:actor.distances[enemy.id]??0}));
-     const hits=flameAttack(actor,w,targets,random).map(hit=>{
+     const flameTargets=combat.manual?targets.slice(0,manualAction?.mode==='flameSweep'?2:1):targets;
+     const flameWeapon=combat.manual&&manualAction?.mode==='flameSweep'?{...w,accuracyBonus:(w.accuracyBonus??0)-15}:w;
+     const hits=flameAttack(actor,flameWeapon,flameTargets,random).map(hit=>{
       const damage=armorDamage(combat,hit.target,hit.target.thermalVulnerable&&hit.dodged?hit.raw*2:hit.raw,'thermal',random);
       return {targetName:hit.target.name,damage,dodged:hit.dodged,ratHp:Math.max(0,hit.target.hp)};
      });
@@ -328,7 +352,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    }
    if(actor.quickRetreat&&!actor.ownTurnDone&&distance===0)for(const id of Object.keys(actor.distances))actor.distances[id]=Math.min(3,actor.distances[id]+1);
    actor.ownTurnDone=true;
-  }else if(actor.kolomWeb&&!actor.webUsed){const t=partyEnemyTarget(actor,combat.heroes,random);actor.webUsed=true;const caught=t&&random.int(1,20)+(t.agility??0)<=13;if(caught)t.webMovement=true;if(combat.manual&&t)combat.frames.push({kind:'web',actorId:actor.id,targetId:t.id,hit:Boolean(caught),hp:t.hp,maxHp:t.maxHp});say(combat,actor.name+': паутина мешает следующему перемещению.');
+  }else if(actor.kolomWeb&&!actor.webUsed){const t=partyEnemyTarget(actor,combat.heroes,random);actor.webUsed=true;const caught=t&&random.int(1,20)+(t.agility??0)<=13;if(caught)t.webMovement=true;if(combat.manual&&t)combat.frames.push({kind:'web',restriction:'movement',actorId:actor.id,targetId:t.id,hit:Boolean(caught),hp:t.hp,maxHp:t.maxHp});say(combat,actor.name+': паутина мешает следующему перемещению.');
   }else if(actor.webAttack){
    actor.plannedAttacks??=combat.heroes.some(h=>h.hp>0&&!h.dead&&!h.entangled)?['web','main']:['main','main'];
    while(actor.hp>0&&actor.plannedAttacks.length){
@@ -373,7 +397,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   }
   if(updatePartyCasualties(combat)!=='running')return combat;
   }finally{
-   if(hero&&combat.manual){delete combat.manualAction;if(actor.manualPrefs)actor.manualPrefs.armed=false;}
+   if(hero&&combat.manual){delete combat.manualAction;if(actor.manualPrefs){actor.manualPrefs.armed=false;if(actor.manualPrefs.kind==='escapeWeb')actor.manualPrefs.kind='attack';}}
    if(!hero)delete actor.manualArm;
    if(!hero&&combat.pendingActor!==entry){finishSaboteurDebuffs(actor,appliedArmHit,appliedTrip);delete actor.poisonAccuracy;}
    if(applyAfterTurn){applyDelayedDamage(combat,actor);if(combat.status==='running')updatePartyCasualties(combat);}
