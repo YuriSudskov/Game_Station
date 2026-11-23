@@ -10,7 +10,7 @@ export const JRPG_MAGAZINES={
 };
 export function magazineState(hero,slot){
  const weapon=hero.weapons?.[slot];
- if(!weapon||weapon.type!=='ranged')return null;
+ if(!weapon||weapon.type!=='ranged'||weapon.requiresBeetleBattery)return null;
  const capacity=JRPG_MAGAZINES[weapon.item]??(weapon.flame?6:weapon.shots?30:weapon.damageRolls??(weapon.weaponClass==='pistol'?8:weapon.weaponClass==='rifle'?5:1));
  const saved=hero.jrpgMagazines?.[slot];
  if(saved&&saved.item===weapon.item&&Number.isFinite(saved.rounds))return {...saved,capacity,rounds:Math.max(0,Math.min(capacity,saved.rounds))};
@@ -20,7 +20,7 @@ export function prepareMagazines(hero){
  hero.jrpgMagazines??={};
  for(const slot of ['main','ranged']){
   const magazine=magazineState(hero,slot);
-  if(magazine)hero.jrpgMagazines[slot]=magazine;
+  if(magazine)hero.jrpgMagazines[slot]=magazine;else delete hero.jrpgMagazines[slot];
  }
  // Older manual saves used one automatic reload flag for both weapons.
  delete hero.reloading;

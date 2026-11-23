@@ -33,7 +33,7 @@ export const kolomLocal=()=>['localhost','127.0.0.1','[::1]'].includes(globalThi
 export const kolomAvailable=s=>kolomLocal()||Boolean(s.completedLocations?.technoparkRoof&&(s.keeperQuest?.stage>6||s.keeperQuest?.stage===6&&s.keeperQuest?.status==='completed'));
 const need=(x,t)=>{if(!x)throw Error(t);};
 const copy=x=>structuredClone(x);
-const keys=['bandages','dressingKits','medicKits','doctorKits','grenades','molotovs','tinGrenades','lu216Grenades','dynamites','heavyAmmo'];
+const keys=['bandages','dressingKits','medicKits','doctorKits','grenades','molotovs','tinGrenades','lu216Grenades','radioactiveGrenades','dynamites','heavyAmmo'];
 export function runKolom(s,action,now,random,c){
  const rolls=rng(Math.floor(random()*4294967296));
  if(action.type==='acceptKolom'){need(kolomAvailable(s),'Сначала восстанови Технопарк и заверши квесты Смотрителя.');s.kolomQuestAccepted=true;return s;}
@@ -74,7 +74,7 @@ export function runKolom(s,action,now,random,c){
   need(a.node==='combat'&&a.combat?.manual,'Ручной бой недоступен.');
   const fighter=a.combat.heroes.find(h=>h.id===a.combat.waitingHeroId);
   need(fighter,'Нет хода героя.');
-  const allowed=['slot','mode','aim','targetId','kind','item','patient','armed'];
+  const allowed=['slot','mode','aim','targetId','kind','item','patient','armed','modesBySlot'];
   fighter.manualPrefs={...fighter.manualPrefs,...Object.fromEntries(Object.entries(action.prefs??{}).filter(([key])=>allowed.includes(key)))};
   return s;
  }
@@ -127,7 +127,7 @@ export function runKolom(s,action,now,random,c){
   pressure();if(casualty())return s;h=living()[0];
   if(choice==='think'){if(check('intelligence',14)){a.ideas=Math.min(2,(a.ideas??0)+1);note(a.ideas===1?'Гранаты могут отогнать пауков. Попробуйте огонь.':'Можно применить заряженное тяжёлое оружие.');}else note('Решение пока не найдено. Можно попробовать ещё раз или отступить.');}
   else if(choice==='molotov'){need(a.ideas>=1&&living().some(member=>member.molotovs>0),'Нет доступного Молотова.');living().find(member=>member.molotovs>0).molotovs--;a.fireDemonstration='molotov';go('fire');}
-  else if(choice==='grenade'){need(a.ideas>=1,'Сначала найди решение.');h=living().find(member=>['dynamites','lu216Grenades','tinGrenades','grenades'].some(k=>member[k]>0))??h;const key=['dynamites','lu216Grenades','tinGrenades','grenades'].find(k=>h[k]>0);need(key,'Нет гранаты.');h[key]--;note('Взрыв разбрасывает пауков, но новые занимают их место.');}
+  else if(choice==='grenade'){need(a.ideas>=1,'Сначала найди решение.');h=living().find(member=>['dynamites','lu216Grenades','tinGrenades','grenades'].some(k=>member[k]>0))??h;const key=['radioactiveGrenades','dynamites','lu216Grenades','tinGrenades','grenades'].find(k=>h[k]>0);need(key,'Нет гранаты.');h[key]--;note('Взрыв разбрасывает пауков, но новые занимают их место.');}
   else if(choice==='heavy'){h=living().find(member=>ITEMS[member.rangedWeapon]?.usesHeavyAmmo&&member.heavyAmmo>0)??h;const w=ITEMS[h.rangedWeapon];need(a.ideas>=2&&w?.usesHeavyAmmo&&h.heavyAmmo>0,'Нет заряженного тяжёлого оружия.');const qty=Math.min(h.heavyAmmo,w.flame?1:w.shots??1);h.heavyAmmo-=qty;if(w.flame){a.fireDemonstration='flame';go('fire');}else note('Очередь расчищает пространство, но пауки возвращаются.');}
   else throw Error('Неверный выбор.');break;}
  case 'fire':{

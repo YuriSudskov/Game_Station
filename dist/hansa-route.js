@@ -4,7 +4,7 @@ import {rng} from './combat.js';
 import {preparePartyCombat,advancePartyCombat,decidePartyCasualty,beginPartyRecovery} from './party-combat.js';
 const clone=x=>structuredClone(x);
 const need=(x,t)=>{if(!x)throw Error(t);};
-const grenadeKeys=['grenades','molotovs','tinGrenades','lu216Grenades','dynamites'];
+const grenadeKeys=['grenades','molotovs','tinGrenades','lu216Grenades','radioactiveGrenades','dynamites'];
 const supplies=['bandages','dressingKits','medicKits','doctorKits',...grenadeKeys,'stimulants','heavyAmmo'];
 export const HANSA_SCENES={
  departure:['На дрезине с Васьком','«На Кольце у меня знакомый — Изя Кацман. Договоримся — наладим поставки на Автозаводскую. Патрончиков бы побольше: ганзейцы любят поторговаться».'],
@@ -25,7 +25,7 @@ export const HANSA_SCENES={
 export function hansaRoutePrice(s,a,lot,c){return Math.round(lot.price*(lot.local?1-(a.discount??0)/100:1)*c.tradePercent(s,'buyPercent')/100);}
 export function hansaDuty(s,a,h,c){
  let total=0;for(const slot of ['weapon','rangedWeapon','body','accessory','special','pet'])if(h[slot])total+=c.itemValue({item:h[slot],...h[slot+'Details']});
- for(const [key,item] of Object.entries({bandages:'bandage',dressingKits:'dressingKit',medicKits:'medicKit',doctorKits:'doctorKit',grenades:'pipeGrenade',molotovs:'molotov',tinGrenades:'tinGrenade',lu216Grenades:'lu216',dynamites:'dynamite'}))total+=(h[key]??0)*(ITEMS[item]?.value??0);
+ for(const [key,item] of Object.entries({bandages:'bandage',dressingKits:'dressingKit',medicKits:'medicKit',doctorKits:'doctorKit',grenades:'pipeGrenade',molotovs:'molotov',tinGrenades:'tinGrenade',lu216Grenades:'lu216',radioactiveGrenades:'radioactiveGrenade',dynamites:'dynamite'}))total+=(h[key]??0)*(ITEMS[item]?.value??0);
  if(h.stimulants>0)total+=c.itemValue({item:h.stimulantItem??'combatStimulator',quality:h.stimulantQuality??0})*h.stimulants/10;
  if(h.secondStimulant?.charges>0)total+=c.itemValue(h.secondStimulant)*h.secondStimulant.charges/10;
  total+=(a.purchases??[]).reduce((n,x)=>n+c.itemValue(x)*(x.qty??1),0);

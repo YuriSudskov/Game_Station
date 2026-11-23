@@ -12,7 +12,7 @@ export function hansaRouteBody(s,{btn,esc,money,itemName,health,price,duty,rende
  if(['departure','tunnel1','tunnel2'].includes(node))actions=b(node==='departure'?'Отправиться в путь':'Продолжить путь','go');
  if(node==='ghoulBattle'){
   const combat=a.combat;
-  actions=!combat?b('Бросить две гранаты и уехать','grenades',['grenades','molotovs','tinGrenades','lu216Grenades','dynamites'].reduce((n,k)=>n+(h[k]??0),0)<2)+b('Вступить в бой','fight',false,'danger'):combat.status==='recovery'?[['bandage','bandages','Бинт'],['dressingKit','dressingKits','Перевязочный набор'],['medicKit','medicKits','Аптечка медика'],['doctorKit','doctorKits','Аптечка доктора']].filter(([,key])=>h[key]>0).map(([item,key,label])=>b(label+' · '+h[key],'heal:'+item)).join('')+b('Продолжить путь','continue'):b(combat.status==='casualty'?'Продолжить бой с Васьком':'Следующий ход боя','turn',false,'mission-start');
+  actions=!combat?b('Бросить две гранаты и уехать','grenades',['grenades','molotovs','tinGrenades','lu216Grenades','radioactiveGrenades','dynamites'].reduce((n,k)=>n+(h[k]??0),0)<2)+b('Вступить в бой','fight',false,'danger'):combat.status==='recovery'?[['bandage','bandages','Бинт'],['dressingKit','dressingKits','Перевязочный набор'],['medicKit','medicKits','Аптечка медика'],['doctorKit','doctorKits','Аптечка доктора']].filter(([,key])=>h[key]>0).map(([item,key,label])=>b(label+' · '+h[key],'heal:'+item)).join('')+b('Продолжить путь','continue'):b(combat.status==='casualty'?'Продолжить бой с Васьком':'Следующий ход боя','turn',false,'mission-start');
   if(combat?.status==='recovery'&&['medic','doctor'].includes(h.profession))actions+=b('Профессиональное лечение · −1 Силы','treatment',combat.treatmentUsed);
 
  }

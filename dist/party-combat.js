@@ -1,6 +1,6 @@
 import {prepareMagazines,reloadMagazine} from './jrpg-magazines.js';
 import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
-import {applyKnifePoison} from './combat.js';
+import {applyKnifePoison,radioactiveBlast} from './combat.js';
 // Shared setup for interactive party encounters. Combat resolution is added separately.
 export function partyEnemyTarget(enemy,heroes,random){
  const alive=heroes.filter(hero=>!hero.dead&&hero.hp>0),current=alive.find(hero=>hero.id===enemy.targetHeroId);
@@ -137,6 +137,12 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
  return hit;
 }
 function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=null){
+ if(item==='radioactiveGrenade'){
+  if(c.manual)c.manualEffect={kind:'grenade',item};
+  for(const target of (actor.kind==='bandit'?c.heroes:c.enemies).filter(e=>e.hp>0&&(!grenadeTargets||grenadeTargets.includes(e.id)))){const r=radioactiveBlast(target,random);say(c,actor.name+' → '+target.name+': '+r.radiation+' РАД'+(r.dodged?' (уворот)':'')+'.');}
+  return;
+ }
+
  if(c.manual)c.manualEffect={kind:repeat?'fire':'grenade',item};
  const dark=item==='darkGrasp',spec=dark?{min:20,max:80,dodgeDc:14}:ITEMS[item],underfoot=!dark&&!repeat&&random.int(1,100)<=(actor.nationality?.grenadeSelfChance??5),strong=!dark&&!repeat&&random.int(1,100)<=10;
  const base=(random.int(spec.min,spec.max)+(spec.intelligenceMultiplier??0)*(actor.intelligence??0)+(dark?0:actor.nationality?.grenadeDamage??0))*(dark?actor.perception:1)*(strong?1.5:1);
@@ -151,7 +157,7 @@ function tryHeroGrenade(combat,hero,random){
  if(hero.grenadeThrown||hero.hp<=0)return false;
  const targets=combat.enemies.filter(enemy=>enemy.hp>0&&canThrowGrenade(hero.distances[enemy.id],hero.strength)).map(enemy=>enemy.id);
  if(!targets.length)return false;
- const supply=[['dynamites','dynamite'],['lu216Grenades','lu216'],['tinGrenades','tinGrenade'],['molotovs','molotov'],['grenades','pipeGrenade']].find(([key])=>hero[key]>0);
+ const supply=[['radioactiveGrenades','radioactiveGrenade'],['dynamites','dynamite'],['lu216Grenades','lu216'],['tinGrenades','tinGrenade'],['molotovs','molotov'],['grenades','pipeGrenade']].find(([key])=>hero[key]>0);
  if(!supply)return false;
  const [key,item]=supply;
  hero[key]--;
@@ -262,7 +268,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
      const healed=bandageHeal({hero:patient},random,patient.hp,manualAction.item);actor[key]--;patient.hp=healed.hp;say(combat,actor.name+': лечение '+patient.name+' +'+healed.healed+' HP.');continue;
     }
     if(manualAction.kind==='grenade'){
-     const key={pipeGrenade:'grenades',molotov:'molotovs',tinGrenade:'tinGrenades',lu216:'lu216Grenades',dynamite:'dynamites'}[manualAction.item];
+     const key={pipeGrenade:'grenades',molotov:'molotovs',tinGrenade:'tinGrenades',lu216:'lu216Grenades',radioactiveGrenade:'radioactiveGrenades',dynamite:'dynamites'}[manualAction.item];
      actor[key]--;blast(combat,actor,manualAction.item,random,false,null,combat.enemies.filter(e=>e.hp>0&&canThrowGrenade(actor.distances[e.id],actor.strength)).map(e=>e.id));updatePartyCasualties(combat);continue;
     }
     actor.attackTargetId=manualAction.targetId;actor.manualAim=manualAction.aim;actor.manualMode=manualAction.mode;
@@ -334,8 +340,8 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(combat.manual&&w.type==='ranged'&&!w.isBayonet){
      const slot=manualAction?.mode==='paired'?(w===main?'main':'ranged'):manualAction.slot;
      const magazine=actor.jrpgMagazines[slot],cost=w.damageRolls??1;
-     if(!magazine||magazine.rounds<cost)break;
-     magazine.rounds-=cost;
+     if(!w.requiresBeetleBattery&&(!magazine||magazine.rounds<cost))break;
+     if(magazine)magazine.rounds-=cost;
     }
     if(w.usesHeavyAmmo){if(!(actor.heavyAmmo>0))break;actor.heavyAmmo--;}
     if(w.flame){

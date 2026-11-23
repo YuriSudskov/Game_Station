@@ -24,6 +24,17 @@ export function flameAttack(hero,weapon,targets,random){
   return {target,distance,dc,dodged,raw:raw*(dodged?.5:1)};
  });
 }
+export function radioactiveBlast(target,random,base=random.int(12,24)){
+ const protection=/бандит|пик|черв|туз|шестёрк/i.test(target.name??'')||target.faction==='bandit'?1:4;
+ const roll=random.int(1,20),dodged=roll+(target.agility??target.stealth??0)>14;
+ const radiation=Math.max(0,base-protection)*(dodged?.5:1);
+ target.radiation=(target.radiation??0)+radiation;
+ target.radiationBaseMaxHp??=target.maxHp??target.hp;
+ target.maxHp=Math.max(1,target.radiationBaseMaxHp-20*target.radiation);
+ const before=target.hp;target.hp=Math.min(target.hp,target.maxHp);
+ if(!dodged&&random.int(1,100)<=50)target.skipNextTurn=true;
+ return {target:target.name,roll,dodgeDc:14,dodged,radiation,protection,damage:before-target.hp};
+}
 export function applyKnifePoison(target,weapon,damage,random){
  if(!weapon?.poison||damage<=0||random.int(1,100)>(weapon.poisonChance??20))return false;
  if(target.boss)target.poisonAccuracy=true;
@@ -193,6 +204,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   };
   const applyBlast=(base,dodgeDc,hitHero,turn,power=1,damageType='thermal')=>{
     const targets=opponents.filter(enemy=>enemy.hp>0).map(enemy=>{
+      if(damageType==='radiation')return radioactiveBlast(enemy,random,base);
       const target=blast(enemy.name??'крыса',enemy.agility??enemy.stealth,(damageType==='physical'?enemy.armor:enemy.thermalArmor)??0,base+((national.mutantDamage??0)+(enemy.hurtHero?national.vendettaDamage??0:0))*power,dodgeDc);
       if(enemy.halfGrenadeDamage)target.damage*=.5;
       enemy.hp-=target.damage;
@@ -228,10 +240,10 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     grenadeItem=pendingGrenade;
     grenadeTurn=turn;
     const {min,max,dodgeDc,damageType='thermal'}=ITEMS[grenadeItem];
-    const underfoot=random.int(1,100)<=(national.grenadeSelfChance??5),strong=random.int(1,100)<=10;
+    const underfoot=damageType!=='radiation'&&random.int(1,100)<=(national.grenadeSelfChance??5),strong=random.int(1,100)<=10;
     const base=random.int(min,max)+(ITEMS[grenadeItem].intelligenceMultiplier??0)*h.intelligence+(national.grenadeDamage??0)+(damageType==='thermal'?national.thermalDamage??0:0)+berserkDamage;
     burningHero=underfoot;
-    const targets=applyBlast(base*(strong?1.5:1),dodgeDc,underfoot,turn,strong?1.5:1,damageType);
+    const targets=applyBlast(base*(strong&&damageType!=='radiation'?1.5:1),dodgeDc,underfoot,turn,strong?1.5:1,damageType);
     note('граната',{turn,distance,base,underfoot,strong,targets,grenadeItem,damageType});
   };
   if(pendingGrenade&&canThrowGrenade(initialDistance,h.strength)){
@@ -461,7 +473,7 @@ export function useBandageAfterExpedition(config,random,result) {
   const updated={...result,hp:heal.hp,bandagesRemaining:result.bandagesRemaining-1,bandagesUsed:(result.bandagesUsed??0)+1,healed:(result.healed??0)+heal.healed,events:[...(result.events??[]),{type:'бинт после вылазки',...heal,remaining:result.bandagesRemaining-1}]};
   return {applied:true,result:updated};
 }
-export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damageMode=config.trial.damageMode,bandages=0,dressingKits=0,doctorKits=0,medicKits=0,grenades=0,molotovs=0,tinGrenades=0,lu216Grenades=0,dynamites=0,caravan=null,searchRoute=null}={}) {
+export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damageMode=config.trial.damageMode,bandages=0,dressingKits=0,doctorKits=0,medicKits=0,grenades=0,molotovs=0,tinGrenades=0,lu216Grenades=0,radioactiveGrenades=0,dynamites=0,caravan=null,searchRoute=null}={}) {
   if(!Number.isInteger(bandages)||bandages<0)throw new Error('Bandages must be a non-negative integer');
   const initialBandages=bandages,initialKits=dressingKits,initialMedicKits=medicKits,initialGrenades=grenades,initialMolotovs=molotovs,initialTinGrenades=tinGrenades;let bandagesUsed=0,healed=0;
   const treatment={};
@@ -518,7 +530,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
       if(trace)events.push({type:'упыри каравана',count});
     }
     const canThrow=m.grenadePolicy!=='first-and-final'||i===0||m.finalEnemy&&i===scoutCount;
-    const grenade=!canThrow?false:dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
+    const grenade=!canThrow?false:radioactiveGrenades>0?'radioactiveGrenade':dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
     const enemy=m.finalEnemy&&i===scoutCount?m.finalEnemy:i===0?firstEnemy:config.rat;
     if(trace&&enemy===m.finalEnemy)events.push({type:'появление вожака'});
     Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits});
@@ -527,7 +539,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     if(result.grenadeUsed==='molotov')molotovs--;
     if(result.grenadeUsed==='tinGrenade')tinGrenades--;
     if(result.grenadeUsed==='lu216')lu216Grenades--;
-    if(result.grenadeUsed==='dynamite')dynamites--;
+    if(result.grenadeUsed==='radioactiveGrenade')radioactiveGrenades--;if(result.grenadeUsed==='dynamite')dynamites--;
     bandagesUsed+=bandages-treatment.bandages;
     ({bandages,dressingKits,doctorKits,medicKits}=treatment);
     hp=result.hp;healed+=result.perkHealing??0; battles.push(result);
@@ -574,7 +586,7 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     routeMoney+=searchRouteLoot(config.hero,random,finalStage.finds,loot,events,trace);
   }
   const regularKills=killed-Number(Boolean(m.finalEnemy));
-  return {alive:true,lu216GrenadesRemaining:lu216Grenades,dynamitesRemaining:dynamites,hp,found,killed,lootSuccesses,loot,...(searchRoute?{money:routeMoney}:{}),...(caravan?{caravanHp:caravan.hp,caravanMaxHp:caravan.maxHp,money:Math.round(300*caravan.hp/caravan.maxHp)}:{}),xp:extraXp+(caravan&&caravan.hp===0?10:m.baseXp)+m.findXp*found+m.killXp*regularKills+m.lootXp*lootSuccesses,battles,events,initialBandages,bandagesUsed,bandagesLost:0,bandagesRemaining:bandages,healed,...(initialKits?{dressingKitsRemaining:dressingKits}:{}),doctorKitsRemaining:doctorKits,...(initialMedicKits?{medicKitsRemaining:medicKits}:{}),...(initialGrenades?{grenadesRemaining:grenades}:{}),...(initialMolotovs?{molotovsRemaining:molotovs}:{}),...(initialTinGrenades?{tinGrenadesRemaining:tinGrenades}:{})};
+  return {alive:true,lu216GrenadesRemaining:lu216Grenades,radioactiveGrenadesRemaining:radioactiveGrenades,dynamitesRemaining:dynamites,hp,found,killed,lootSuccesses,loot,...(searchRoute?{money:routeMoney}:{}),...(caravan?{caravanHp:caravan.hp,caravanMaxHp:caravan.maxHp,money:Math.round(300*caravan.hp/caravan.maxHp)}:{}),xp:extraXp+(caravan&&caravan.hp===0?10:m.baseXp)+m.findXp*found+m.killXp*regularKills+m.lootXp*lootSuccesses,battles,events,initialBandages,bandagesUsed,bandagesLost:0,bandagesRemaining:bandages,healed,...(initialKits?{dressingKitsRemaining:dressingKits}:{}),doctorKitsRemaining:doctorKits,...(initialMedicKits?{medicKitsRemaining:medicKits}:{}),...(initialGrenades?{grenadesRemaining:grenades}:{}),...(initialMolotovs?{molotovsRemaining:molotovs}:{}),...(initialTinGrenades?{tinGrenadesRemaining:tinGrenades}:{})};
 }
 function searchRouteLoot(hero,random,finds,loot,events,trace){
  const searchBonus=hero.perception+(hero.perceptionCheckBonus??0)+(hero.lootBonus??0)+(hero.nationality?.lootBonus??0)-(hero.checkPenalty??0);
@@ -671,7 +683,7 @@ export function stationHelp(config,random,dc=8){
  return {loot,money,xp:5+3*successes,successes,events};
 }
 
-export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,doctorKits=0,medicKits=0,grenades=0,molotovs=0,tinGrenades=0,lu216Grenades=0,dynamites=0},location=SURFACE){
+export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,doctorKits=0,medicKits=0,grenades=0,molotovs=0,tinGrenades=0,lu216Grenades=0,radioactiveGrenades=0,dynamites=0},location=SURFACE){
  const events=[],battles=[],loot={},h=config.hero,treatment={};let minimumHp=hp,trapDamage=0;
  let money=0,filters=0,killed=0,found=0,xp=location.baseXp,bandagesUsed=0,healed=0;
  const note=(text,data={})=>events.push({type:'поверхность',text,...data});
@@ -735,14 +747,14 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,do
   const group=dog?null:location.enemyGroup;
   const count=group?.length??random.int(2,dog?(location.dogMaxCount??4):3);
   const enemy=dog?location.dog:group?.[0]??TECHNOPARK.enemy;
-  const grenade=dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
+  const grenade=radioactiveGrenades>0?'radioactiveGrenade':dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
   Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits});
   const result=battle({...config,rat:enemy},random,hp,{trace:true,grenade,enemies:group??Array(count).fill(enemy),treatment});
   if(result.grenadeUsed==='pipeGrenade')grenades--;
   if(result.grenadeUsed==='molotov')molotovs--;
   if(result.grenadeUsed==='tinGrenade')tinGrenades--;
     if(result.grenadeUsed==='lu216')lu216Grenades--;
-    if(result.grenadeUsed==='dynamite')dynamites--;
+    if(result.grenadeUsed==='radioactiveGrenade')radioactiveGrenades--;if(result.grenadeUsed==='dynamite')dynamites--;
   bandagesUsed+=bandages-treatment.bandages;
   ({bandages,dressingKits,doctorKits,medicKits}=treatment);
   hp=result.hp;healed+=result.perkHealing??0;minimumHp=Math.min(minimumHp,result.minimumHp??hp);found+=count;killed+=result.killed??0;battles.push(result);
@@ -764,7 +776,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,do
   note('Припасы: '+cache.name+'.');
  }
  if(alive)drops(location.bonusLoot??[]);
- return {alive,lu216GrenadesRemaining:alive?lu216Grenades:0,dynamitesRemaining:alive?dynamites:0,trapDamage,minimumHp,hp,found,killed,loot:alive?loot:{},money:alive?money:0,filters:alive?filters:0,xp:alive?xp:0,radiation:alive?radiation:0,events,battles,bandagesUsed,bandagesRemaining:alive?bandages:0,dressingKitsRemaining:alive?dressingKits:0,doctorKitsRemaining:alive?doctorKits:0,medicKitsRemaining:alive?medicKits:0,grenadesRemaining:alive?grenades:0,molotovsRemaining:alive?molotovs:0,...(tinGrenades?{tinGrenadesRemaining:alive?tinGrenades:0}:{}),healed,lootSuccesses:0};
+ return {alive,lu216GrenadesRemaining:alive?lu216Grenades:0,radioactiveGrenadesRemaining:alive?radioactiveGrenades:0,dynamitesRemaining:alive?dynamites:0,trapDamage,minimumHp,hp,found,killed,loot:alive?loot:{},money:alive?money:0,filters:alive?filters:0,xp:alive?xp:0,radiation:alive?radiation:0,events,battles,bandagesUsed,bandagesRemaining:alive?bandages:0,dressingKitsRemaining:alive?dressingKits:0,doctorKitsRemaining:alive?doctorKits:0,medicKitsRemaining:alive?medicKits:0,grenadesRemaining:alive?grenades:0,molotovsRemaining:alive?molotovs:0,...(tinGrenades?{tinGrenadesRemaining:alive?tinGrenades:0}:{}),healed,lootSuccesses:0};
 }
 
 

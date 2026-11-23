@@ -27,7 +27,7 @@ export function kolomBody(s,{btn,esc,health,heroPortrait,renderLog}){
  if(node==='wet')choices=b('Идти дальше · участок 4 РАД','forward')+b('Вернуться к развилке','back');
  if(['worm','boss'].includes(node))choices=b(node==='boss'?'Начать бой':'Вступить в бой','fight');
  if(node==='station')choices=b('Пробиваться и искать решение','enter');
- if(node==='pressure')choices=b('Стрелять и искать решение · ИНТ 14','think')+(a.ideas>=1?b('Отогнать гранатой','grenade',!['grenades','tinGrenades','lu216Grenades','dynamites'].some(k=>total(k)>0))+b('Использовать Молотов · −1 шт.','molotov',!total('molotovs')):'')+(a.ideas>=2?b('Использовать тяжёлое оружие','heavy',!party.some(member=>member.hp>0&&ITEMS[member.rangedWeapon]?.usesHeavyAmmo&&member.heavyAmmo>0)):'');
+ if(node==='pressure')choices=b('Стрелять и искать решение · ИНТ 14','think')+(a.ideas>=1?b('Отогнать гранатой','grenade',!['grenades','tinGrenades','lu216Grenades','radioactiveGrenades','dynamites'].some(k=>total(k)>0))+b('Использовать Молотов · −1 шт.','molotov',!total('molotovs')):'')+(a.ideas>=2?b('Использовать тяжёлое оружие','heavy',!party.some(member=>member.hp>0&&ITEMS[member.rangedWeapon]?.usesHeavyAmmo&&member.heavyAmmo>0)):'');
  if(node==='fire'){const fc=a.fireDemonstration==='flame'?9:10,mc=a.fireDemonstration==='molotov'?9:10;choices=b('Спалить гнёзда · −'+fc+' зарядов огнемёта или −'+mc+' Молотовых','burn',party.filter(h=>h.hp>0&&ITEMS[h.rangedWeapon]?.flame).reduce((n,h)=>n+(h.heavyAmmo??0),0)<fc&&total('molotovs')<mc);}
  if(node==='casualty')choices=b('Сбежать с выжившим, бросив поверженного','escape')+b('Драться до последнего','fight');
  if(node==='combat'&&a.combat?.manual)choices=b('Начать бой','manual');

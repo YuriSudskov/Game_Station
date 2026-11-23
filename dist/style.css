@@ -442,3 +442,7 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 /* Completion screens share the highlighted station-return action. */
 .expedition-modal .expedition-result-return,.expedition-modal button[data-action="zilResultRest"],.expedition-modal button[data-action="roofResultRest"],.expedition-modal button[data-action="nav"][data-view="station"]{background:#da963e;color:#20190e;border:2px solid #ffb64e;box-shadow:0 0 0 1px #ffb64e33;font-weight:700;min-height:46px;margin-top:14px}.expedition-modal .expedition-result-return:hover,.expedition-modal button[data-action="zilResultRest"]:hover,.expedition-modal button[data-action="nav"][data-view="station"]:hover{background:#efaa4c}.expedition-modal .report-stats{margin:14px 0}.expedition-modal .loot{margin:10px 0 16px}
 .item-cell.temporary-overflow{border:2px solid #d66b5d;background:#402822;box-shadow:inset 0 0 12px #a3413422}.item-cell.temporary-overflow:after{content:'Временная';font-size:9px;color:#f2a18e}
+
+/* Thermal weapon silhouettes in inventory and item details. */
+.thermal-weapon > svg.icon{stroke:#ee9a91;color:#ee9a91}
+.thermal-weapon > img.comic-item-icon{filter:drop-shadow(1px 0 0 #ee9a91) drop-shadow(-1px 0 0 #ee9a91) drop-shadow(0 1px 0 #ee9a91) drop-shadow(0 -1px 0 #ee9a91)}

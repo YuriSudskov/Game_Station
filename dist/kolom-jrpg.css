@@ -52,3 +52,16 @@
 .kj-unit.foe[aria-pressed=true] .kj-sprite{filter:drop-shadow(1px 0 0 #ff5959) drop-shadow(-1px 0 0 #ff5959) drop-shadow(0 1px 0 #ff5959) drop-shadow(0 -1px 0 #ff5959)}
 .kj-unit.active-hero .kj-label{outline:1px solid #d4e49b}
 .kj-unit.acting-enemy .kj-label{outline:1px solid #ffc36b}
+.kj-arena[data-perspective=true] .kj-sprite{transform-origin:center bottom}.kj-arena[data-perspective=true] .kj-label{position:relative;z-index:1}.kj-arena[data-perspective=true] .kj-unit{isolation:isolate}
+/* Separate figures from the inked scenery without altering source images. */
+.kj-arena{isolation:isolate}
+.kj-arena::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:inherit;border-radius:inherit;filter:brightness(.77) saturate(.65) contrast(.9)}
+.kj-unit .kj-sprite{filter:drop-shadow(1px 0 0 #ded5b2b3) drop-shadow(-1px 0 0 #ded5b2b3) drop-shadow(0 1px 0 #ded5b2b3) drop-shadow(0 -1px 0 #ded5b2b3)}
+.kj-unit::before{content:'';position:absolute;left:20%;width:60%;height:8px;top:calc(100% - 43px);border-radius:50%;background:#08110dcc;filter:blur(3px);pointer-events:none;z-index:-1}
+.kj-unit.active-hero .kj-sprite{filter:drop-shadow(1px 0 0 #d4e49b) drop-shadow(-1px 0 0 #d4e49b) drop-shadow(0 1px 0 #d4e49b) drop-shadow(0 -1px 0 #d4e49b)}
+.kj-unit.foe[aria-pressed=true] .kj-sprite{filter:drop-shadow(1px 0 0 #ff5959) drop-shadow(-1px 0 0 #ff5959) drop-shadow(0 1px 0 #ff5959) drop-shadow(0 -1px 0 #ff5959)}
+/* Keep the calibrated platform and its vanishing point visible without cover cropping. */
+.kj-arena[data-scene="roofRoute"]{height:auto;aspect-ratio:16/9;background-size:100% 100%}.kj-arena[data-scene="roofRoute"] .kj-label{font-size:10px}.kj-arena[data-scene="roofRoute"] .kj-label small{font-size:9px}
+.kj-arena[data-scene="roofRoute"] .kj-label{position:absolute;bottom:100%;width:100%;margin-bottom:2px}
+/* Quiet units retain HP; only the active hero and selected target show details. */
+.kj-arena .kj-unit .kj-label{font-size:0;padding:3px 4px;min-height:10px}.kj-arena .kj-unit .kj-label small{display:none}.kj-arena .kj-unit .kj-label progress{margin:0;height:4px}.kj-arena .kj-unit.active-hero .kj-label,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label{font-size:11px;padding:3px 5px}.kj-arena .kj-unit.active-hero .kj-label small,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label small{display:block;font-size:10px}.kj-arena .kj-unit.active-hero .kj-label progress,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label progress{margin-top:3px}
