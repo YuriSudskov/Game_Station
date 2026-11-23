@@ -1,5 +1,5 @@
 export const hasScientistPerk=(hero,id)=>hero?.perk==='scientist-'+id||(hero?.levelPerks??[]).some(p=>p.perk==='scientist-'+id);
-export const scientistRadiationReduction=heroes=>heroes.filter(h=>h&&!h.dead&&h.hp>0&&hasScientistPerk(h,'dose')).length;
+export const scientistRadiationReduction=(heroes,random=Math.random)=>heroes.filter(h=>h&&!h.dead&&h.hp>0&&hasScientistPerk(h,'dose')).reduce(sum=>sum+1+Math.floor(random()*2),0);
 export const mechanicalEnemy=enemy=>enemy?.mechanical===true||enemy?.prototype===true||['mechanical','robot','prototype'].includes(enemy?.kind);
 export function scientistSafetyBonus(hero){
  if(!hero.scientistSafety||hero.scientistSafetyUsed)return 0;

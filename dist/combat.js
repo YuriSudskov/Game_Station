@@ -6,7 +6,7 @@ export function rng(seed) {
   let state=seed>>>0;
   return { int(min,max) { state=(state+0x6D2B79F5)>>>0; let t=state; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return min+Math.floor((((t^(t>>>14))>>>0)/4294967296)*(max-min+1)); } };
 }
-export const distanceFromMargin = (margin,maxDistance=3) => maxDistance>=4&&margin>=15?4:margin>=10?3:margin>=5?2:margin>=1?1:0;
+export const distanceFromMargin = (margin,maxDistance=5) => Math.min(maxDistance,margin>=20?5:margin>=15?4:margin>=10?3:margin>=5?2:margin>=1?1:0);
 export function mobilityEvasionAtDistance(hero,distance,hp=hero.currentHp??hero.maxHp,extraBonus=0){
  const raw=hero.evasion+(distance===0?(hero.meleeEvasionBonus??0)+(hero.nationality?.closeEvasion??0):0)+(hp<hero.maxHp*.5?(hero.lowHealthEvasionBonus??0):0)+extraBonus;
  const emergency=hero.medicNimble&&hp<hero.maxHp*.5?10:0;
@@ -76,7 +76,7 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
     +(weapon.origin==='crafted'?n.craftedAccuracy??0:weapon.origin==='bought'?n.boughtAccuracy??0:0)
     +(distance===0?(hero.closeAccuracyBonus??0)+(weapon.closeAccuracyBonus??0):0)
     +(weapon.accuracyBonus??0)
-    +(ranged?(hero.rangedAccuracyBonus??0)-Math.max(0,(weapon.distancePenalty??15)-(perks.includes('sniper-range')?4:0)-(['rifle','shotgun'].includes(weapon.weaponClass)?hero.longGunDistanceReduction??0:0))*distance:(hero.meleeAccuracyBonus??0)-(weapon.saboteurRush?0:hero.attackAccuracyPenalty??0))
+    +(ranged?(hero.rangedAccuracyBonus??0)-Math.max(0,(weapon.distancePenalty??15)-(hero.sniperDistanceReduction??(perks.includes('sniper-range')?4:0))-(['rifle','shotgun'].includes(weapon.weaponClass)?hero.longGunDistanceReduction??0:0))*distance:(hero.meleeAccuracyBonus??0)-(weapon.saboteurRush?0:hero.attackAccuracyPenalty??0))
     -(pistol?(hero.pistolAccuracyPenalty??0):0)
     -(weapon.shotPenalty??0)+(weapon.shots?(hero.burstAccuracyBonus??0):0)+(ambush?15:0)-(hero.dualWieldAccuracyPenalty??0);
   const strengthDamage=weapon.noStrength?0:(weapon.strengthMultiplier??(ranged?0:10))*hero.strength;
@@ -89,7 +89,7 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
 }
 export function withStarterPerk(config,perk,level=1) {
   const next=structuredClone(config);next.hero.level=level;next.hero.perk=perk;
-  if(perk==='melee-evasion') next.hero.meleeEvasionBonus=14*level/10;
+  if(perk==='melee-evasion') next.hero.meleeEvasionBonus=16*level/10;
   else if(perk==='evasion') next.hero.evasion+=5;
   else if(perk==='initiative') next.hero.initiative+=4;
   else if(perk==='double-strike') { next.hero.attacksPerTurn=2;next.hero.attackAccuracyPenalty=10;next.hero.attackDamagePenaltyPercent=15; }
@@ -105,9 +105,12 @@ export function withStarterPerk(config,perk,level=1) {
   else if(perk==='hunter-seasoned'){next.hero.perceptionCheckBonus=(next.hero.perceptionCheckBonus??0)+1;next.hero.stealthCheckBonus=(next.hero.stealthCheckBonus??0)+1;}
   else if(perk==='hunter-squirrel-eye')next.hero.longGunDistanceReduction=5;
   else if(perk==='hunter-stealthy'){next.hero.stealthCheckBonus=(next.hero.stealthCheckBonus??0)+2;next.hero.firstRangedAccuracyBonus=10;}
-  else if(perk==='hunter-vigilant'){next.hero.detectionBonus=(next.hero.detectionBonus??0)+2;next.hero.trapBonus=(next.hero.trapBonus??0)+2;next.hero.lootBonus=(next.hero.lootBonus??0)+1;}
+  else if(perk==='hunter-vigilant'){next.hero.detectionBonus=(next.hero.detectionBonus??0)+2;next.hero.trapBonus=(next.hero.trapBonus??0)+2;next.hero.lootBonus=(next.hero.lootBonus??0)+2;}
   else if(perk==='burst-fire')next.hero.burstBonus=1;
   else if(perk==='tough-cookie')next.hero.selfHealAfterBattle=5*next.hero.strength;
+  else if(perk==='heavy-armored'){next.hero.physicalArmorBonus=10;next.hero.thermalArmorBonus=5;}
+  else if(perk==='assault-sharp'){next.hero.initiative+=2;next.hero.evasion+=5;}
+  else if(['sniper-distance','heavy-sharp','medic-trainee'].includes(perk)){}
   else if(perk==='sharp'){next.hero.initiative+=2;next.hero.evasion+=3;}
   else if(perk!=='quick-orders'&&perk!=='none'&&perk!=='tea-solo'&&!['medic-field','medic-sanitary','medic-nimble','medic-shooter','doctor-therapist','doctor-pharmacist','doctor-duty','doctor-institute'].includes(perk)&&!['sniper-cold','sniper-ammo','sniper-optics','scientist-lab','scientist-geiger','scientist-analyst','scientist-smart'].includes(perk)) throw new Error(`Unknown perk: ${perk}`);
   return next;
@@ -144,7 +147,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   if(!ambush)delete h.ambushRangedBonusSpent;
   const dc=9+r.stealth,perception=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.initialPerceptionBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),dc,{events,trace});
   const perceptionRoll=perception.roll,margin=perception.total-dc;
-  let distance=Math.min(h.maxStartingDistance??3,distanceFromMargin(margin,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0)),initialDistance=distance;
+  let distance=Math.min(Math.max(5,h.maxStartingDistance??5),distanceFromMargin(margin,Math.max(5,h.maxStartingDistance??5))+(h.nationality?.startingDistance??0)),initialDistance=distance;
   const opponents=(enemies??[r]).map((enemy,index)=>({...enemy,name:enemies?`${enemy.name} №${index+1}`:enemy.name,hp:enemy.hp,distance}));
   let enemyIndex=0;
   const heroTargetIndex=()=>{
@@ -177,7 +180,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(!delayedDamage)return;
     hurt(delayedDamage);note('отложенный урон',{turn,damage:delayedDamage});delayedDamage=0;woundCheck();
   };
-  const reduceIncoming=(damage,turn)=>{if(!heavyHitUsed&&(h.halveHeavyHit&&damage>h.maxHp*.25||h.professionPerks?.includes('heavy-hold')&&damage>=h.maxHp*.25)){heavyHitUsed=true;note('бывалый бандита',{turn,before:damage,damage:damage/2});return damage/2;}return damage;};
+  const reduceIncoming=(damage,turn)=>{if(!heavyHitUsed&&(h.halveHeavyHit&&damage>h.maxHp*.25||h.professionPerks?.includes('heavy-hold')&&damage>=h.maxHp*.20)){heavyHitUsed=true;note('бывалый бандита',{turn,before:damage,damage:damage/2});return damage/2;}return damage;};
   const groupAlive=()=>opponents.some(enemy=>enemy.hp>0);
   let heroRoll,ratRoll,heroTurn,heroFirst;
   note('дистанция',{roll:perceptionRoll,bonus:perception.bonus,dc,margin,distance});
@@ -257,7 +260,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const inRange=(weapon,distance)=>weapon?.type==='ranged'&&distance<=weaponMaxDistance(h,weapon);
   const counterAttack=turn=>{
     const weapon=reloading&&reloadWeapon===main?main?.bayonet:main;if(!weapon||weapon.flame||(weapon.usesHeavyAmmo&&!(h.heavyAmmo>0)))return;
-    counterUsed=true;if(weapon.reloadMain){reloading=true;reloadWeapon=weapon.quickReloadBase??weapon;}
+    counterUsed=true;if(weapon.reloadMain){{const base=weapon.quickReloadBase??weapon;base.reloadCycleShots=(base.reloadCycleShots??0)+1;if(base.reloadCycleShots>=(base.reloadCycle??1)){base.reloadCycleShots=0;reloading=true;reloadWeapon=base;}}}
     const count=weapon.shots?weapon.shots+(h.burstBonus??0):1;
     for(let attack=1;attack<=count&&ratHp>0;attack++){
       if(weapon.usesHeavyAmmo){if(!(h.heavyAmmo>0))break;h.heavyAmmo--;}
@@ -330,7 +333,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     }
     if(reloadTurn){
       reloading=false;
-      const target=reloadWeapon??main;reloadWeapon=null;weapon=h.professionPerks?.includes('sniper-reload')&&inRange(target,distance)?{...target,quickReloadShot:true,quickReloadBase:target,accuracyBonus:(target.accuracyBonus??0)-10}:distance===0?target.bayonet:null;
+      const target=reloadWeapon??main;reloadWeapon=null;weapon=h.professionPerks?.includes('sniper-reload')&&inRange(target,distance)?{...target,quickReloadShot:true,quickReloadBase:target,accuracyBonus:(target.accuracyBonus??0)-15}:distance===0?target.bayonet:null;
       note('перезарядка',{turn,distance,weapon:target.item});
     }
     const openingTurn=heroTurn&&!ambush&&!h.openingExtraAttackSpent;
@@ -782,12 +785,12 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,do
 
 export function nationalityHealing(hero,amount,medicine=false){const n=hero.nationalityBonuses??hero.nationality??{};return amount*(1+(n.healingPercent??0)/100)*(medicine?1+(n.medicinePercent??0)/100:1);}
 
-export function weaponMaxDistance(hero,weapon){const max=weapon?.maxDistance??Infinity;return hero.maxStartingDistance>=4&&max>=3?Math.max(max,4):max;}
+export function weaponMaxDistance(hero,weapon){const max=weapon?.maxDistance??Infinity;return max>=3?Math.max(max,5):max;}
 export function perceptionCheck(hero,random,bonus,dc,{inclusive=false,events=null,trace=true,scientistEligible=true}={}){
  if(scientistEligible)bonus+=hero.scientistSearchBonus??0;
  let roll=random.int(1,20),total=roll+bonus,success=inclusive?total>=dc:total>dc;
- if(!success&&hero.perceptionReroll&&!hero.perceptionRerollUsed){
-  hero.perceptionRerollUsed=true;const firstRoll=roll,firstBonus=bonus;bonus+=2;roll=random.int(1,20);total=roll+bonus;success=inclusive?total>=dc:total>dc;
+ if(!success&&hero.perceptionReroll&&(!hero.perceptionRerollUsed||hero.perceptionEveryCheckReroll)){
+  hero.perceptionRerollUsed=true;const firstRoll=roll,firstBonus=bonus;bonus+=hero.perceptionRerollBonus??2;roll=random.int(1,20);total=roll+bonus;success=inclusive?total>=dc:total>dc;
   if(events&&trace)events.push({type:'соколиный глаз',firstRoll,firstBonus,roll,bonus,dc,inclusive,success});
  }
  return scientistEligible?scientistCheck(hero,random,{roll,bonus,total,success,dc,inclusive}):{roll,bonus,total,success};

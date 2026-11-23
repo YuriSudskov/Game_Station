@@ -64,7 +64,7 @@ function armorDamage(c,target,raw,type,random,piercing=false,preview=false,armor
  let armor=piercing?0:type==='thermal'?(target.thermalArmor??0):(target.armor??0);
  if(!piercing&&target.firstHitArmor&&!target.paddingSpent){armor+=target.firstHitArmor;target.paddingSpent=true;say(c,target.name+': ватник слетает.');}
  let damage=damageAfterArmor(raw,armor*armorFactor)*damageMultiplier;if(type==='thermal'){damage*=target.thermalMultiplier??1;if(target.kolomQueen){target.armor=60;target.meltedUntil=c.round+1;}}
- if(!target.heavyHitUsed&&(target.halveHeavyHit&&damage>target.maxHp*.25||target.professionPerks?.includes('heavy-hold')&&damage>=target.maxHp*.25)){damage/=2;target.heavyHitUsed=true;}
+ if(!target.heavyHitUsed&&(target.halveHeavyHit&&damage>target.maxHp*.25||target.professionPerks?.includes('heavy-hold')&&damage>=target.maxHp*.20)){damage/=2;target.heavyHitUsed=true;}
  if(preview)return damage;
  const dealt=applyPartyDamage(c,target,damage,random);
  if(c.manual)(c.frames??=[]).push({actorId:c.manualActorId,targetId:target.id,...c.manualEffect,hit:true,damage:dealt,hp:target.hp,maxHp:target.maxHp});
@@ -185,7 +185,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
  combat.status='running';combat.actorIndex??=0;combat.round??=1;
  if(!combat.initialized){
   combat.initialized=true;
-  for(const h of combat.heroes){h.distances??={};for(const e of combat.enemies){const dc=9+(e.stealth??0),check=perceptionCheck(h,random,(h.perception??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.initialPerceptionBonus??0)+(h.perceptionCheckBonus??0)-(h.checkPenalty??0),dc,{events:combat.events});h.distances[e.id]=Math.min(h.maxStartingDistance??3,distanceFromMargin(check.total-dc,h.maxStartingDistance??3)+(h.nationality?.startingDistance??0));h.battleStartHp=h.hp;}const front=combat.enemies.filter(e=>e.frontline),rear=combat.enemies.filter(e=>!e.frontline);if(front.length&&rear.length){const back=Math.max(1,...rear.map(e=>h.distances[e.id]));for(const e of rear)h.distances[e.id]=back;for(const e of front)h.distances[e.id]=back-1;}} 
+  for(const h of combat.heroes){h.distances??={};for(const e of combat.enemies){const dc=9+(e.stealth??0),check=perceptionCheck(h,random,(h.perception??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)+(h.initialPerceptionBonus??0)+(h.perceptionCheckBonus??0)-(h.checkPenalty??0),dc,{events:combat.events});h.distances[e.id]=Math.min(Math.max(5,h.maxStartingDistance??5),distanceFromMargin(check.total-dc,Math.max(5,h.maxStartingDistance??5))+(h.nationality?.startingDistance??0));h.battleStartHp=h.hp;}const front=combat.enemies.filter(e=>e.frontline),rear=combat.enemies.filter(e=>!e.frontline);if(front.length&&rear.length){const back=Math.max(1,...rear.map(e=>h.distances[e.id]));for(const e of rear)h.distances[e.id]=back;for(const e of front)h.distances[e.id]=back-1;}} 
   // Every participating hero has their own opening grenade or Mark.
   combat.openingIndex=0;
   if(combat.ambushTarget){
@@ -303,7 +303,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    if(!combat.manual&&actor.reloading){
     actor.reloading=false;
     const targetWeapon=actor.reloadWeapon;
-    weapon=actor.professionPerks?.includes('sniper-reload')&&targetWeapon&&distance<=weaponMaxDistance(actor,targetWeapon)?{...targetWeapon,quickReloadShot:true,quickReloadBase:targetWeapon,accuracyBonus:(targetWeapon.accuracyBonus??0)-10}:distance===0?targetWeapon?.bayonet:null;
+    weapon=actor.professionPerks?.includes('sniper-reload')&&targetWeapon&&distance<=weaponMaxDistance(actor,targetWeapon)?{...targetWeapon,quickReloadShot:true,quickReloadBase:targetWeapon,accuracyBonus:(targetWeapon.accuracyBonus??0)-15}:distance===0?targetWeapon?.bayonet:null;
     actor.reloadWeapon=null;
     say(combat,actor.name+': перезарядка.');
     if(!weapon)continue;
@@ -322,7 +322,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     say(combat,actor.name+': '+(weapon.name??ITEMS[weapon.item]?.name??'оружие')+' заклинило. Ход пропущен.');
     continue;
    }
-   if(!combat.manual&&weapon.reloadMain&&(weapon===main||combat.manual&&manualAction?.slot==='main'||weapon.reloadEverySlot||weapon.quickReloadShot)){actor.reloading=true;actor.reloadWeapon=weapon.quickReloadBase??weapon;}
+   if(!combat.manual&&weapon.reloadMain&&(weapon===main||combat.manual&&manualAction?.slot==='main'||weapon.reloadEverySlot||weapon.quickReloadShot)){{const base=weapon.quickReloadBase??weapon;base.reloadCycleShots=(base.reloadCycleShots??0)+1;if(base.reloadCycleShots>=(base.reloadCycle??1)){base.reloadCycleShots=0;actor.reloading=true;actor.reloadWeapon=base;}}}
    if(actor.tauntFirstTurn&&!actor.ownTurnDone){target.accuracy+=10;target.evasion-=20;}
    let sequence=Array.from({length:heroAttackStats(combat.manual&&manualAction?.mode!=='paired'?{...actor,dualPistols:false}:actor,weapon,distance).attacks},()=>weapon);
    if(combat.manual&&manualAction?.mode==='single'&&!weapon.quickReloadShot)sequence=[weapon];

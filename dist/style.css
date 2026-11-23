@@ -446,3 +446,18 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 /* Thermal weapon silhouettes in inventory and item details. */
 .thermal-weapon > svg.icon{stroke:#ee9a91;color:#ee9a91}
 .thermal-weapon > img.comic-item-icon{filter:drop-shadow(1px 0 0 #ee9a91) drop-shadow(-1px 0 0 #ee9a91) drop-shadow(0 1px 0 #ee9a91) drop-shadow(0 -1px 0 #ee9a91)}
+/* Compact expedition participants and independently scrollable scene journal. */
+.expedition-modal .battle-log{max-height:180px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+.expedition-modal .recovery-party{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:7px 0}
+.expedition-modal .recovery-party:has(>:nth-child(4)){grid-template-columns:repeat(4,minmax(0,1fr))}
+.expedition-modal .recovery-party:not(:has(>:nth-child(3))){grid-template-columns:repeat(2,minmax(0,1fr))}
+.expedition-modal .recovery-party .recovery-hero{padding:6px;min-width:0;min-height:44px;text-align:left;margin:0}
+.expedition-modal .recovery-party .recovery-hero .portrait{display:none}
+.expedition-modal .recovery-party .recovery-hero .row{display:block}
+.expedition-modal .recovery-party .recovery-hero strong{display:block;font-size:12px;line-height:1.2;overflow-wrap:anywhere}
+.expedition-modal .recovery-party .recovery-hero .health-label{font-size:0;line-height:1;margin:4px 0 3px}
+.expedition-modal .recovery-party .recovery-hero .health-label>span:last-child{display:none}
+.expedition-modal .recovery-party .recovery-hero .health-label .radiation-status{font-size:9px}
+.expedition-modal .recovery-party .recovery-hero .hpbar{height:5px}
+.expedition-modal .recovery-party .recovery-hero .subtitle{font-size:10px;line-height:1.2;margin-top:4px}
+@media(max-width:480px){.expedition-modal .battle-log{max-height:min(110px,16dvh);font-size:11px;margin:6px 0}.expedition-modal .battle-log p{padding:4px 0}.expedition-modal .recovery-party .recovery-hero strong{font-size:11px}.expedition-modal .interactive-stage-image,.expedition-modal .hansa-route-art{max-height:min(190px,28dvh);margin-bottom:7px}.expedition-modal .research-options,.expedition-modal .interactive-stage-choices{gap:6px;margin-top:7px}}

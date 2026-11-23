@@ -51,6 +51,7 @@ export function runKolom(s,action,now,random,c){
  const actionLogStart=a.events.length;const note=t=>a.events.push(t);
  const regen=()=>{for(const h of living())if(h.mark==='regeneration')h.hp=Math.min(c.effectiveMaxHp(h),h.hp+30);};
  const go=node=>{const previous=a.node;a.node=node;if(previous!==node){a.sceneLogStart=actionLogStart;note('Переход: '+KOLOM_SCENES[node][1]+'. '+KOLOM_SCENES[node][2]);regen();}};
+ const search=(key,level,final=false)=>{const result=c.searchRewards(a,key,level,final,rolls);(a.rewardItems??=[]).push(...result.items);a.money+=result.money;for(const check of result.checks)note(check.name+': обнаружение '+check.roll+' + '+check.bonus+' против '+result.dc+' — '+(check.success?'успех':'провал'));note('Найдено наград: '+result.count+'. '+result.items.map(x=>ITEMS[x.item].name+(x.quality?' +'+x.quality:'')).join(', ')+'; '+result.money/10+' А.');};
  const loot=(id,qty=1)=>{a.loot[id]=(a.loot[id]??0)+qty;note('Найдено: '+ITEMS[id].name+' ×'+qty+'.');};
  const checkOne=(member,attribute,dc)=>{const cfg=c.heroConfig(s,member,'surface').hero,bonus=attribute==='intelligence'?cfg.intelligence+(cfg.intelligenceCheckBonus??0):attribute==='agility'?cfg.agility:cfg.perception+(cfg.perceptionCheckBonus??0),roll=rolls.int(1,20),ok=roll+bonus>dc;note(member.name+': '+({intelligence:'Интеллект',agility:'Ловкость',perception:'Восприятие'}[attribute]??attribute)+' '+roll+' + '+bonus+' против '+dc+' — '+(ok?'успех':'провал'));if(ok)a.xp+=10;return ok;};
  const check=(attribute,dc)=>living().map(member=>checkOne(member,attribute,dc)).some(Boolean);
@@ -62,7 +63,7 @@ export function runKolom(s,action,now,random,c){
    c.finishStimulant(h,{stimulant:true});const xp=c.adventureExperience(a,h,(a.xp+(success?150:0))/party.length);c.levelUp(h,xp);
    c.healAtMedicTent(s,h,now);h.lastHeavyReload=c.settleHeavyAmmo(s,h,{heavyAmmoRemaining:h.heavyAmmo,heavyAmmoSpent:Math.max(0,(a.initialAmmo?.[h.id]??a.initialHeavyAmmo)-(h.heavyAmmo??0))},now);h.needsAdventureRest=true;entries.push({id:h.id,name:h.name,xp,dead:false,radiation:dose});
   }
-  if(anyAlive){if(!a.repeat){const rewards=Object.entries(a.loot).map(([item,qty])=>({item,qty}));if(success&&!s.kolomQuestRewardClaimed){const pool=Object.entries(ITEMS).filter(([,item])=>['weapon','body'].includes(item.type)&&item.equipmentCategory===5).map(([id])=>id);need(pool.length,'Нет снаряжения для награды.');a.questReward={item:pool[rolls.int(0,pool.length-1)],qty:1,quality:1};rewards.push(a.questReward);a.money+=5000;s.kolomQuestRewardClaimed=true;}c.receive(s,rewards);s.money+=a.money;}c.startAdventureCooldown(s,a,now);}
+  if(anyAlive){if(!a.repeat){const rewards=[...Object.entries(a.loot).map(([item,qty])=>({item,qty})),...(a.rewardItems??[])];if(success&&!s.kolomQuestRewardClaimed){const pool=Object.entries(ITEMS).filter(([,item])=>['weapon','body'].includes(item.type)&&item.equipmentCategory===5&&!item.rewardOnly).map(([id])=>id);need(pool.length,'Нет снаряжения для награды.');a.questReward={item:pool[rolls.int(0,pool.length-1)],qty:1,quality:1};rewards.push(a.questReward);a.money+=5000;s.kolomQuestRewardClaimed=true;}c.receive(s,rewards);s.money+=a.money;}c.startAdventureCooldown(s,a,now);}
   if(success){s.completedLocations.kolomenskaya=true;s.kolomQuestCompleted=true;if(a.teaSolo)s.teaReputation=(s.teaReputation??0)+1;}
   s.lastKolomMission={...copy(a),entries,awardedXp:entries[0].xp,radiationReceived:entries[0].radiation??0,success,dead:!anyAlive,hero:copy(party[0]),heroes:copy(party)};s.interactiveMission=null;
  };
@@ -104,7 +105,7 @@ export function runKolom(s,action,now,random,c){
   if(choice==='treatment'||choice==='antidote'){
    const medic=living().find(member=>['medic','doctor'].includes(member.profession));need(medic&&!a.treatmentUsed,'Специалист уже помог после этого боя.');need(choice==='antidote'||c.heroAttributes(h).strength>0,'Недостаточно Силы.');
    if(choice==='antidote'){need(h.poisonDoses>0,'Отравления нет.');const total=rolls.int(1,20)+c.heroConfig(s,medic,'surface').hero.perception,removed=Math.min(h.poisonDoses,total>=22?3:total>=15?2:1);h.poisonDoses-=removed;note('Снято доз яда: '+removed);}
-   else {const before=h.hp;h.hp=Math.min(c.effectiveMaxHp(h),h.hp+(medic.profession==='medic'?rolls.int(60,100):medic.level*rolls.int(1,10))+10*c.heroConfig(s,medic,'surface').hero.perception);note(medic.name+' лечит '+h.name+': +'+Math.round((h.hp-before)*10)/10+' HP, −1 Силы цели до отдыха.');}
+   else {const before=h.hp;h.hp=Math.min(c.effectiveMaxHp(h),h.hp+(medic.level*rolls.int(1,10))+10*c.heroConfig(s,medic,'surface').hero.perception);note(medic.name+' лечит '+h.name+': +'+Math.round((h.hp-before)*10)/10+' HP, −1 Силы цели до отдыха.');}
    h.temporaryAttributeLoss={...h.temporaryAttributeLoss,strength:(h.temporaryAttributeLoss?.strength??0)+1};a.treatmentUsed=true;
   }else if(choice.startsWith('heal:')){const item=choice.slice(5),key={doctorKit:'doctorKits',medicKit:'medicKits',dressingKit:'dressingKits',bandage:'bandages'}[item];const source=party.find(member=>member[key]>0);need(key&&source,'Нет лекарства.');need(h.hp<c.effectiveMaxHp(h)||item==='doctorKit'&&(h.poisonDoses>0||h.radiation>0),'Лечение не требуется.');
    if(item==='doctorKit')doctorKitCure(h);source[key]--;const before=h.hp;h.hp=c.bandageHeal(config(),rolls,h.hp,item).hp;note(h.name+': '+ITEMS[item].name+' — восстановлено '+Math.round((h.hp-before)*10)/10+' HP.');
@@ -115,12 +116,12 @@ export function runKolom(s,action,now,random,c){
  case 'fork':if(choice==='sense'){need(!a.senseUsed,'Чутьё уже проверено.');a.senseUsed=true;if(check('perception',15)){a.revealed=true;note('Сухой путь: '+(a.drySide==='left'?'левый':'правый')+'. Мокрый тоннель радиоактивен.');}}
   else{need(['left','right'].includes(choice),'Выбери тоннель.');a.branch=choice===a.drySide?'dry':'wet';if(a.branch==='wet')a.locationRadiation=4;go(a.branch==='dry'?'dry1':'wet');}break;
  case 'dry1':need(choice==='forward','Выбери продолжить.');{const roll=rolls.int(1,100);note('Встреча в сухом тоннеле: d100 = '+roll+'; бой при 1–70.');if(roll<=70)spiders(2,3,'corpse');else {note('Отряд проходит дальше без боя.');go('corpse');}}break;
- case 'corpse':if(choice==='search'){loot('oldMedicines');if(!check('perception',12))spiders(2,2,'anomaly');else go('anomaly');}else{need(choice==='skip','Неверный выбор.');go('anomaly');}break;
+ case 'corpse':if(choice==='search'){search('guardCocoon',7);if(!check('perception',12))spiders(2,2,'anomaly');else go('anomaly');}else{need(choice==='skip','Неверный выбор.');go('anomaly');}break;
  case 'anomaly':need(choice==='avoid','Неверный выбор.');for(const member of living()){if(['medium','heavy'].includes(ITEMS[member.body]?.armorClass)&&!checkOne(member,'intelligence',18)){const half=checkOne(member,'agility',13),raw=Array.from({length:6},()=>rolls.int(1,6)).reduce((a,b)=>a+b,0),damage=damageAfterArmor(raw*(half?.5:1),c.heroConfig(s,member,'surface').hero.thermalArmor);member.hp=Math.max(0,member.hp-damage);note(member.name+': аномалия '+damage+' термического урона.');}else note(member.name+': удалось уйти от разряда.');}go('dry2');break;
- case 'dry2':need(choice==='forward','Неверный выбор.');{const roll=rolls.int(1,100);note('Последние коконы: d100 = '+roll+'; бой при 1–80.');if(roll<=80)spiders(2,4,'station');else{note('Коконы пусты.');loot('dressingKit');go('station');}}break;
+ case 'dry2':need(choice==='forward','Неверный выбор.');{const roll=rolls.int(1,100);note('Последние коконы: d100 = '+roll+'; бой при 1–80.');if(roll<=80)spiders(2,4,'station');else{note('Коконы пусты.');search('emptyCocoons',7);go('station');}}break;
  case 'wet':if(choice==='back')go('fork');else{need(choice==='forward','Неверный выбор.');a.locationRadiation=4;go('worm');}break;
  case 'worm':need(choice==='fight','Неверный выбор.');combat([copy(KOLOM_ENEMIES.worm)],'lair');break;
- case 'lair':need(['search','skip'].includes(choice),'Неверный выбор.');if(choice==='search'){loot('oldMedicines');loot('dressingKit');}go('clear');break;
+ case 'lair':need(['search','skip'].includes(choice),'Неверный выбор.');if(choice==='search'){search('wormLair',7);}go('clear');break;
  case 'clear':need(choice==='forward','Неверный выбор.');go('station');break;
  case 'station':need(choice==='enter','Неверный выбор.');go('pressure');break;
  case 'pressure':{
@@ -135,7 +136,7 @@ export function runKolom(s,action,now,random,c){
   need(flame||living().reduce((n,member)=>n+(member.molotovs??0),0)>=molotovCost,'Нужно 10 оставшихся Молотовых либо огнемёт с 10 зарядами.');let remaining=flame?flameCost:molotovCost;for(const member of flame?flamers:living()){const key=flame?'heavyAmmo':'molotovs',spent=Math.min(remaining,member[key]??0);member[key]-=spent;remaining-=spent;}go('blaze');break;}
  case 'blaze':need(choice==='forward','Неверный выбор.');go('boss');break;
  case 'boss':need(choice==='fight','Неверный выбор.');combat([copy(KOLOM_ENEMIES.queen),copy(KOLOM_ENEMIES.spider),copy(KOLOM_ENEMIES.spider)],'cleanup');a.combat.manual=true;a.combat.frames=[];return runKolom(s,{type:'kolomChoice',node:'combat',choice:'manual'},now,random,c);
- case 'cleanup':need(choice==='search','Неверный выбор.');a.money+=rolls.int(60,120)*10;loot('oldMedicines',rolls.int(1,2));loot(['awl','mr73','kazakVest'][rolls.int(0,2)]);loot('kolomenskayaBeetles');go('final');break;
+ case 'cleanup':need(choice==='search','Неверный выбор.');search('queenCache',8,true);loot('kolomenskayaBeetles');go('final');break;
  case 'final':need(choice==='finish','Неверный выбор.');finish(true);return s;
  default:throw Error('Неизвестная сцена.');
  }

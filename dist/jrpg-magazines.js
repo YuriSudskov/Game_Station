@@ -1,7 +1,7 @@
 // Magazine sizes apply only to manual JRPG encounters.
 // Named real models use their listed configuration; fictional models use game capacities.
 export const JRPG_MAGAZINES={
- sawedOff:2,zauerM:2,oldShotgun:2,rox:6,rox3:6,
+ fourfoldShotgun:4,sawedOff:2,zauerM:2,oldShotgun:2,rox:6,rox3:6,
  ak47:30,ak74:30,rpk:100,ppsh:71,m60:100,improvedM16:30,american180:177,
  pistol:8,mr73:6,fiveSeven:20,brenTen:10,mosin:5,remington:5,
  saiga20k:5,browning:5,slugShotgun:5,abzats:20,velocipedel:60,

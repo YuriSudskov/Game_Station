@@ -1,6 +1,8 @@
+import {applyProfessionBalance} from './profession-balance.js';
 import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ fourfoldShotgun:{name:'Четырёхплет',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:200,maxDistance:2,damageRolls:2,shotPenalty:10,reloadMain:true,reloadEverySlot:true,reloadCycle:2,equipmentCategory:5,requiredHeroLevel:5,value:8000,stack:false,rarity:'unique',rewardOnly:true,icon:'zauer',description:'Уникальный дробовик, 20–200 урона за попадание, дуплет −10 п.п. Магазин 4: два дуплета до перезарядки. Дистанция 0–2.'},
  radioactiveGrenade:{name:'Радиоактивная граната',type:'grenade',stack:true,value:375,min:12,max:24,dodgeDc:14,damageType:'radiation',icon:'grenade',description:'12–24 облучения минус РАД цели. Уклонение 14: половина облучения без отравления. При провале 50% пропустить следующий ход.'},
  improvedBeetleBattery:{name:'Улучшенная жучиная батарея',type:'resource',stack:true,value:3000,icon:'tool',description:'Постоянное питание оборудования без риска облучения.'},
  beetleBattery:{name:'Жучиная батарея',type:'resource',stack:true,value:1000,icon:'tool',description:'5% шанс получить 1 РАД после локации или вылазки независимо от защиты. Одна батарея навсегда подключается к герою и постоянно питает лазерное оружие. Изготавливается в Науке.'},
@@ -482,7 +484,7 @@ export const LEVEL_PERKS={
  'hunter-correction':{name:'Корректировка',profession:'hunter',minLevel:2,repeatable:false,description:'Каждый следующий выстрел в ту же цель получает накопительно +3 п.п. точности, максимум +15. Смена цели или новый бой сбрасывают бонус.'},
  'hunter-falcon-eye':{name:'Соколиный глаз',profession:'hunter',minLevel:3,repeatable:false,description:'Один раз за прохождение локации или за вылазку автоматически повторяет первую проваленную проверку Восприятия или поиска добычи с бонусом +2.'},
  'hunter-familiarity':{name:'Привыкание',profession:'hunter',minLevel:4,repeatable:false,description:'При выборе и каждом повышении уровня надетое оружие получает +5 урона привыканием, максимум +25 на оружие. Перенос между слотами сохраняет бонус, снятие или замена сбрасывают.'},
- 'hunter-distance':{name:'Дистанция',profession:'hunter',minLevel:5,repeatable:false,description:'+2 к Внимательности при определении дистанции в начале боя. При преимуществе 15+ доступна дистанция 4; оружие с дальностью 3 может стрелять и с неё.'},
+ 'hunter-distance':{name:'Дистанция',profession:'hunter',minLevel:5,repeatable:false,description:'+2 к Внимательности при определении дистанции в начале боя. Дистанции 4 и 5 доступны всем героям при преимуществе 15+ и 20+ соответственно.'},
  'general-health':{name:'Общее развитие: здоровье',profession:'all',minLevel:2,repeatable:true,maxHpBonus:40,description:'+40 к максимуму HP. Текущее здоровье не увеличивается. Можно выбирать многократно.'},
  'general-evasion':{name:'Общее развитие: уклонение',profession:'all',minLevel:4,repeatable:true,evasionBonus:4,description:'+4 п.п. уклонения на любой дистанции. Можно выбирать многократно.'},
  'general-armor':{name:'Общее развитие: защита',profession:'all',minLevel:6,repeatable:true,physicalArmorBonus:5,thermalArmorBonus:5,description:'+5 к физическому и +5 к термическому поглощению. Можно выбирать многократно.'},
@@ -1007,3 +1009,5 @@ export const SURFACE_SHOPS={
   {rollMax:100,name:'Аптека',xp:65,money:500,loot:{medicKit:2,strongTape:1}}
  ]
 };
+
+applyProfessionBalance({PROFESSIONS,PERKS,LEVEL_PERKS});
