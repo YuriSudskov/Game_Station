@@ -2,6 +2,7 @@ import {applyProfessionBalance} from './profession-balance.js';
 import {roofMission} from './roof-route.js';
 export {CHANGELOG} from './changelog.js';
 export const ITEMS={
+ poisonousSting:{name:'Ядовитое жало',type:'loot',stack:true,value:250,icon:'knife',description:'Трофей хитинового скорпион-паука.'},
  fourfoldShotgun:{name:'Четырёхплет',type:'weapon',combat:'ranged',weaponClass:'shotgun',min:20,max:200,maxDistance:2,damageRolls:2,shotPenalty:10,reloadMain:true,reloadEverySlot:true,reloadCycle:2,equipmentCategory:5,requiredHeroLevel:5,value:8000,stack:false,rarity:'unique',rewardOnly:true,icon:'zauer',description:'Уникальный дробовик, 20–200 урона за попадание, дуплет −10 п.п. Магазин 4: два дуплета до перезарядки. Дистанция 0–2.'},
  radioactiveGrenade:{name:'Радиоактивная граната',type:'grenade',stack:true,value:375,min:12,max:24,dodgeDc:14,damageType:'radiation',icon:'grenade',description:'12–24 облучения минус РАД цели. Уклонение 14: половина облучения без отравления. При провале 50% пропустить следующий ход.'},
  improvedBeetleBattery:{name:'Улучшенная жучиная батарея',type:'resource',stack:true,value:3000,icon:'tool',description:'Постоянное питание оборудования без риска облучения.'},
@@ -11,8 +12,8 @@ export const ITEMS={
  laserRifle:{requiresBeetleBattery:true,name:'Лазерная винтовка',type:'weapon',combat:'ranged',weaponClass:'rifle',damageType:'thermal',accuracyBonus:5,min:70,max:230,maxDistance:3,equipmentCategory:10,stack:false,value:5000,icon:'gun',description:'70–230 термического урона, +5 п.п. точности. Винтовка, дистанция 0–3, один выстрел.'},
  heavyLaser:{name:'Тяжёлый лазер',type:'weapon',combat:'ranged',weaponClass:'heavy',damageType:'thermal',accuracyBonus:5,min:35,max:125,shots:3,shotPenalty:20,maxDistance:3,equipmentCategory:10,requiresBeetleBattery:true,rangedSlotOnly:true,stack:false,value:6000,icon:'gun',description:'35–125 термического урона ×3, +5 п.п. точности, штраф −20 п.п. на выстрел, дистанция 0–3. Требует однократно подключить жучиную батарею к герою.'},
  piercerBlade:{name:'Клинок пронзателя',type:'weapon',combat:'melee',min:25,max:140,strengthMultiplier:10,piercing:true,equipmentCategory:10,value:5000,rarity:'rare',stack:false,icon:'piercerBlade',description:'25–140 + Сила ×10 физического урона. Пробивающее: игнорирует поглощение защиты цели.'},
- kolomenskayaBeetles:{name:'Живой жук с Коломенской',type:'resource',stack:true,value:200,icon:'bag',description:'Живой образец для исследования жуков. Источник получения — скоро.'},
- kolomenskayaBeetleCorpse:{name:'Тушка жука с Коломенской',type:'resource',stack:true,value:100,icon:'bag',description:'Мёртвый образец для исследования жуков. Источник получения — скоро.'},
+ kolomenskayaBeetles:{name:'Живой странный жук',type:'resource',stack:true,value:200,icon:'bag',description:'Редкая находка: 5% успешных попыток ловли жука Ловкостью. Открывает исследование живого жука после изучения тушки.'},
+ kolomenskayaBeetleCorpse:{name:'Тушка странного жука',type:'resource',stack:true,value:100,icon:'bag',description:'Мёртвый образец для исследования жуков. Источник получения — скоро.'},
  grassGum:{name:'Жвачка из травы',type:'stimulant',stack:false,value:700,icon:'stimulant',description:'10 применений. На время локации +1 Ловкости, +1 к обнаружению и +25% к скорости прохождения (время делится на 1,25).'},
  pukGrassDecoction:{name:'Отвар из пук-травы',type:'food',stack:true,value:400,icon:'medical',description:'На станции снимает 2–5 + Сила РАД. Не уменьшает максимум здоровья и не даёт опыта за применение.'},
  kevlarMaterial:{name:'Кевларовый материал',type:'resource',stack:true,value:700,rarity:'rare',icon:'bag',description:'Плотное многослойное полотно, обработанное химическим составом. Основа кевларовой брони.'},
@@ -244,7 +245,7 @@ hardArmor:{"name":"Твёрдый","production":"science","level":11,"ingredient
 };
 export const PRODUCTIONS={melee:{name:'Цех',icon:'knife'},ranged:{name:'Стрелковое оружие',icon:'gun'},armor:{name:'Броня',icon:'jacket'},medicine:{name:'Медицина',icon:'medical'},upgrade:{name:'Оружейное дело',icon:'tool'},science:{name:'Наука',icon:'science'}};
 export const MAX_PRODUCTION_LEVEL=20;
-export const LOCATION_LEVELS={help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7,pukGrassSearch:7};
+export const LOCATION_LEVELS={kolomTunnels:7,help:1,mission:1,patrol:2,caravan:3,technopark:4,surface:5,zilTunnels:6,surfaceShops:7,pukGrassSearch:7};
 export const PRODUCTION_XP=Object.fromEntries(Array.from({length:MAX_PRODUCTION_LEVEL-1},(_,i)=>{const level=i+1;return [level,5*level*(level+1)];}));
 export function productionXpThreshold(id,level){return Object.hasOwn(PRODUCTIONS,id)&&level<MAX_PRODUCTION_LEVEL?PRODUCTION_XP[level]:undefined;}
 export const TRADE_MODIFIERS=[-15,-10,0,10,15];
@@ -258,7 +259,7 @@ export const PLANNED_LOCATIONS=[
  {id:'tunnel-patrol',name:'Патрулирование тоннелей',area:'underground',icon:'map'},
  {id:'paveletskaya-caravan',name:'С караваном на Павелецкую',area:'underground',icon:'bag'},
  {id:'technopark',name:'Исследовать Технопарк',area:'underground',icon:'station'},
- {id:'kolomenskaya-spiders',name:'Пауки в Тоннелях Коломенской',area:'underground',icon:'map',requiredLevel:6,unlockedBy:'technopark',unlockText:'Откроется после первого успешного прохождения Технопарка.'},
+ {id:'kolomenskaya-spiders',name:'Жуки тоннелей Коломенской',area:'underground',icon:'map',requiredLevel:7,unlockedBy:'kolomenskaya',unlockText:'Откроется после очищения Коломенской.'},
  {id:'station-surroundings',name:'Рыскать в окрестностях станции',area:'surface',icon:'map'},
  {id:'surface-shops',area:'surface'},
  {id:'zil-tunnels',area:'surface'}

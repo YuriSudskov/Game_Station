@@ -1,50 +1,129 @@
-import {cells,center,key,distance,initialState,prepareTravel,stepMinutes,routeMinutes,travelClock,isNight,prepareFindings,checkFindings,resolveFinding,finishHike,startHike,reveal,move,clock,ORIGIN,METRO,MAP_UNITS_PER_METRE} from './hike-map-model.js';
+import {WEATHER,initializeWeather,cellRadiation,weatherRadiationText} from './hike-weather.js';
+import {cells,center,key,distance,initialState,prepareTravel,stepMinutes,routeMinutes,travelClock,isNight,logAction,prepareFindings,checkFindings,resolveFinding,finishHike,startHike,reveal,move,clock,ORIGIN,METRO,MAP_UNITS_PER_METRE} from './hike-map-model.js';
 import {terrainAt} from './hike-terrain.js';
 import {findRoute} from './hike-route.js';
+import {heroConfig,itemName,effectiveMaxHp} from './game.js';
+import {MAIN_SAVE_KEY,copySource,mountPreparation} from './hike-preparation.js';
+import {FACTIONS} from './hike-factions.js';
+import {prepareRadiationZones} from './hike-radiation-zones.js';
+import {isSafeCell} from './hike-safe-cells.js';
 const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg', storage='station-hike-map-prototype-v2';
 let state=initialState();
 try{const saved=JSON.parse(localStorage.getItem(storage));if(saved&&cells.some(c=>c.q===saved.q&&c.r===saved.r)&&Number.isInteger(saved.steps)&&saved.steps>=0&&Array.isArray(saved.explored))state={...saved,explored:saved.explored.filter(k=>cells.some(c=>key(c.q,c.r)===k))};}catch{}
 if(!state.seen&&state.steps===0)state=initialState();
-state=prepareTravel(prepareFindings(reveal(state)));
+state=prepareRadiationZones(initializeWeather(prepareTravel(prepareFindings(reveal(state)))));
+save();
 let scale=1,offset={x:0,y:0},width=0,height=0,drag=null;
 let planned=[],walking=false;
+let popup=null,selectedHero=0;
+function returnFilterReserve(){
+  if(!state.reserveFilters)return 0;
+  const path=findRoute(state,{q:0,r:0},c=>terrainAt(c).blocked,c=>stepMinutes(state,c));
+  if(distance(state,{q:0,r:0})>0&&!path.length)return null;
+  return (Math.floor(routeMinutes(state,path)/20)-Math.floor(state.elapsedMinutes/20))*state.heroes.filter(h=>!h.unconscious&&!h.dead).length;
+}
+function showPreparation(fresh){
+  state.preparing=true;save();
+  planned=[];popup=null;showRoute();document.body.classList.add('preparing');const root=$('preparation');root.hidden=false;
+  let source;
+  try{const raw=fresh??JSON.parse(localStorage.getItem('station-hike-source-v1')??'null');source=raw?.copiedAt?raw:copySource(raw??JSON.parse(localStorage.getItem(MAIN_SAVE_KEY)??'null'));localStorage.setItem('station-hike-source-v1',JSON.stringify(source));}
+  catch(e){root.replaceChildren();const p=document.createElement('p');p.textContent=e.message;root.append(p);const file=document.createElement('input');file.type='file';file.accept='.json';file.setAttribute('aria-label','Импортировать JSON-сохранение');file.onchange=async()=>{try{showPreparation(JSON.parse(await file.files[0].text()));}catch(error){p.textContent=error.message;}};root.append(file);return;}
+  let draft;try{draft=JSON.parse(localStorage.getItem('station-hike-preparation-draft-v1'));}catch{}
+  mountPreparation(root,{source,previousDraft:draft,
+    onRefresh:raw=>{try{const next=copySource(raw?.heroes?raw:JSON.parse(localStorage.getItem(MAIN_SAVE_KEY)??'null'));localStorage.removeItem('station-hike-preparation-draft-v1');showPreparation(next);}catch(e){root.append(Object.assign(document.createElement('p'),{textContent:e.message}));}},
+    onAmmoChange:qty=>{source.ammo=qty;localStorage.setItem('station-hike-source-v1',JSON.stringify(source));showPreparation(source);},
+    onStart:loadout=>{state=logAction(prepareTravel(prepareFindings(reveal({...state,...loadout,q:0,r:0,steps:0,elapsedMinutes:0,pending:[],ended:false,failed:false,prepared:true,preparing:false,weatherIndex:null,weatherCheckedMinute:null,journal:[]}))),'Вышли из Автозаводской. Начали поход.');state=initializeWeather(state);root.hidden=true;document.body.classList.remove('preparing');save();render();recenter();}
+  });
+}
 const nodes=new Map(),tiles=new Map();
 function element(tag,attrs){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
 function renderFindings(){
-  const panel=$('findings'),actions=$('hike-actions');panel.replaceChildren();actions.replaceChildren();
+  const panel=$('map-dialog'),actions=$('hike-actions'),event=state.pending[0];panel.replaceChildren();actions.replaceChildren();
+  const blocked=Boolean(event||popup);
+  $('map-overlay').hidden=!blocked;$('canvas').inert=blocked;$('reset').disabled=walking||Boolean(event);
+  function text(message,parent=panel){const p=document.createElement('p');p.textContent=message;parent.append(p);}
   function button(label,handler,parent=panel){const b=document.createElement('button');b.textContent=label;b.disabled=walking;b.onclick=handler;parent.append(b);}
-  function text(message){const p=document.createElement('p');p.textContent=message;panel.append(p);}
-  if(state.ended){text(state.failed?`Группа погибла без фильтров · клетка ${state.deathCell}.`:`Поход завершён · ${METRO.find(s=>distance(state,s)===0)?.name??'метро'} · ${travelClock(state).time}.`);button('Начать новый поход',()=>{state=startHike(state);save();render();recenter();$('hint').textContent='Новый поход · 07:00. Находки и разведанная карта сохранены.';});return;}
-  const event=state.pending[0];
-  if(isNight(state)){
-    text('Ночь. Разведка и поиск находок недоступны. Можно двигаться или искать укрытие.');
-    text('Нападения стражей · Скоро: шанс и состав ещё не настроены.');
-    button('Искать укрытие для ночлега · Скоро',()=>{$('hint').textContent='Поиск укрытия — Скоро. Условия ночлега ещё не настроены.';});return;
+  function open(kind){popup={kind};renderFindings();}
+  button('Инвентарь',()=>open('inventory'),actions);
+  if(!event&&!state.ended){
+    const minute=(420+state.elapsedMinutes)%1440;
+    if(isNight(state)||minute>=1080)button('Искать укрытие',()=>open('shelter'),actions);
+    if(!isNight(state)){
+      if(state.shops.includes(key(state.q,state.r)))button('Разрушенный магазин',()=>open('shop'),actions);
+      if(METRO.some(s=>distance(state,s)===0))button('Спуститься в метро',()=>{state=logAction(finishHike(state),'Спустились в метро. Поход завершён.');planned=[];showRoute();save();popup={kind:'ended'};render();},actions);
+    }
   }
+  if(state.ended)button('Новый поход',()=>showPreparation(),actions);
   if(event){
-    text(event.type==='shop'?'Вы нашли разрушенный магазин.':'Вы нашли свежие останки растерзанного сталкера.');
-    const choose=choice=>{state=resolveFinding(state,choice);save();render();$('hint').textContent='Выбор сохранён. Можно продолжать поход.';};
+    const title=document.createElement('h2');title.textContent=event.type==='shop'?'Мы нашли разрушенный магазин':'Останки сталкера';panel.append(title);
+    const illustration=element('svg',{viewBox:'0 0 400 130',class:'finding-art','aria-label':event.type==='shop'?'Схема разрушенного магазина':'Схема останков сталкера',role:'img'});
+    illustration.innerHTML=event.type==='shop'?'<path d="M45 115V48L170 22L200 43L228 16L350 50V115M40 48H170L190 67L210 48H357M70 115V70H130V115M150 78H195V110H150M245 70H320V108H245M25 118H370M100 30L125 18L143 29M208 115L225 90L238 113"/>':'<path d="M25 110L80 92L135 112L185 98L235 113L290 93L370 111M105 83L143 66L191 75L220 91L265 88M155 68L144 45L177 38L196 63M220 90L247 109M117 80L87 100M201 76L213 59L240 62"/>';
+    panel.append(illustration);text(event.type==='shop'?'Магазин останется отмечен на карте. Можно вернуться к нему позже.':'Свежие останки растерзанного сталкера. Обыскать или не трогать?');
+    const choose=choice=>{state=resolveFinding(state,choice);let message=event.type==='shop'?'Нашли разрушенный магазин. Оставили, чтобы вернуться позже.':'Не стали трогать останки сталкера.';
+      if(choice==='search'){const result=state.lastSearch;message=`Обыскали останки: поиск ${result.roll} + ${result.bonus} против ${result.dc}. ${result.reward?'Найдено: '+result.reward.name+'.':'Ничего не нашли.'}`;popup={kind:'result',text:message};}
+      state=logAction(state,message);save();render();};
     if(event.type==='remains')button('Обыскать · поиск 10',()=>choose('search'));
-    button(event.type==='shop'?'Оставить и вернуться позже':'Не трогать',()=>choose('leave'));return;
+    button(event.type==='shop'?'Оставить и вернуться позже':'Не трогать',()=>choose('leave'));
+  }else if(popup){
+    if(popup.kind==='inventory'){
+      const h=state.heroes[selectedHero]??state.heroes[0];text('Инвентарь группы');text(`Фильтры: ${state.filters}. Занимают ${Math.ceil(state.filters/20)} яч. (20 на ячейку).`);
+      for(let i=0;i<state.heroes.length;i++)button(state.heroes[i].name,()=>{selectedHero=i;renderFindings();});
+      text(`${h.name} · уровень ${h.level} · ${h.hp}/${effectiveMaxHp(h)} HP · Облучение ${h.radiation??0}${h.unconscious?' · без сознания':''}`);
+      text([h.weapon?itemName({item:h.weapon,...h.weaponDetails}):null,h.rangedWeapon?itemName({item:h.rangedWeapon,...h.rangedWeaponDetails}):null,h.body?itemName({item:h.body,...h.bodyDetails}):null].filter(Boolean).join(' · '));
+      text(`Бинты: ${h.bandages??0}, аптечки: ${h.medicKits??0}, врачебные наборы: ${h.doctorKits??0}. Гранаты: ${h.grenades??0}, Молотовы: ${h.molotovs??0}.`);
+      text('Найдено: '+(state.rewards?.map(r=>r.name).join(', ')||'пока ничего'));
+      text('Припасы в сумке: '+((state.cargo??[]).filter(r=>!r.item.startsWith('$')).map(r=>`${itemName(r)} ×${r.qty}`).join(', ')||'нет'));
+      text(`Общие патроны: ${state.ammo??0}`);
+      text('Применение припасов и смена снаряжения — Скоро.');
+    }else if(popup.kind==='shop')text('Разрушенный магазин. Осмотр — Скоро.');
+    else if(popup.kind==='shelter')text('Поиск укрытия — Скоро. Условия ночлега ещё не настроены.');
+    else if(popup.kind==='ended')text('Поход завершён. Группа спустилась в метро.');
+    else text(popup.text);
+    button('Закрыть',()=>{popup=null;renderFindings();});
   }
-  if(state.lastSearch){const result=state.lastSearch;text(`Поиск: ${result.roll} + ${result.bonus} против ${result.dc} · ${result.success?'успех':'неудача'}. ${result.reward?'Найдено: '+result.reward.name+' (5-й уровень).':'Ничего не найдено.'}`);}
-  if(state.rewards?.length)text('Находки группы: '+state.rewards.map(r=>r.name).join(', '));
-  if(state.shops.includes(key(state.q,state.r))){text('Разрушенный магазин · находка сохранена в этой клетке.');button('Осмотреть магазин · Скоро',()=>{$('hint').textContent='Осмотр разрушенного магазина — Скоро.';});}
-  if(METRO.some(s=>distance(state,s)===0))button('Спуститься в метро · закончить поход',()=>{state=finishHike(state);planned=[];showRoute();save();render();$('hint').textContent='Группа спустилась в метро. Поход завершён.';},actions);
+  renderJournal();
+}
+function renderJournal(){
+  const journal=$('journal'),atBottom=journal.scrollHeight-journal.scrollTop-journal.clientHeight<30;journal.replaceChildren();
+  for(const entry of state.journal??[]){const line=document.createElement('p');line.textContent=`День ${entry.day} · ${entry.time} — ${entry.text}`;journal.append(line);}
+  if(!state.journal?.length){const line=document.createElement('p');line.textContent='Здесь появятся записи о движении и находках.';journal.append(line);}
+  if(atBottom)journal.scrollTop=journal.scrollHeight;
 }
 for(const cell of cells){const p=center(cell);const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${p.x+415*Math.cos(a)},${p.y+415*Math.sin(a)}`;}).join(' ');const node=element('polygon',{points,tabindex:'-1','data-q':cell.q,'data-r':cell.r});nodes.set(key(cell.q,cell.r),node);$('hexes').append(node);}
-for(const station of METRO){
+const metroLabels=new Map();
+for(const station of METRO){const id=key(station.q,station.r),previous=metroLabels.get(id);if(previous){previous.names.add(station.name);previous.grey=previous.grey&&station.grey;if(station.faction)previous.factions.add(station.faction);}else metroLabels.set(id,{...station,names:new Set([station.name]),factions:new Set(station.faction?[station.faction]:[])});}
+for(const station of metroLabels.values()){
   const p=center(station),group=element('g',{transform:`translate(${p.x},${p.y})`,'pointer-events':'none','aria-hidden':'true'});
-  const icon=element('path',{d:'M-220 80H-80V25H-110L-72 -90L0 60L72 -90L110 25H80V80H220V25H188L108 -210L0 -15L-108 -210L-188 25H-220Z',fill:'#58df82',stroke:'#132a1e','stroke-width':14,'stroke-linejoin':'round'});
-  const label=element('text',{x:0,y:230,'text-anchor':'middle','font-size':86,fill:'#e5efd6',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent=station.name;
+  const icon=element('path',{d:'M-220 80H-80V25H-110L-72 -90L0 60L72 -90L110 25H80V80H220V25H188L108 -210L0 -15L-108 -210L-188 25H-220Z',fill:!station.grey?'#58df82':station.factions.has('hansa')?FACTIONS.hansa.marker:'#a2aaa4',stroke:'#132a1e','stroke-width':14,'stroke-linejoin':'round'});
+  const label=element('text',{x:0,y:230,'text-anchor':'middle','font-size':86,fill:'#e5efd6',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent=[...station.names].join(' / ');
   group.append(icon,label);$('hexes').append(group);
+  if(station.factions.size){const factionLabel=element('text',{x:0,y:325,'text-anchor':'middle','font-size':75,fill:'#d2c4a9',stroke:'#17241e','stroke-width':16,'paint-order':'stroke'});factionLabel.textContent=[...station.factions].map(id=>FACTIONS[id].name).join(' / ');group.append(factionLabel);}
 }
 function render(){
   const t=travelClock(state);$('clock').innerHTML=`<b>${t.time}</b>День ${t.day} · ${t.period} · ход ${state.steps}`;document.body.dataset.period=t.period;
   $('party').replaceChildren();
-  for(const hero of state.heroes){const card=document.createElement('div');card.textContent=`${hero.name} · ур. ${hero.level} · ${hero.unconscious?'Без сознания':hero.hp+' HP'} · ${hero.weapon==='ak47'?'АК47+2 / РОКС2':'Обрез+2 / ППШ+1'}`;$('party').append(card);}
-  $('supplies').textContent=`Фильтры: ${state.filters} · скорость: ${state.speed} мин · до расхода: ${20-state.elapsedMinutes%20} мин`;
-  $('position').textContent=state.q===0&&state.r===0?'Автозаводская · группа на базе':`Группа · клетка ${state.q}, ${state.r}`;
+  for(const hero of state.heroes){
+    const card=document.createElement('div'),title=document.createElement('div'),bar=document.createElement('div'),fill=document.createElement('div'),details=document.createElement('div');
+    const protection=heroConfig({heroes:state.heroes},hero,'surface').hero.radiationProtection??0;
+    title.textContent=`${hero.name} · ур. ${hero.level} · РАД ${protection} · Облучение ${hero.radiation??0}`;
+    bar.className='hike-health';bar.setAttribute('role','progressbar');bar.setAttribute('aria-label',`${hero.name}: здоровье, максимум с учётом облучения ${effectiveMaxHp(hero)}`);bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(effectiveMaxHp(hero)));bar.setAttribute('aria-valuenow',String(Math.max(0,hero.hp)));bar.title=`Здоровье ${Math.round(hero.hp)} / ${Math.round(effectiveMaxHp(hero))}, облучение ${hero.radiation??0}`;
+    fill.style.width=`${Math.max(0,Math.min(100,hero.hp/(hero.maxHp||1)*100))}%`;bar.append(fill);
+    const blocked=document.createElement('span');blocked.className='hike-radiation-loss';blocked.style.width=`${Math.max(0,(1-effectiveMaxHp(hero)/(hero.maxHp||1))*100)}%`;bar.append(blocked);
+    details.textContent=[hero.weapon?itemName({item:hero.weapon,...hero.weaponDetails}):null,hero.rangedWeapon?itemName({item:hero.rangedWeapon,...hero.rangedWeaponDetails}):null].filter(Boolean).join(' / ');
+    if(hero.unconscious)details.textContent+=' · Без сознания';card.append(title,bar,details);$('party').append(card);
+  }
+  const reserve=returnFilterReserve();
+  const minute=(420+state.elapsedMinutes)%1440,evening=minute>=1080&&minute<1200;
+  $('map').classList.toggle('evening',evening);$('evening-warning').hidden=!evening;
+  $('weather').textContent=isSafeCell(state)?`${WEATHER[state.weatherIndex].name} · защищённая клетка · РАД 0`:`${WEATHER[state.weatherIndex].name} · ${weatherRadiationText(state.weatherIndex)} · база ${state.cellRadiation?.[key(state.q,state.r)]??state.baseRadiation??3} РАД`;
+  $('supplies').textContent=`Фильтры: ${state.filters} · патроны: ${state.ammo??0} · скорость: ${state.speed} мин${state.reserveFilters?` · резерв: ${reserve??'путь не найден'} · доступно: ${reserve===null?'—':Math.max(0,state.filters-reserve)}`:''}${reserve!==null&&reserve>0&&state.filters<=reserve?' · Пора возвращаться!':''}`;
+  const radiation=cellRadiation(state);
+  const lowFilters=reserve!==null&&state.filters<10+reserve;
+  const irradiated=state.heroes.filter(h=>!h.dead&&h.hp>0&&!h.unconscious).filter(h=>{const config=heroConfig({heroes:state.heroes},h,'surface').hero;return Math.max(0,(config.halveRadiation?Math.floor(radiation/2):radiation)-(config.radiationProtection??0))>0;});
+  $('map').classList.toggle('low-filters',lowFilters);$('map').classList.toggle('radiation-warning',irradiated.length>0);
+  $('return-warning').hidden=!lowFilters;
+  $('radiation-warning').hidden=!irradiated.length;$('radiation-warning').textContent=irradiated.length?`Радиация превышает защиту: ${irradiated.map(h=>h.name).join(', ')}`:'';
+  $('position').textContent=`${state.q===0&&state.r===0?'Автозаводская':`Клетка ${state.q}, ${state.r}`} · РАД ${radiation}`;
   const explored=new Set(state.explored),seen=new Set(state.seen);$('terrain-labels').replaceChildren();
   for(const c of cells){
     const id=key(c.q,c.r),node=nodes.get(id),near=distance(state,c)===1,terrain=terrainAt(c),visible=seen.has(id)||explored.has(id);
@@ -52,6 +131,7 @@ function render(){
     node.setAttribute('tabindex','0');node.setAttribute('role','button');
     node.setAttribute('aria-label',`${METRO.find(s=>s.q===c.q&&s.r===c.r)?.name??`Клетка ${c.q}, ${c.r}`} · ${explored.has(id)?'разведана':seen.has(id)?'видна в дымке':'неизвестна'}${visible&&terrain.label?' · '+terrain.label:''}`);
     if(visible&&terrain.label){const p=center(c),label=element('text',{x:p.x,y:p.y+130,'text-anchor':'middle','font-size':90,fill:terrain.bridge?'#f5dca0':'#b6d1d9',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent=terrain.bridge?'Мост':terrain.water?'Вода':'Берег';$('terrain-labels').append(label);}
+    if(visible&&(state.cellRadiation?.[id]??3)>3){node.classList.add('hot-zone');const p=center(c),label=element('text',{x:p.x,y:p.y-280,'text-anchor':'middle','font-size':85,fill:'#e3ec91',stroke:'#17241e','stroke-width':20,'paint-order':'stroke'});label.textContent=`РАД ${cellRadiation({...state,q:c.q,r:c.r})}`;$('terrain-labels').append(label);}
   }
   for(const id of state.shops){const [q,r]=id.split(',').map(Number),p=center({q,r}),label=element('text',{x:p.x,y:p.y-100,'text-anchor':'middle','font-size':83,fill:'#f0d194',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent='Магазин';$('terrain-labels').append(label);}
   $('marker').setAttribute('transform',markerTransform(center(state)));renderFindings();
@@ -66,37 +146,52 @@ function save(){try{localStorage.setItem(storage,JSON.stringify(state));}catch{}
 const markerTransform=p=>`translate(${p.x+245},${p.y+90}) scale(.6)`;
 function showRoute(){
   $('route').replaceChildren();
-  for(const c of planned){const p=center(c);$('route').append(element('circle',{cx:p.x,cy:p.y,r:35,fill:'#f3df92',stroke:'#1c3024','stroke-width':12}));}
-  if(planned.length){const target=center(planned.at(-1)),arrival=clock(routeMinutes(state,planned)/20),label=element('text',{x:target.x,y:target.y-140,'text-anchor':'middle','font-size':125,'font-weight':'bold',fill:'#fff0ae',stroke:'#17241e','stroke-width':28,'paint-order':'stroke'});label.textContent=`${arrival.day>travelClock(state).day?'Д'+arrival.day+' ':''}${arrival.time}`;$('route').append(label);}
+  let previous=center(state);
+  for(const c of planned){const p=center(c),dx=p.x-previous.x,dy=p.y-previous.y,length=Math.hypot(dx,dy);
+    for(let i=1;i<=8;i++){const t=i/8,bend=Math.sin(t*Math.PI)*45;$('route').append(element('circle',{cx:previous.x+dx*t-dy/length*bend,cy:previous.y+dy*t+dx/length*bend,r:16,fill:'#f3df92',stroke:'#1c3024','stroke-width':7}));}previous=p;
+  }
+  if(planned.length){const target=center(planned.at(-1)),arrival=clock(routeMinutes(state,planned)/20),text=`${arrival.day>travelClock(state).day?'Д'+arrival.day+' ':''}${arrival.time}`,width=text.length*72+65;
+    const frame=element('rect',{x:target.x-width/2,y:target.y-265,width,height:170,rx:24,fill:'#1b2824','fill-opacity':'.96',stroke:'#819071','stroke-width':10});
+    const label=element('text',{x:target.x,y:target.y-143,'text-anchor':'middle','font-size':118,'font-weight':'bold',fill:'#fff0ae'});label.textContent=text;$('route').append(frame,label);
+  }
 }
 async function travel(){
-  if(walking||state.ended||state.pending.length||!planned.length)return;walking=true;$('reset').disabled=true;
+  if(walking||state.ended||state.pending.length||popup||!planned.length)return;walking=true;$('reset').disabled=true;
   try{
     while(planned.length){const target=planned[0];if(terrainAt(target).blocked)break;
       const from=center(state),to=center(target),started=performance.now();
       $('hint').textContent=`В пути · осталось клеток: ${planned.length}`;
       await new Promise(resolve=>{function frame(now){const t=Math.min(1,(now-started)/700);$('marker').setAttribute('transform',markerTransform({x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t}));if(t<1)requestAnimationFrame(frame);else resolve();}requestAnimationFrame(frame);});
-      const next=move(state,target);if(next===state)break;state=next.ended?next:checkFindings(next);planned.shift();save();render();showRoute();if(state.pending.length||state.ended)break;
+      const next=move(state,target);if(next===state)break;state=next.ended?next:checkFindings(next);planned.shift();const finding=state.pending[0],terrain=terrainAt(state);state=logAction(state,state.failed?'Группа погибла без фильтров.':finding?.type==='shop'?'Мы нашли разрушенный магазин.':finding?.type==='remains'?'Мы нашли свежие останки растерзанного сталкера.':terrain.bridge?'Вышли на полуразрушенный мост.':isNight(state)?'Продолжили путь в темноте. Разведка невозможна.':'Вокруг одни развалины. Ничего не нашли.');save();render();showRoute();if(state.pending.length||state.ended)break;
     }
     $('hint').textContent=state.pending.length?'Найдена находка. Выберите действие, чтобы продолжить.':`Прибыли · ${travelClock(state).time}. Выберите следующую цель.`;
   }finally{walking=false;planned=[];$('reset').disabled=false;showRoute();renderFindings();}
 }
 function step(node){
-  if(walking||state.ended||state.pending.length||!node?.dataset.q)return;
+  if(walking||state.ended||state.pending.length||popup||!node?.dataset.q)return;
   const target={q:Number(node.dataset.q),r:Number(node.dataset.r)};
   if(terrainAt(target).blocked){planned=[];showRoute();$('hint').textContent='Вода занимает 90% или больше клетки. Прохода без моста нет.';return;}
+  if(distance(state,target)===1){planned=[target];void travel();return;}
   if(planned.length&&distance(planned.at(-1),target)===0){void travel();return;}
   planned=findRoute(state,target,c=>terrainAt(c).blocked,c=>stepMinutes(state,c));showRoute();
-  if(!planned.length){$('hint').textContent=distance(state,target)===0?'Группа уже здесь.':'Путь к этой клетке не найден.';return;}
+  if(!planned.length){$('hint').textContent=distance(state,target)===0?'Группа уже здесь.':'Сначала разведайте первую неизвестную клетку. Маршрут через неизвестные клетки недоступен.';return;}
   $('hint').textContent=`Маршрут: ${planned.length} кл. · прибытие ${clock(routeMinutes(state,planned)/20).time}. Нажмите цель ещё раз, чтобы идти.`;
 }
 $('canvas').addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,base:{...offset},node:e.target,moved:false};$('canvas').setPointerCapture(e.pointerId);});
-$('canvas').addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>6)drag.moved=true;if(drag.moved){offset={x:Math.max(-14000,Math.min(14000,drag.base.x-dx/scale)),y:Math.max(-14000,Math.min(14000,drag.base.y-dy/scale))};draw();}});
+$('canvas').addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>6)drag.moved=true;if(drag.moved){offset={x:Math.max(-24000,Math.min(24000,drag.base.x-dx/scale)),y:Math.max(-24000,Math.min(24000,drag.base.y-dy/scale))};draw();}});
 $('canvas').addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;const d=drag;drag=null;if(!d.moved)step(d.node);});$('canvas').addEventListener('pointercancel',()=>{drag=null;});
 $('canvas').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();step(e.target);}});
-$('center').onclick=recenter;$('reset').onclick=()=>{if(walking)return;planned=[];showRoute();state=initialState();try{localStorage.removeItem(storage);}catch{}render();recenter();$('hint').textContent='Новый поход · 07:00. Выберите клетку назначения.';};
+$('center').onclick=recenter;$('reset').onclick=()=>{if(walking||state.pending.length)return;showPreparation();};
 new ResizeObserver(()=>{width=$('map').clientWidth;height=$('map').clientHeight;scale=width/(7*Math.sqrt(3)*415+80);draw();}).observe($('map'));
 render();offset=center(state);
+if(!state.prepared||state.preparing)showPreparation();
+
+
+
+
+
+
+
 
 
 

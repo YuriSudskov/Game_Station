@@ -326,10 +326,10 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(heavy?.usesHeavyAmmo&&h.heavyAmmo>0&&inRange(heavy,distance))weapon=heavy;
     if(weapon?.usesHeavyAmmo&&!(h.heavyAmmo>0))weapon=weapon===main&&!heavy?.usesHeavyAmmo&&(distance===0||inRange(heavy,distance))?heavy:null;
     if(rushAttack)weapon={...(main?.type==='melee'?main:h.weapons.ranged),saboteurRush:true};
-    const skipsTurn=!heroTurn&&r.skipNextTurn;
+    const skipsTurn=heroTurn?Boolean(h.beetleSkip):r.skipNextTurn;if(heroTurn&&skipsTurn)h.beetleSkip=false;
     if(skipsTurn){
-      r.skipNextTurn=false;
-      note('пропуск хода',{turn,actor:r.name,reason:'Оглушение'});
+      if(!heroTurn)r.skipNextTurn=false;
+      note('пропуск хода',{turn,actor:heroTurn?'герой':r.name,reason:'Оглушение'});
     }
     if(reloadTurn){
       reloading=false;
@@ -402,6 +402,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
             const dealt=wrestlingThrow?damageAfterArmor(raw+h.strength*10,r.armor??0):damageAfterArmor((raw+bonus+(i===0?closeBonus:0)-damagePenalty)*(heroTurn?attackStats.damageMultiplier:1)*(critical?(heroTurn?meleeCriticalMultiplier(h,weapon):1.5):1)*(critical&&!heroTurn&&!escortTarget?1-(national.criticalDamageReductionPercent??0)/100:1)*(heroTurn||escortTarget||r.kind==='bandit'?1:1-(h.monsterProtection??0)/100),effectiveArmor)*(heroTurn&&weapon.damageType==='thermal'&&r.halfThermalDamage?.5:1);
             const finalDamage=dealt*(weapon?.damageAfterProtection??1)*(heroTurn&&h.scientistMechanism&&mechanicalEnemy(r)?1.2:1);base+=raw;damage+=finalDamage;components.push(finalDamage);
           }
+          if(!heroTurn&&!escortTarget&&r.radiationBite){const dose=Math.max(0,random.int(10,20)-(h.radiationProtection??0));h.biteRadiation=(h.biteRadiation??0)+dose;h.maxHp=Math.max(1,h.maxHp-(h.radiationHpCost??10)*dose);hp=Math.min(hp,h.maxHp);damage=0;if(random.int(1,100)<=20)h.beetleSkip=true;note('событие отряда',{text:'Укус жука: +'+dose+' РАД.'});}
           if(!heroTurn&&!escortTarget){const before=damage;damage=incoming(reduceIncoming(damage,turn),turn);if(before!==damage)for(let i=0;i<components.length;i++)components[i]*=damage/before;}
           if(heroTurn){ratHp-=damage;saboteurFirstMeleeHit(h,saboteurState,r,weapon);if(ratHp>0&&applyKnifePoison(r,weapon,damage,random))note('яд',{turn,target:r.name??'крыса',boss:Boolean(r.boss)});}else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hurt(damage);
         }

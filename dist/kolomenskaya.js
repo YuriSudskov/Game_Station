@@ -4,7 +4,7 @@ import {rng,perceptionCheck,damageAfterArmor} from './combat.js';
 import {preparePartyCombat,advancePartyCombat,decidePartyCasualty,scenarioEnemyAttack} from './party-combat.js';
 import {doctorKitCure} from './doctor-kit.js';
 export const KOLOM_ENEMIES={
- spider:{name:'Хитиновый скорпион-паук',hp:130,armor:80,thermalArmor:0,evasion:70,accuracy:15,stealth:3,initiative:3,damageMin:60,damageMax:100,experience:20,kolomPoison:true,armorFactor:.5,thermalVulnerable:true,kolomWeb:true},
+ spider:{loot:[{id:'hardChitinPlates',chance:10},{id:'poisonousSting',chance:10}],name:'Хитиновый скорпион-паук',hp:130,armor:80,thermalArmor:0,evasion:70,accuracy:15,stealth:3,initiative:3,damageMin:60,damageMax:100,experience:20,kolomPoison:true,armorFactor:.5,thermalVulnerable:true,kolomWeb:true},
  worm:{name:'Стоковый червь',hp:520,armor:35,thermalArmor:10,evasion:30,accuracy:20,stealth:2,initiative:2,damageMin:70,damageMax:130,experience:120,kolomSlime:true},
  queen:{name:'Матка Коломенской',boss:true,hp:700,armor:100,thermalArmor:0,evasion:30,accuracy:20,stealth:1,initiative:2,damageMin:80,damageMax:140,experience:200,thermalVulnerable:true,thermalMultiplier:1.25,kolomQueen:true}
 };
@@ -63,7 +63,7 @@ export function runKolom(s,action,now,random,c){
    c.finishStimulant(h,{stimulant:true});const xp=c.adventureExperience(a,h,(a.xp+(success?150:0))/party.length);c.levelUp(h,xp);
    c.healAtMedicTent(s,h,now);h.lastHeavyReload=c.settleHeavyAmmo(s,h,{heavyAmmoRemaining:h.heavyAmmo,heavyAmmoSpent:Math.max(0,(a.initialAmmo?.[h.id]??a.initialHeavyAmmo)-(h.heavyAmmo??0))},now);h.needsAdventureRest=true;entries.push({id:h.id,name:h.name,xp,dead:false,radiation:dose});
   }
-  if(anyAlive){if(!a.repeat){const rewards=[...Object.entries(a.loot).map(([item,qty])=>({item,qty})),...(a.rewardItems??[])];if(success&&!s.kolomQuestRewardClaimed){const pool=Object.entries(ITEMS).filter(([,item])=>['weapon','body'].includes(item.type)&&item.equipmentCategory===5&&!item.rewardOnly).map(([id])=>id);need(pool.length,'Нет снаряжения для награды.');a.questReward={item:pool[rolls.int(0,pool.length-1)],qty:1,quality:1};rewards.push(a.questReward);a.money+=5000;s.kolomQuestRewardClaimed=true;}c.receive(s,rewards);s.money+=a.money;}c.startAdventureCooldown(s,a,now);}
+  if(anyAlive){if(!a.repeat){const rewards=[...Object.entries(a.loot).map(([item,qty])=>({item,qty})),...(a.rewardItems??[])];if(success&&!s.kolomQuestRewardClaimed){const prizes=[c.npcRandomReward(s,'dima-kolom-7',7),c.npcRandomReward(s,'dima-kolom-8',8)];const items=prizes.flatMap(prize=>prize.items);rewards.push(...items);(a.rewardItems??=[]).push(...items);a.questRewards=copy(prizes);a.money+=3000+prizes.reduce((sum,prize)=>sum+prize.money,0);s.kolomQuestRewardClaimed=true;}c.receive(s,rewards);s.money+=a.money;}c.startAdventureCooldown(s,a,now);}
   if(success){s.completedLocations.kolomenskaya=true;s.kolomQuestCompleted=true;if(a.teaSolo)s.teaReputation=(s.teaReputation??0)+1;}
   s.lastKolomMission={...copy(a),entries,awardedXp:entries[0].xp,radiationReceived:entries[0].radiation??0,success,dead:!anyAlive,hero:copy(party[0]),heroes:copy(party)};s.interactiveMission=null;
  };
@@ -94,6 +94,7 @@ export function runKolom(s,action,now,random,c){
    need(['turn','auto'].includes(choice),'Сначала заверши бой.');advancePartyCombat(a.combat,rolls,{maxActors:choice==='auto'?10000:1});
   }
   for(const f of a.combat.heroes){const member=party.find(h=>h.id===f.id);(a.favoriteShots??={})[f.id]=f.favoriteShots??0;member.hp=f.hp;member.poisonDoses=f.poisonDoses??member.poisonDoses;member.maxHp=c.heroMaximumHp(member);member.hp=Math.min(member.hp,c.effectiveMaxHp(member));for(const key of keys)member[key]=f[key]??member[key];member.radiation=Math.max(0,(member.radiation??0)-(f.doctorRadiationRemoved??0));f.doctorRadiationRemoved=0;}
+  for(const enemy of a.combat.enemies??[])if(enemy.hp<=0&&!enemy.scorpionLootClaimed){enemy.scorpionLootClaimed=true;for(const drop of enemy.loot??[])if(rolls.int(1,100)<=drop.chance)loot(drop.id);}
   if(a.combat.status==='escaped'){a.xp+=a.combat.enemies.filter(e=>e.hp<=0).reduce((sum,e)=>sum+(e.experience??0),0);a.afterRecovery='escape';go('recovery');return s;}
   if(casualty())return s;
   if(a.combat.status==='victory'){note('Бой окончен: '+a.combat.enemies.map(e=>e.name).join(', ')+'. Противники повержены. Опыт за бой: '+a.combatXp+' на отряд.');for(const member of party)if(member.hp<=0){member.hp=1;member.unconscious=(member.poisonDoses??0)>0&&c.heroAttributes(member).strength<=0;}a.acceptedLosses=[];a.xp+=a.combatXp;a.afterRecovery=a.combatNext;go('recovery');}
@@ -136,7 +137,7 @@ export function runKolom(s,action,now,random,c){
   need(flame||living().reduce((n,member)=>n+(member.molotovs??0),0)>=molotovCost,'Нужно 10 оставшихся Молотовых либо огнемёт с 10 зарядами.');let remaining=flame?flameCost:molotovCost;for(const member of flame?flamers:living()){const key=flame?'heavyAmmo':'molotovs',spent=Math.min(remaining,member[key]??0);member[key]-=spent;remaining-=spent;}go('blaze');break;}
  case 'blaze':need(choice==='forward','Неверный выбор.');go('boss');break;
  case 'boss':need(choice==='fight','Неверный выбор.');combat([copy(KOLOM_ENEMIES.queen),copy(KOLOM_ENEMIES.spider),copy(KOLOM_ENEMIES.spider)],'cleanup');a.combat.manual=true;a.combat.frames=[];return runKolom(s,{type:'kolomChoice',node:'combat',choice:'manual'},now,random,c);
- case 'cleanup':need(choice==='search','Неверный выбор.');search('queenCache',8,true);loot('kolomenskayaBeetles');go('final');break;
+ case 'cleanup':need(choice==='search','Неверный выбор.');search('queenCache',8,true);loot('kolomenskayaBeetleCorpse');go('final');break;
  case 'final':need(choice==='finish','Неверный выбор.');finish(true);return s;
  default:throw Error('Неизвестная сцена.');
  }
