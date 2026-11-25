@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -25,6 +25,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: /dist/
+          sparse-checkout-cone-mode: false
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
