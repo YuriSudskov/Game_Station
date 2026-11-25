@@ -1,3 +1,4 @@
+import {grenadeSpec,recordGrenade,GRENADE_FIELDS} from './demolition.js';
 import {doctorKitCure} from './doctor-kit.js';
 import {ITEMS,SURFACE,TECHNOPARK,ZIL_TUNNELS,CARAVAN,PATROL,GHOUL_LEADER,LOST_CARAVAN} from './data.js';
 import {scientistCheck,mechanicalEnemy} from './scientist.js';
@@ -17,23 +18,23 @@ export const hits = (roll,accuracy,evasion) => roll+accuracy>evasion;
 export const weaponJammed=(weapon,random)=>Boolean(weapon?.jamChance&&random.int(1,100)<=weapon.jamChance);
 export function flameAttack(hero,weapon,targets,random){
  const {accuracy,min,max}=heroAttackStats(hero,weapon,targets[0].distance);
- const dc=(random.int(1,100)+accuracy)/5;
+ const dc=(random.int(1,100)+accuracy)/5+(hero.grenadeDodgeBonus??0);
  const raw=random.int(Math.round(min),Math.round(max));
  return targets.slice(0,2).map(({target,distance})=>{
   const dodged=random.int(1,20)+(target.agility??target.stealth??0)+(target.defenseCheckBonus??0)>dc;
   return {target,distance,dc,dodged,raw:raw*(dodged?.5:1)};
  });
 }
-export function radioactiveBlast(target,random,base=random.int(12,24)){
+export function radioactiveBlast(target,random,base=random.int(12,24),dc=14){
  const protection=/бандит|пик|черв|туз|шестёрк/i.test(target.name??'')||target.faction==='bandit'?1:4;
- const roll=random.int(1,20),dodged=roll+(target.agility??target.stealth??0)>14;
+ const roll=random.int(1,20),dodged=roll+(target.agility??target.stealth??0)>dc;
  const radiation=Math.max(0,base-protection)*(dodged?.5:1);
  target.radiation=(target.radiation??0)+radiation;
  target.radiationBaseMaxHp??=target.maxHp??target.hp;
  target.maxHp=Math.max(1,target.radiationBaseMaxHp-20*target.radiation);
  const before=target.hp;target.hp=Math.min(target.hp,target.maxHp);
  if(!dodged&&random.int(1,100)<=50)target.skipNextTurn=true;
- return {target:target.name,roll,dodgeDc:14,dodged,radiation,protection,damage:before-target.hp};
+ return {target:target.name,roll,dodgeDc:dc,dodged,radiation,protection,damage:before-target.hp};
 }
 export function applyKnifePoison(target,weapon,damage,random){
  if(!weapon?.poison||damage<=0||random.int(1,100)>(weapon.poisonChance??20))return false;
@@ -85,7 +86,7 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
     +(distance===0?(hero.closeDamageBonus??0):0)+(weapon.bonus??0)+(pistol?(hero.pistolDamageBonus??0):0);
   const damagePenalty=ranged||weapon.saboteurRush?0:hero.attackDamagePenalty??0;const damagePenaltyPercent=ranged||weapon.saboteurRush?0:hero.attackDamagePenaltyPercent??0,damageMultiplier=1-damagePenaltyPercent/100;
   const attacks=ambush?1:dualPistolsActive(hero)&&pistol?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
-  return {accuracy,bonus,damagePenalty,damagePenaltyPercent,damageMultiplier,attacks,min:Math.max(1,(weapon.min+bonus-damagePenalty)*damageMultiplier),max:Math.max(1,(weapon.max+bonus-damagePenalty)*damageMultiplier)};
+  return {accuracy,bonus,damagePenalty,damagePenaltyPercent,damageMultiplier,attacks,min:Math.max(1,(weapon.min+bonus-damagePenalty+(weapon.flame&&hero.demoPyro?20:0))*damageMultiplier),max:Math.max(1,(weapon.max+bonus-damagePenalty+(weapon.flame&&hero.demoPyro?30:0))*damageMultiplier)};
 }
 export function withStarterPerk(config,perk,level=1) {
   const next=structuredClone(config);next.hero.level=level;next.hero.perk=perk;
@@ -112,6 +113,7 @@ export function withStarterPerk(config,perk,level=1) {
   else if(perk==='assault-sharp'){next.hero.initiative+=2;next.hero.evasion+=5;}
   else if(['sniper-distance','heavy-sharp','medic-trainee'].includes(perk)){}
   else if(perk==='sharp'){next.hero.initiative+=2;next.hero.evasion+=3;}
+  else if(perk.startsWith('demo-')){}
   else if(perk!=='quick-orders'&&perk!=='none'&&perk!=='tea-solo'&&!['medic-field','medic-sanitary','medic-nimble','medic-shooter','doctor-therapist','doctor-pharmacist','doctor-duty','doctor-institute'].includes(perk)&&!['sniper-cold','sniper-ammo','sniper-optics','scientist-lab','scientist-geiger','scientist-analyst','scientist-smart'].includes(perk)) throw new Error(`Unknown perk: ${perk}`);
   return next;
 }
@@ -136,7 +138,7 @@ export function saboteurRushDistance(hero,distance,main,offhand){
  if(distance<=0||!hero.professionPerks?.includes('saboteur-rush')||main?.type!=='melee'&&offhand?.type!=='melee')return null;
  return Math.max(0,distance-2);
 }
-export const canThrowGrenade=(distance,strength)=>distance===0||distance===1||distance===2&&strength>=4;
+export const canThrowGrenade=(distance,strength,extra=0)=>distance>=0&&distance<=(strength>=4?2:1)+extra;
 export function battle(config,random,startHp,{trace=false,damageMode=config.trial.damageMode,grenade=false,ambush=false,caravan=null,enemies=null,treatment=null}={}) {
   const h=config.hero,events=[];
   let r=config.rat;
@@ -197,8 +199,8 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(armor){padding=0;note('ватник',{turn,armor});}
     return armor;
   };
-  const pendingGrenade=ambush?false:grenade===true?'pipeGrenade':grenade;
-  let grenadeItem=false,grenadeTurn=0;
+  let pendingGrenade=ambush?false:grenade===true?'pipeGrenade':grenade;
+  let grenadeItem=false,openingGrenadeItem=false,grenadeTurn=0;
   let burningHero=false;
   const blast=(target,agility,armor,base,dodgeDc)=>{
     const roll=random.int(1,20),dodged=roll+agility>dodgeDc;
@@ -206,8 +208,10 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     return {target,roll,agility,dodgeDc,dodged,armor,damage};
   };
   const applyBlast=(base,dodgeDc,hitHero,turn,power=1,damageType='thermal')=>{
-    const targets=opponents.filter(enemy=>enemy.hp>0).map(enemy=>{
-      if(damageType==='radiation')return radioactiveBlast(enemy,random,base);
+    const living=opponents.filter(enemy=>enemy.hp>0),near=living.filter(enemy=>canThrowGrenade(enemy.distance??distance,h.strength,h.grenadeRange??0));
+    if(h.demoArea&&damageType!=='radiation'){const extra=living.find(enemy=>!near.includes(enemy)&&(enemy.distance??distance)===(h.strength>=4?2:1)+(h.grenadeRange??0)+1);if(extra)near.push(extra);}
+    const targets=near.map(enemy=>{
+      if(damageType==='radiation')return radioactiveBlast(enemy,random,base,dodgeDc);
       const target=blast(enemy.name??'крыса',enemy.agility??enemy.stealth,(damageType==='physical'?enemy.armor:enemy.thermalArmor)??0,base+((national.mutantDamage??0)+(enemy.hurtHero?national.vendettaDamage??0:0))*power,dodgeDc);
       if(enemy.halfGrenadeDamage)target.damage*=.5;
       enemy.hp-=target.damage;
@@ -222,7 +226,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const finish=turns=>{
     applyDelayed(turns);
     const won=hp>0&&!groupAlive();
-    return {won,damageTaken,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,...(grenadeItem?{grenadeUsed:grenadeItem}:{}),killed:opponents.filter(enemy=>enemy.hp<=0).length};
+    return {won,damageTaken,minimumHp,perkHealing,hp:Math.max(0,hp),ratHp:Math.max(0,ratHp),turns,initialDistance,reason:won?'победа':'гибель',events,...(grenadeItem?{grenadeUsed:openingGrenadeItem}:{}),killed:opponents.filter(enemy=>enemy.hp<=0).length};
   };
   if(r.ambushAccuracy&&margin<=0){
     const accuracy=r.accuracy+r.ambushAccuracy;
@@ -239,21 +243,21 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   heroRoll=random.int(1,20);ratRoll=random.int(1,20);
   heroFirst=heroTurn=ambush||heroRoll+h.initiative>=ratRoll+r.initiative;
   note('инициатива',{enemy:r.name??'крыса',heroRoll,heroBonus:h.initiative,ratRoll,ratBonus:r.initiative,first:heroTurn?'герой':(r.name??'крыса')});
-  const throwGrenade=turn=>{
-    grenadeItem=pendingGrenade;
+  const throwGrenade=(turn,isExtra=false)=>{
+    grenadeItem=pendingGrenade;if(!isExtra)openingGrenadeItem||=grenadeItem;
     grenadeTurn=turn;
-    const {min,max,dodgeDc,damageType='thermal'}=ITEMS[grenadeItem];
-    const underfoot=damageType!=='radiation'&&random.int(1,100)<=(national.grenadeSelfChance??5),strong=random.int(1,100)<=10;
+    recordGrenade(h,grenadeItem);const {min,max,dodgeDc,damageType='thermal'}=grenadeSpec(h,grenadeItem,ITEMS[grenadeItem]);
+    const selfChance=h.grenadeSelfChance??national.grenadeSelfChance??5;const underfoot=damageType!=='radiation'&&(selfChance%1?random.int(1,10000)<=selfChance*100:random.int(1,100)<=selfChance),strong=random.int(1,100)<=10+(h.grenadeStrongBonus??0);
     const base=random.int(min,max)+(ITEMS[grenadeItem].intelligenceMultiplier??0)*h.intelligence+(national.grenadeDamage??0)+(damageType==='thermal'?national.thermalDamage??0:0)+berserkDamage;
     burningHero=underfoot;
     const targets=applyBlast(base*(strong&&damageType!=='radiation'?1.5:1),dodgeDc,underfoot,turn,strong?1.5:1,damageType);
     note('граната',{turn,distance,base,underfoot,strong,targets,grenadeItem,damageType});
   };
-  if(pendingGrenade&&canThrowGrenade(initialDistance,h.strength)){
+  if(pendingGrenade&&canThrowGrenade(initialDistance,h.strength,h.grenadeRange??0)){
     throwGrenade(0);
     if(hp<=0||!groupAlive())return finish(0);
   }
-  let reloading=false,reloadWeapon=null;
+  h.demoOwnTurns=0;let reloading=false,reloadWeapon=null;
   const sniperShots=h.sniperAmbushShots??{},sniperTargets=new Set(),saboteurState={saboteurMeleeHit:r.saboteurOpeningHit};
   if(ambush)h.sniperAmbushShots=sniperShots;else delete h.sniperAmbushShots;
   const main=h.weapons?h.weapons.main:{type:h.weaponType??'melee',min:h.weaponMin,max:h.weaponMax,bonus:h.weaponBonus??0};
@@ -282,14 +286,16 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     r=opponents[enemyIndex];
     ratHp=r.hp;
     distance=r.distance;
-    if(heroTurn&&pendingGrenade&&!grenadeItem&&canThrowGrenade(distance,h.strength)){
+    if(heroTurn&&pendingGrenade&&!grenadeItem&&canThrowGrenade(distance,h.strength,h.grenadeRange??0)){
       throwGrenade(turn);
       if(hp<=0||!groupAlive())return finish(turn);
       enemyIndex=heroTargetIndex();
       r=opponents[enemyIndex];ratHp=r.hp;distance=r.distance;
     }
+    let extraGrenadeTurn=false;
+    if(heroTurn&&!ambush&&h.demoExtra){h.demoOwnTurns=(h.demoOwnTurns??0)+1;if(h.demoOwnTurns%2===0&&canThrowGrenade(distance,h.strength,h.grenadeRange??0)){const supply=Object.entries(GRENADE_FIELDS).find(([,key])=>(treatment?.[key]??0)>Number(GRENADE_FIELDS[openingGrenadeItem]===key));if(supply){const [item,key]=supply;treatment[key]--;pendingGrenade=item;throwGrenade(turn,true);extraGrenadeTurn=true;if(hp<=0||!groupAlive())return finish(turn);}}}
     if(turn===grenadeTurn+2&&grenadeItem==='molotov'){
-      const {min,max,dodgeDc}=ITEMS.molotov;
+      const {min,max,dodgeDc}=grenadeSpec(h,'molotov',ITEMS.molotov);
       const targets=applyBlast(random.int(min,max)+(national.grenadeDamage??0)+(national.thermalDamage??0)+berserkDamage,dodgeDc,burningHero,turn);
       note('огонь Молотова',{turn,targets});
       if(hp<=0||!groupAlive())return finish(turn);
@@ -347,7 +353,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       }else note('ожидание',{turn,actor:'герой',distance,reason:ambush||distance>0?'Нет оружия для этой дистанции':'Нет основного оружия'});
     }
     else if(heroTurn&&!ambush&&weaponJammed(weapon,random))note('заклинило',{turn,weapon:weapon.item});
-    else if(skipsTurn){}
+    else if(skipsTurn||extraGrenadeTurn){}
     else if(heroTurn&&weapon.flame){
       h.heavyAmmo--;
       const targets=[r,...opponents.filter(enemy=>enemy!==r&&enemy.hp>0&&inRange(weapon,enemy.distance))].map(target=>({target,distance:target===r?distance:target.distance}));
@@ -537,9 +543,10 @@ export function expedition(config,random,{hp=config.hero.maxHp,trace=false,damag
     const grenade=!canThrow?false:radioactiveGrenades>0?'radioactiveGrenade':dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
     const enemy=m.finalEnemy&&i===scoutCount?m.finalEnemy:i===0?firstEnemy:config.rat;
     if(trace&&enemy===m.finalEnemy)events.push({type:'появление вожака'});
-    Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits});
+    Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits,grenades,molotovs,tinGrenades,lu216Grenades,radioactiveGrenades,dynamites});
     const result=battle({...config,rat:enemy},random,hp,{trace,damageMode,grenade,caravan,enemies:encounterEnemies,treatment});
-    if(result.grenadeUsed==='pipeGrenade')grenades--;
+    ({grenades,molotovs,tinGrenades,lu216Grenades,radioactiveGrenades,dynamites}=treatment);
+  if(result.grenadeUsed==='pipeGrenade')grenades--;
     if(result.grenadeUsed==='molotov')molotovs--;
     if(result.grenadeUsed==='tinGrenade')tinGrenades--;
     if(result.grenadeUsed==='lu216')lu216Grenades--;
@@ -752,7 +759,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,do
   const count=group?.length??random.int(2,dog?(location.dogMaxCount??4):3);
   const enemy=dog?location.dog:group?.[0]??TECHNOPARK.enemy;
   const grenade=radioactiveGrenades>0?'radioactiveGrenade':dynamites>0?'dynamite':lu216Grenades>0?'lu216':tinGrenades>0?'tinGrenade':grenades>0?'pipeGrenade':molotovs>0?'molotov':false;
-  Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits});
+  Object.assign(treatment,{bandages,dressingKits,doctorKits,medicKits,grenades,molotovs,tinGrenades,lu216Grenades,radioactiveGrenades,dynamites});
   const result=battle({...config,rat:enemy},random,hp,{trace:true,grenade,enemies:group??Array(count).fill(enemy),treatment});
   if(result.grenadeUsed==='pipeGrenade')grenades--;
   if(result.grenadeUsed==='molotov')molotovs--;

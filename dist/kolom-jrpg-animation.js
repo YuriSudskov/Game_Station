@@ -1,10 +1,10 @@
 import './kolom-jrpg-layout.js';
 let playbackToken=0;
-export function playKolomFrames(container,previous,current){
+export function playKolomFrames(container,previous,current,onComplete){
  const stage=container.querySelector('.kj-battle');
- if(!stage||!current)return;
+ if(!stage||!current){onComplete?.();return;}
  const token=++playbackToken,frames=current.frames??[];
- if(!frames.length)return;
+ if(!frames.length){onComplete?.();return;}
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const arena=stage.querySelector('.kj-arena');
  const find=id=>stage.querySelector('[data-id="'+CSS.escape(id)+'"]');
@@ -107,4 +107,5 @@ export function playKolomFrames(container,previous,current){
   stage.querySelectorAll('.foe').forEach(unit=>unit.setAttribute('aria-pressed',String(unit.dataset.id===selectedTarget)));
   for(const unit of units){paint(unit.id,unit.hp,unit.maxHp);find(unit.id)?.classList.toggle('poisoned',Boolean(unit.poisonDoses));}
  },elapsed);
+ later(()=>onComplete?.(),elapsed+500);
 }

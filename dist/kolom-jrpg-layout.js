@@ -74,6 +74,13 @@ export function layoutBattleDistances(arena){
   const y=floor+enemyBox.height*.55-(spriteBox.bottom-enemyBox.top);
   enemy.style.zIndex=String(Math.round(floor));
   enemy.style.top=y+'px';
+  if(arena.dataset.scene==='paolo'){
+   const siblings=[...arena.querySelectorAll('.kj-unit.foe')],rank=siblings.indexOf(enemy);
+   const positions=[[.62,.70],[.81,.73],[.63,.94],[.84,.94]],position=positions[rank%positions.length];
+   const foot=bounds.height*position[1],box=enemy.getBoundingClientRect(),art=sprite.getBoundingClientRect();
+   enemy.style.left=(bounds.width*position[0]+box.width/2-(art.left-box.left)-art.width/2)+'px';
+   enemy.style.top=(foot+box.height*.55-(art.bottom-box.top))+'px';
+  }
   separateUnit(enemy,placed,bounds,roof);rememberUnit(enemy,layoutState);
   const previous=previousPositions.get(enemy.dataset.id);
   const state=enemy.dataset.plannedTarget+':'+distance;

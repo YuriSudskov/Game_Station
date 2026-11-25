@@ -12,6 +12,7 @@ export function finishPaoloEvent(s,now){
 }
 
 export function currentStationQuest(state,{keeperQuestView,shekelQuestView,countItem,hansaQuestAvailable},now=Date.now()){
+ if(state.paoloTrial)return {color:'red',title:'Встреча с Паоло · тест',action:'paolo'};
  if(urgentQuestEvent(state,now))return {color:'red',title:'Просят подойти',action:'paolo'};
  const quests=[],q=keeperQuestView(state);
  if(q.stage<=6)quests.push({title:q.title,action:'toothQuest',ready:q.status==='accepted'&&q.progress>=q.target});

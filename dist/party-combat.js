@@ -1,3 +1,4 @@
+import {grenadeSpec,recordGrenade} from './demolition.js';
 import {prepareMagazines,reloadMagazine} from './jrpg-magazines.js';
 import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
 import {applyKnifePoison,radioactiveBlast} from './combat.js';
@@ -92,7 +93,7 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
  const stats=hero?heroAttackStats(attackHero,weapon,distance,{targetHasWoundedHero:target.hurtHeroIds?.includes(actor.id),focusDamageBonus:actor.focusTarget===target.id?(weapon.type==='ranged'?10:weapon.noStrength?0:actor.strength*7):0,battleDamageBonus:actor.berserkDamage??0,hp:actor.hp,firstRanged:!actor.firstRangedSpent,correctionBonus:actor.correctionTarget===target.id?Math.min(actor.correctionMax??15,(actor.correctionShots??0)*(actor.correctionStep??0)):0}):null;
  const accuracy=hero?stats.accuracy+accuracyAdjustment+(weapon.manualSingle&&weapon.weaponClass==='pistol'?(actor.pistolAccuracyPenalty??0):0)+(c.manual?(actor.manualAim==='head'?-30:['arm','leg'].includes(actor.manualAim)?-20:0):0)+(actor.woundAccuracyActive?(actor.nationality?.battleWoundAccuracy??0):0)+(!actor.firstMeleeSpent&&weapon.type==='melee'?(actor.nationality?.firstMeleeAccuracy??0):0):actor.accuracy-(actor.manualArm?10:0)-(actor.poisonAccuracy?15:0)-(actor.saboteurArmHit?10:0)+(weapon.accuracyBonus??0),critical=random.int(1,100)<=((actor.criticalChance??(hero?5:3))+(weapon.criticalBonus??0)+(hero?meleeCriticalBonus(actor,weapon):0));
  const evasion=hero?target.evasion-(target.saboteurTrip?10:0)+(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0):evasionAtDistance(target,distance,target.hp,(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0)+(target.woundedInBattle?(target.nationality?.woundedEvasion??0):0));
- if(c.manual)c.manualEffect={kind:hero&&weapon.type==='ranged'?'shot':'melee',critical};
+ if(c.manual)c.manualEffect={kind:weapon.type==='ranged'?'shot':'melee',critical};
  const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);let damage=0;
  if(hero&&weapon.type==='ranged'){actor.firstRangedSpent=true;actor.correctionShots=actor.correctionTarget===target.id?(actor.correctionShots??0)+1:1;actor.correctionTarget=target.id;}
  if(hero&&weapon.type==='melee')actor.firstMeleeSpent=true;if(hit&&!hero){target.woundedInBattle=true;const n=target.nationality??{};target.berserkDamage=Math.min(n.berserkCap??0,(target.berserkDamage??0)+(n.berserkOnHit??0));}if(hit&&!hero)(actor.hurtHeroIds??=[]).push(target.id);
@@ -134,17 +135,19 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
  return hit;
 }
 function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=null){
- if(item==='radioactiveGrenade'){
+ if(item==='radioactiveGrenade'){recordGrenade(actor,item);
   if(c.manual)c.manualEffect={kind:'grenade',item};
-  for(const target of (actor.kind==='bandit'?c.heroes:c.enemies).filter(e=>e.hp>0&&(!grenadeTargets||grenadeTargets.includes(e.id)))){const r=radioactiveBlast(target,random);say(c,actor.name+' → '+target.name+': '+r.radiation+' РАД'+(r.dodged?' (уворот)':'')+'.');}
+  for(const target of (actor.kind==='bandit'?c.heroes:c.enemies).filter(e=>e.hp>0&&(!grenadeTargets||grenadeTargets.includes(e.id)))){const r=radioactiveBlast(target,random,random.int(12,24),14+(actor.grenadeDodgeBonus??0));say(c,actor.name+' → '+target.name+': '+r.radiation+' РАД'+(r.dodged?' (уворот)':'')+'.');}
   return;
  }
 
+ if(!repeat&&item!=='darkGrasp')recordGrenade(actor,item);
  if(c.manual)c.manualEffect={kind:repeat?'fire':'grenade',item};
- const dark=item==='darkGrasp',spec=dark?{min:20,max:80,dodgeDc:14}:ITEMS[item],underfoot=!dark&&!repeat&&random.int(1,100)<=(actor.nationality?.grenadeSelfChance??5),strong=!dark&&!repeat&&random.int(1,100)<=10;
+ const dark=item==='darkGrasp',spec=dark?{min:20,max:80,dodgeDc:14}:grenadeSpec(actor,item,ITEMS[item]),selfChance=actor.grenadeSelfChance??actor.nationality?.grenadeSelfChance??5,underfoot=!dark&&!repeat&&(selfChance%1?random.int(1,10000)<=selfChance*100:random.int(1,100)<=selfChance),strong=!dark&&!repeat&&random.int(1,100)<=10+(actor.grenadeStrongBonus??0);
  const base=(random.int(spec.min,spec.max)+(spec.intelligenceMultiplier??0)*(actor.intelligence??0)+(dark?0:actor.nationality?.grenadeDamage??0))*(dark?actor.perception:1)*(strong?1.5:1);
  const opponents=actor.kind==='bandit'?c.heroes:c.enemies;
  const living=opponents.filter(target=>target.hp>0&&(!grenadeTargets||grenadeTargets.includes(target.id)));
+ if(actor.demoArea&&!dark){const extra=opponents.find(t=>t.hp>0&&!living.includes(t)&&(actor.distances?.[t.id]??0)===(actor.strength>=4?2:1)+(actor.grenadeRange??0)+1);if(extra)living.push(extra);}
  const targets=actor.kind==='bandit'&&underfoot?[]:dark?(darkTarget?[darkTarget]:[]):living;
  if(underfoot||repeat&&actor.burningSelf)targets.push(actor);
  for(const target of targets){const dodge=!(target.thermalVulnerable&&(spec.damageType??'thermal')==='thermal')&&random.int(1,20)+(target.agility??target.stealth??0)+(dark?0:target.nationality?.grenadeDodge??0)>spec.dodgeDc;const damage=armorDamage(c,target,base*(dodge?.5:1),spec.damageType??'thermal',random);say(c,`${actor.name}: ${dark?'Тёмная хватка':repeat?'огонь Молотова':underfoot?'граната взорвалась под ногами':'граната'}${strong?' · сильный взрыв':''} → ${target.name}: ${damage} урона${dodge?' (уворот)':''}.`);}
@@ -152,7 +155,7 @@ function blast(c,actor,item,random,repeat=false,darkTarget=null,grenadeTargets=n
 }
 function tryHeroGrenade(combat,hero,random){
  if(hero.grenadeThrown||hero.hp<=0)return false;
- const targets=combat.enemies.filter(enemy=>enemy.hp>0&&canThrowGrenade(hero.distances[enemy.id],hero.strength)).map(enemy=>enemy.id);
+ const targets=combat.enemies.filter(enemy=>enemy.hp>0&&canThrowGrenade(hero.distances[enemy.id],hero.strength,hero.grenadeRange??0)).map(enemy=>enemy.id);
  if(!targets.length)return false;
  const supply=[['radioactiveGrenades','radioactiveGrenade'],['dynamites','dynamite'],['lu216Grenades','lu216'],['tinGrenades','tinGrenade'],['molotovs','molotov'],['grenades','pipeGrenade']].find(([key])=>hero[key]>0);
  if(!supply)return false;
@@ -272,10 +275,11 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     }
     if(manualAction.kind==='grenade'){
      const key={pipeGrenade:'grenades',molotov:'molotovs',tinGrenade:'tinGrenades',lu216:'lu216Grenades',radioactiveGrenade:'radioactiveGrenades',dynamite:'dynamites'}[manualAction.item];
-     actor[key]--;blast(combat,actor,manualAction.item,random,false,null,combat.enemies.filter(e=>e.hp>0&&canThrowGrenade(actor.distances[e.id],actor.strength)).map(e=>e.id));updatePartyCasualties(combat);continue;
+     actor[key]--;blast(combat,actor,manualAction.item,random,false,null,combat.enemies.filter(e=>e.hp>0&&canThrowGrenade(actor.distances[e.id],actor.strength,actor.grenadeRange??0)).map(e=>e.id));updatePartyCasualties(combat);continue;
     }
     actor.attackTargetId=manualAction.targetId;actor.manualAim=manualAction.aim;actor.manualMode=manualAction.mode;
    }
+   if(hero&&!combat.manual&&actor.demoExtra){actor.demoOwnTurns=(actor.demoOwnTurns??0)+1;if(actor.demoOwnTurns%2===0){const old=actor.grenadeThrown;actor.grenadeThrown=false;const thrown=tryHeroGrenade(combat,actor,random);actor.grenadeThrown=old||thrown;if(thrown){updatePartyCasualties(combat);continue;}}}
    let target=partyHeroTarget(actor,combat);
    if(!target)continue;
    if(actor.darkGrasp&&!actor.darkGraspUsed){
