@@ -88,13 +88,17 @@ jobs:
             if (!/^\d+$/.test(artifactId || '')) {
               throw new Error('Missing or invalid uploaded artifact ID');
             }
+            const numericArtifactId = Number(artifactId);
+            if (!Number.isSafeInteger(numericArtifactId) || numericArtifactId <= 0) {
+              throw new Error('Uploaded artifact ID is outside the supported numeric range');
+            }
             const repository = context.repo;
             const oidcToken = await core.getIDToken();
             const { data: deployment } = await github.request(
               'POST /repos/{owner}/{repo}/pages/deployments',
               {
                 ...repository,
-                artifact_id: artifactId,
+                artifact_id: numericArtifactId,
                 pages_build_version: context.sha,
                 oidc_token: oidcToken
               }
