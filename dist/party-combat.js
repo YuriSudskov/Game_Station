@@ -19,6 +19,7 @@ export function updatePartyCasualties(combat){
  const fallen=combat.heroes.filter(hero=>!hero.npcAlly&&(hero.dead||hero.hp<=0)),alive=combat.heroes.filter(hero=>!hero.npcAlly&&!hero.dead&&hero.hp>0),known=new Set(combat.fallenIds??[]),fresh=fallen.filter(hero=>!known.has(hero.id));
  for(const hero of fallen){hero.hp=0;hero.dead=true;known.add(hero.id);}combat.fallenIds=[...known];
  if(!alive.length){combat.status='defeat';delete combat.casualtyDecision;return combat.status;}
+ if(alive.some(hero=>hero.poisonExhausted)){combat.status='poisonRetreat';return combat.status;}
  if(fresh.length){combat.status='casualty';combat.casualtyDecision={fallenIds:fresh.map(hero=>hero.id),survivorIds:alive.map(hero=>hero.id)};combat.events.push({type:'потеря отряда',text:fallen.map(hero=>hero.name).join(', ')+' повержен. Бой приостановлен: сбежать с оставшимся героем или драться до последнего.'});}
  return combat.status;
 }
@@ -33,12 +34,7 @@ export function decidePartyCasualty(combat,decision){
 export function beginPartyRecovery(combat){
  if(combat.status==='recovery')return combat;
  if(combat.status!=='victory'||combat.enemies.some(enemy=>enemy.hp>0)||!combat.heroes.some(hero=>!hero.dead&&hero.hp>0))throw Error('Восстановление доступно только после победы.');
- for (const hero of combat.heroes) {
-  if (!hero.dead && hero.hp > 0) continue;
-  hero.dead = false;
-  hero.hp = 1;
-  combat.events.push({type:'потеря отряда',text:hero.name+' приходит в себя с 1 HP.'});
- }
+ for(const hero of combat.heroes)if(hero.dead||hero.hp<=0){hero.dead=false;hero.hp=1;}
  combat.status = 'recovery';
  delete combat.casualtyDecision;
  return combat;
@@ -121,7 +117,7 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
  if(c.manual&&!hit)(c.frames??=[]).push({actorId:actor.id,targetId:target.id,...c.manualEffect,accuracy,evasion,hit:false,damage:0,hp:target.hp});
  if(hero&&hit)saboteurFirstMeleeHit(actor,actor,target,weapon);
  if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
- if(!hero&&hit&&target.hp>0&&(actor.kolomPoison||actor.kolomSting)){const roll=random.int(1,20),bonus=(target.strength??0)+(target.defenseCheckBonus??0)+scientistSafetyBonus(target);if(roll+bonus<=13){target.poisonDoses=Math.min(10,(target.poisonDoses??0)+1);target.strength=Math.max(0,target.strength-1);target.maxHp=Math.max(1,target.maxHp-10);target.hp=Math.min(target.hp,target.maxHp);target.agility=Math.max(0,target.agility-1);target.accuracy-=5;target.evasion-=5;if(target.strength<=0)target.hp=0;if(c.manual)c.frames.push({kind:'poison',actorId:actor.id,targetId:target.id,hp:target.hp,maxHp:target.maxHp,poisonDoses:target.poisonDoses});say(c,target.name+': Отравлен ('+target.poisonDoses+').');}}
+ if(!hero&&hit&&target.hp>0&&(actor.kolomPoison||actor.kolomSting)){const roll=random.int(1,20),bonus=(target.strength??0)+(target.defenseCheckBonus??0)+scientistSafetyBonus(target);if(roll+bonus<=13){target.poisonDoses=Math.min(10,(target.poisonDoses??0)+1);target.strength=Math.max(0,target.strength-1);target.maxHp=Math.max(1,target.maxHp-10);target.hp=Math.min(target.hp,target.maxHp);target.agility=Math.max(0,target.agility-1);target.accuracy-=5;target.evasion-=5;if(target.strength<=0){target.poisonExhausted=true;target.unconscious=true;}if(c.manual)c.frames.push({kind:'poison',actorId:actor.id,targetId:target.id,hp:target.hp,maxHp:target.maxHp,poisonDoses:target.poisonDoses});say(c,target.name+': Отравлен ('+target.poisonDoses+').');}}
  if(hero&&target.hp>0&&applyKnifePoison(target,weapon,damage,random))say(c,target.name+(target.boss?': яд, −15 п.п. точности на следующий ход.':': яд, пропускает следующий ход.'));
  if(burst){
   if(!burst.length)c.events.push({type:'очередь отряда',turn:c.round,actorName:actor.name,targetName:target.name,attacks:burst});

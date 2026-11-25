@@ -850,9 +850,9 @@ function startAdventureCooldown(state,active,now){
   hero.needsAdventureRest=false;
  }
 }
-export function needsAdventureRecovery(hero){if(hero?.adventureCooldownUntil!=null)return true;return Boolean(hero?.needsAdventureRest||Object.values(hero?.temporaryAttributeLoss??{}).some(value=>value>0));}
+export function needsAdventureRecovery(hero){if(hero?.adventureCooldownUntil!=null)return true;return Boolean(hero?.needsAdventureRest||(hero?.poisonDoses??0)>0||Object.values(hero?.temporaryAttributeLoss??{}).some(value=>value>0));}
 export function heroEffectiveStrength(hero){const base=heroAttributes({...hero,temporaryAttributeLoss:{...hero.temporaryAttributeLoss,strength:0}}).strength;return Math.max(0,base+(hero.leaderKebabRuns>0?2:0)-(hero.temporaryAttributeLoss?.strength??0));}
-function restoreAdventureAttributes(hero){hero.temporaryAttributeLoss={};hero.needsAdventureRest=false;hero.maxHp=heroMaximumHp(hero);hero.hp=Math.min(hero.hp,effectiveMaxHp(hero));}
+function restoreAdventureAttributes(hero){delete hero.poisonDoses;delete hero.unconscious;delete hero.poisonExhausted;hero.temporaryAttributeLoss={};hero.needsAdventureRest=false;hero.maxHp=heroMaximumHp(hero);hero.hp=Math.min(hero.hp,effectiveMaxHp(hero));}
 export function consumableLimit(hero){return Math.max(0,1+2*heroAttributes(hero).strength+(hero.nationalityBonuses?.supplyLimit??0)+specialEffect(hero,'supplies'));}
 export const medicalSupplyLimit=hero=>consumableLimit(hero)+(hasMedicPerk(hero,'sanitary')?3:0);
 export function bestSuppliesPlan(state,hero=state.hero,category=null){
@@ -1724,27 +1724,30 @@ export function adventureFallenHeroes(state,missionId){
  const previous=state.lastInteractiveMission;
  return getHeroes(state).filter(hero=>hero.missingOnMission&&hero.missingMission===missionId).map(hero=>{
   const wasInPreviousLoss=previous?.id===missionId&&['escaped','defeat'].includes(previous.outcome)&&previous.heroIds?.includes(hero.id);
-  return {id:hero.id,name:hero.name,scene:hero.missingScene??(wasInPreviousLoss?adventureCombatScene(previous):null)};
+  return {id:hero.id,name:hero.name,scene:hero.missingScene??hero.fallenScene??(wasInPreviousLoss?adventureCombatScene(previous):null)};
  });
 }
 export function recoverableAdventureHeroes(state){
  const active=state.interactiveMission;
  if(!active)return [];
  const scenes=[];
+ if(active.id==='kolomenskaya'){scenes.push(active.node);if(active.node==='recovery')scenes.push(active.combatScene);}
+ if(active.id==='hansaRoute'&&active.node==='return')scenes.push('drezina');
  if(active.pendingCombat?.status==='recovery')scenes.push(adventureCombatScene(active));
  if(active.id==='roofRoute'&&['depot','warehouse','roofSearch','roofFound'].includes(active.node))scenes.push(active.node==='depot'?'depot':'warehouse');
  if(active.id==='roofRoute'&&active.branch)scenes.push(active.branch,active.node);
  if(active.bridgeResolved&&(scenes.includes('matureGuardBattle')||(!active.pendingCombat&&active.node==='stationEntrance')))scenes.push('bridge');
- return adventureFallenHeroes(state,active.id).filter(hero=>hero.scene&&scenes.includes(hero.scene)&&!active.recoveredHeroIds?.includes(hero.id));
+ return adventureFallenHeroes(state,active.id).filter(hero=>!active.recoveredHeroIds?.includes(hero.id)&&(active.id==='kolomenskaya'&&active.node==='final'||hero.scene&&scenes.includes(hero.scene))); 
 }
 function returnAdventureFallen(state,active,now){
  const carried=new Set(active.recoveredHeroIds??[]);
  for(const hero of getHeroes(state)){
   if(!carried.has(hero.id)||!hero.missingOnMission||hero.missingMission!==active.id)continue;
+  hero.deathRecord??={at:null,mission:hero.missingMission,scene:hero.missingScene??hero.fallenScene,cause:'Погиб на вылазке. Тело доставлено следующим отрядом.'};
   delete hero.missingOnMission;
   delete hero.missingMission;
-  delete hero.missingScene;
-  hero.awaitingBurial=true;
+  delete hero.missingScene;delete hero.fallenScene;
+  hero.dead=true;hero.hp=0;hero.job=null;hero.awaitingBurial=true;
   addHistory(state,hero.name+': тело доставлено на станцию. Героя можно похоронить достойно.',now);
  }
 }
@@ -1783,14 +1786,14 @@ function prepareInteractiveRecovery(state){
   if(combat.nextNode==='roofShopSearch')(active.roofTestProgress??state.roofRouteProgress).bossDefeated=true;
   if(combat.nextNode==='roofGrass')(active.roofTestProgress??state.roofRouteProgress).ratsDefeated=true;
  }
- if(!combat.experienceAwarded){const xp=combat.experience??combat.enemies.filter(e=>e.hp<=0).reduce((sum,e)=>sum+(e.experience??TECHNOPARK.enemy.experience),0),share=xp/active.heroIds.length;for(const id of active.heroIds){const hero=state.heroes.find(h=>h.id===id);if(hero&&!active.teaSolo&&!active.teaCompanion){
+ if(!combat.experienceAwarded){const xp=combat.experience??combat.enemies.filter(e=>e.hp<=0).reduce((sum,e)=>sum+(e.experience??TECHNOPARK.enemy.experience),0),share=xp/active.heroIds.length;for(const id of active.heroIds){const hero=state.heroes.find(h=>h.id===id);if(hero&&!hero.dead&&!active.teaSolo&&!active.teaCompanion){
    const mechanicalXp=hasScientistPerk(hero,'mechanism')?combat.enemies.filter(e=>e.hp<=0&&(e.mechanical||e.prototype||['mechanical','robot','prototype'].includes(e.kind))).reduce((sum,e)=>sum+(e.experience??TECHNOPARK.enemy.experience)*.2,0)/active.heroIds.length:0;
    const gained=adventureExperience(active,hero,share+mechanicalXp);
    levelUp(hero,gained);
    (combat.heroXp??={})[id]=gained;
   }}combat.experienceAwarded=true;combat.experience=xp;combat.experiencePerHero=share;}
- if(combat.enemies.some(e=>e.webAttack))combat.nextNode='spiderTunnel';beginPartyRecovery(combat);for(const fighter of combat.heroes)if(fighter.selfHealAfterBattle&&!(fighter.bandages||fighter.dressingKits||fighter.medicKits))fighter.hp=Math.min(fighter.maxHp,fighter.hp+nationalityHealing(fighter,fighter.selfHealAfterBattle));active.node='guardRecovery';
- for(const fighter of combat.heroes){const hero=state.heroes.find(hero=>hero.id===fighter.id);if(hero){hero.hp=fighter.hp;hero.dead=fighter.dead;if(fighter.scientistSafetyUsed)(active.scientistSafetyUsed??={})[hero.id]=true;}}
+ if(combat.enemies.some(e=>e.webAttack))combat.nextNode='spiderTunnel';beginPartyRecovery(combat);for(const fighter of combat.heroes)if(!fighter.dead&&fighter.hp>0&&fighter.selfHealAfterBattle&&!(fighter.bandages||fighter.dressingKits||fighter.medicKits))fighter.hp=Math.min(fighter.maxHp,fighter.hp+nationalityHealing(fighter,fighter.selfHealAfterBattle));active.node='guardRecovery';
+ for(const fighter of combat.heroes){const hero=state.heroes.find(hero=>hero.id===fighter.id);if(hero){hero.hp=fighter.hp;hero.dead=fighter.dead;if(!hero.dead){delete hero.missingOnMission;delete hero.missingMission;delete hero.missingScene;}if(fighter.scientistSafetyUsed)(active.scientistSafetyUsed??={})[hero.id]=true;}}
  adventureRegeneration(state,active,'battle:'+((active.battles??[]).length));for(const fighter of combat.heroes){const hero=state.heroes.find(h=>h.id===fighter.id);if(hero)fighter.hp=hero.hp;}
 }
 function collectAdventureCombatLoot(active,combat,rolls){
@@ -1836,7 +1839,7 @@ function finishLostInteractiveMission(state,active,outcome,now,random=Math.rando
  const combat=active.pendingCombat;
  for(const id of active.heroIds){const hero=state.heroes.find(hero=>hero.id===id),fighter=combat?.heroes.find(hero=>hero.id===id);if(!hero||!fighter)continue;
   hero.hp=Math.max(0,fighter.hp);hero.dead=Boolean(fighter.dead||fighter.hp<=0);
-  if(hero.dead){hero.missingOnMission=true;hero.missingMission=active.id;hero.missingScene=fighter.fallenScene??adventureCombatScene(active);}
+  if(hero.dead){hero.missingOnMission=true;hero.missingMission=active.id;hero.missingScene=fighter.fallenScene??adventureCombatScene(active);hero.deathRecord={at:now,mission:active.id,scene:hero.missingScene,cause:'Отряд не смог спасти героя в бою.'};}
   if(hero.job?.kind==='interactive')hero.job=null;if(!hero.dead)hero.needsAdventureRest=true;
  }
  if(state.heroes.some(hero=>hero.isTea&&active.heroIds.includes(hero.id)&&hero.dead))state.teaGameOver=true;
@@ -2102,8 +2105,8 @@ function roofChoice(s,active,id,now,random){
 
 function actInternal(state,action,now=Date.now(),random=Math.random){if(action.type==='hire'){const aliases={assault:{sharp:'assault-sharp'},heavy:{sharp:'heavy-sharp',armored:'heavy-armored'},sniper:{sharp:'sniper-distance'},medic:{'medic-sanitary':'medic-trainee'}};action={...action,perk:aliases[action.profession]?.[action.perk]??action.perk};}const s=normalizeGame(state);if(action.allowTemporaryReward&&s.interactiveMission)s.interactiveMission.allowTemporaryReward=true;requireThat(!s.teaGameOver,'Чай погиб. Начни всё сначала.');visit(s,now,random);advanceSeries(s,now);if(action.heroId){for(const h of s.heroes){h.startPerk??=h.perk;h.rangedWeapon??=null;}s.completedLocations??=Object.fromEntries(s.heroes.filter(h=>h.lastCompletedLocation).map(h=>[h.lastCompletedLocation,true]));const selected=s.heroes.find(h=>h.id===action.heroId);requireThat(selected,'Сталкер не найден.');s.hero=selected;s.selectedHeroId=selected.id;}const h=s.hero,previousAmmoWeapon=heavyAmmoWeapon(h),previousWeapons=[h?.weapon,h?.rangedWeapon];
  if(urgentQuestEvent(s,now)&&questAction(action.type))throw new Error('Сначала поговори с Паоло: Просят подойти.');
- if(['acceptKolom','startKolom','kolomChoice'].includes(action.type))return runKolom(s,action,now,random,{needsAdventureRecovery,radiationBlocksMissions,startStimulant,finishStimulant,heroConfig,heroAttributes,heroMaximumHp,effectiveMaxHp,adventureExperience,levelUp,receive,startAdventureCooldown,bandageHeal,healAtMedicTent,settleHeavyAmmo,npcRandomReward,searchRewards:(active,key,level,final,rolls)=>searchRewards(s,active,key,level,final,rolls,{heroConfig,itemValue,canUpgrade,upgradedItem})});
- if(action.type==='startHansaExpedition'||['hansaRouteChoice','hansaRouteBuy'].includes(action.type))return runHansa(s,action,now,random,{hansaHeroAvailable,radiationBlocksMissions,merchantFighter,teaSpartaPercent,startStimulant,finishStimulant,tradePercent,itemValue,itemName,receive,levelUp,adventureExperience,startAdventureCooldown,merchantCooldown,unlockHansaShop,hansaStock,merchantSellerOffers,heroConfig,heroAttributes,effectiveMaxHp,bandageHeal,addHistory,pay,heroEffectiveStrength,heroMaximumHp,nationalityHealing,hasMedicPerk});
+ if(['acceptKolom','startKolom','kolomChoice'].includes(action.type))return runKolom(s,action,now,random,{needsAdventureRecovery,radiationBlocksMissions,startStimulant,finishStimulant,heroConfig,heroAttributes,heroMaximumHp,effectiveMaxHp,adventureExperience,levelUp,receive,startAdventureCooldown,bandageHeal,healAtMedicTent,settleHeavyAmmo,npcRandomReward,returnAdventureFallen,searchRewards:(active,key,level,final,rolls)=>searchRewards(s,active,key,level,final,rolls,{heroConfig,itemValue,canUpgrade,upgradedItem})});
+ if(action.type==='startHansaExpedition'||['hansaRouteChoice','hansaRouteBuy'].includes(action.type))return runHansa(s,action,now,random,{hansaHeroAvailable,radiationBlocksMissions,merchantFighter,teaSpartaPercent,startStimulant,finishStimulant,tradePercent,itemValue,itemName,receive,levelUp,adventureExperience,startAdventureCooldown,merchantCooldown,unlockHansaShop,hansaStock,merchantSellerOffers,heroConfig,heroAttributes,effectiveMaxHp,bandageHeal,addHistory,pay,heroEffectiveStrength,heroMaximumHp,nationalityHealing,hasMedicPerk,returnAdventureFallen});
 
  switch(action.type){
  case 'finishPaoloEvent':finishPaoloEvent(s,now);break;
@@ -2163,7 +2166,7 @@ function actInternal(state,action,now=Date.now(),random=Math.random){if(action.t
    const fallen=recoverableAdventureHeroes(s);
    requireThat(fallen.length,'На этой сцене нет погибших, которых можно забрать.');
    active.recoveredHeroIds=[...(active.recoveredHeroIds??[]),...fallen.map(hero=>hero.id)];
-   active.history.push({type:'эвакуация погибших',heroIds:fallen.map(hero=>hero.id)});
+   (active.history??=[]).push({type:'эвакуация погибших',heroIds:fallen.map(hero=>hero.id)});
    break;
  }
  case 'interactiveRecovery':{
@@ -2681,6 +2684,7 @@ hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effec
   if(stars||readyForRebirth){
    (s.buriedRebirths??=[]).push({stars:stars+Number(readyForRebirth),attributes:clone(h.rebirthAttributes??{})});
   }
+  (s.cemetery??=[]).push({hero:clone(h),buriedAt:now,death:clone(h.deathRecord??{mission:h.missingMission??null,scene:h.missingScene??h.fallenScene??null,cause:'Обстоятельства гибели не сохранились.'})});
   s.heroes=s.heroes.filter(hero=>hero.id!==h.id);
   s.hero=s.heroes.find(hero=>!hero.dead)??s.heroes[0]??null;
   s.selectedHeroId=s.hero?.id??null;
@@ -2689,7 +2693,7 @@ hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effec
  }
  case 'doctorResuscitate':{
   requireThat(canDoctorResuscitate(s,h),'Чудо реанимация недоступна.');pay(s,2000);
-  delete h.awaitingBurial;
+  delete h.awaitingBurial;delete h.poisonDoses;delete h.unconscious;delete h.poisonExhausted;h.temporaryAttributeLoss={};
   h.resuscitated=true;
   h.dead=false;
   h.wounds=0;
