@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -41,6 +42,40 @@ jobs:
         env:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact_id }}
         run: test -n "$ARTIFACT_ID"
+      - name: Wait for Pages artifact in GitHub API
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact_id }}
+        shell: bash
+        run: |
+          response_file="$RUNNER_TEMP/pages-artifacts.json"
+          for attempt in {1..6}; do
+            status=$(curl --silent --show-error --retry 2 \
+              --output "$response_file" --write-out '%{http_code}' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100")
+            echo "Attempt $attempt/6: GitHub API HTTP $status"
+            if [[ "$status" != "200" ]]; then
+              jq -r '.message // "No API error message"' "$response_file"
+              if [[ "$status" == "401" || "$status" == "403" ]]; then
+                exit 1
+              fi
+            else
+              jq '{total_count, artifacts: [.artifacts[] | {id, name, expired}]}' "$response_file"
+              if jq -e --arg id "$ARTIFACT_ID" \
+                '.artifacts[] | select((.id | tostring) == $id and .name == "github-pages" and .expired == false)' \
+                "$response_file" > /dev/null; then
+                echo "Uploaded Pages artifact is available through GitHub API."
+                exit 0
+              fi
+            fi
+            if [[ "$attempt" -lt 6 ]]; then
+              sleep 10
+            fi
+          done
+          echo "::error::Uploaded Pages artifact was not visible through GitHub API after six checks."
+          exit 1
       - uses: actions/deploy-pages@v4
         id: deployment
         with:
