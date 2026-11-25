@@ -1,3 +1,4 @@
+import {runPaolo} from './paolo-route.js';
 import {kolomTunnels} from './kolom-tunnels.js';
 import {advanceQuestEvent,urgentQuestEvent,questAction,finishPaoloEvent} from './quest-indicator.js';
 import {applyProfessionRewards,refreshProfessionWorld} from './profession-effects.js';
@@ -1392,7 +1393,7 @@ function advanceTrainingCenter(state,now){
  }
  return changed;
 }
-export function advanceSeries(state,now=Date.now()){
+export function advanceSeries(state,now=Date.now()){if(state.paoloTrial)return false;
  let cooldownFinished=false;
  // Recover residual Kolomenskaya poison from saves whose old cooldown already ended.
  for(const hero of getHeroes(state))if(!hero.dead&&!hero.job&&hero.hp>0&&(hero.poisonDoses??0)>0&&hero.adventureCooldownUntil==null){hero.adventureCooldownUntil=now+hero.poisonDoses*60000;cooldownFinished=true;}
@@ -1668,7 +1669,7 @@ function purchaseMerchantShekels(s,npc,random,guaranteed=false){
  s.shekelsInCirculation=(s.shekelsInCirculation??0)+qty;
  s.shekelIncome=(s.shekelIncome??0)+amount;
 }
-export function visit(s,now=Date.now(),random=Math.random){let changed=advanceQuestEvent(s,now);changed=advanceResearch(s,now)||changed;changed=advanceStationConstruction(s,now)||changed;
+export function visit(s,now=Date.now(),random=Math.random){if(s.paoloTrial)return false;let changed=advanceQuestEvent(s,now);changed=advanceResearch(s,now)||changed;changed=advanceStationConstruction(s,now)||changed;
  const shop=s.hansaShop;
  if(shop&&(shop.assortmentVersion!==3||shop.refreshAt!=null&&now>=shop.refreshAt)){
   shop.slots=hansaStock(s,random);
@@ -3267,7 +3268,21 @@ function gainFamiliarity(hero){
  for(const slot of ['weapon','rangedWeapon'])if(hero[slot])hero[slot+'Familiarity']=Math.min(25,(hero[slot+'Familiarity']??0)+5);
 }
 
+export function preparePaoloGather(s,now,random){
+ s.interactiveMission={id:'paoloGather',allowTemporaryReward:true};
+ for(const h of s.heroes){const job=h.job;if(!job)continue;
+  s.interactiveMission.allowTemporaryReward=true;
+  if(job.kind==='series'){job.phase='done';job.endsAt=now;job.reason='Сбор по требованию Паоло';claimHeroResult(s,h,now,random);}
+  else if(ready(job,now)&&!['interactive','trainingPause','trainingSpecial','trainingStopping'].includes(job.kind))claimHeroResult(s,h,now,random);
+  h.job=null;
+ }
+ s.interactiveMission=null;return s;
+}
 export function act(state,action,now=Date.now(),random=Math.random){
+ if(action.type==='finishPaoloEvent')return runPaolo(state,{type:'startPaoloTrial'},now,random);
+ if(['startPaoloTrial','gatherPaoloTrial','paoloChoice','paoloCombat','finishPaoloTrial'].includes(action.type))return runPaolo(state,action,now,random);
+ if(state.paoloTrial)throw new Error('Сначала завершите тестовую встречу с Паоло.');
+ if(urgentQuestEvent(state,now)&&(Object.hasOwn(LOCATION_LEVELS,action.type)||['startSeries','startTrainingRun'].includes(action.type)))throw new Error('Сначала поговорите с Паоло.');
  const pending=state.pendingScientistCheck;
  if(pending&&action.type!=='scientistCheckDecision')throw new Error('Сначала реши, использовать ли Контрольную пробу.');
  if(!pending&&!['interactiveChoice','kolomChoice'].includes(action.type))return actInternal(state,action,now,random);

@@ -22,17 +22,22 @@ function separateUnit(unit,placed,bounds,roof,attempt=0){
 }
 let previousArenaKey='';
 const previousPositions=new Map();
+const settledPositions=new Map();
+function rememberUnit(unit,state){const sprite=unit.querySelector('.kj-sprite');settledPositions.set(unit.dataset.id,{state,left:unit.style.left,top:unit.style.top,z:unit.style.zIndex,width:sprite.style.width});}
+function restoreUnit(unit,state,placed){const previous=settledPositions.get(unit.dataset.id);if(!previous||previous.state!==state)return false;unit.style.left=previous.left;unit.style.top=previous.top;unit.style.zIndex=previous.z;const sprite=unit.querySelector('.kj-sprite');sprite.style.width=previous.width;const r=sprite.getBoundingClientRect();placed.push({left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,hero:unit.classList.contains('hero')});return true;}
+
 export function layoutBattleDistances(arena){
  const bounds=arena.getBoundingClientRect();
  if(!bounds.width)return;
- const key=[...arena.querySelectorAll('.kj-unit')].map(unit=>unit.dataset.id).join('|')+':'+Math.round(bounds.width);
+ const key=[...arena.querySelectorAll('.kj-unit')].map(unit=>unit.dataset.id).join('|')+':'+arena.dataset.scene+':'+Math.round(bounds.width)+':'+Math.round(bounds.height);
  arena.dataset.perspective='true';
- if(key!==previousArenaKey){previousPositions.clear();previousArenaKey=key;}
+ if(key!==previousArenaKey){previousPositions.clear();settledPositions.clear();previousArenaKey=key;}
  const roof=arena.dataset.scene==='roofRoute';
  const heroes=[...arena.querySelectorAll('.kj-unit.hero')],placed=[];
  // Feet sit on the floor; distant ranks shrink towards the horizon.
  for(const [index,unit] of heroes.entries()){
   const sprite=unit.querySelector('.kj-sprite');if(!sprite)continue;
+  const state='hero:'+index+':'+unit.classList.contains('fallen')+':'+unit.classList.contains('prone');if(restoreUnit(unit,state,placed))continue;
   const laneX=.055+index*.09;
   if(roof)unit.style.left=(bounds.width*laneX)+'px';
   const depth=roof?.95-index*.075:heroes.length===1?.78:.60+.27*index/Math.max(1,heroes.length-1);
@@ -42,11 +47,13 @@ export function layoutBattleDistances(arena){
   const foot=bounds.height*depth;
   unit.style.top=(foot+box.height*.55-(art.bottom-box.top))+'px';
   unit.style.zIndex=String(Math.round(foot));
-  separateUnit(unit,placed,bounds,roof);
+  separateUnit(unit,placed,bounds,roof);rememberUnit(unit,state);
  }
  for(const enemy of arena.querySelectorAll('.kj-unit.foe')){
   const hero=[...arena.querySelectorAll('.kj-unit.hero')].find(unit=>unit.dataset.id===enemy.dataset.plannedTarget);
   if(!hero)continue;
+  const layoutState=enemy.dataset.plannedTarget+':'+enemy.dataset.distance+':'+enemy.classList.contains('fallen')+':'+enemy.classList.contains('prone');
+  if(restoreUnit(enemy,layoutState,placed))continue;
   const heroSprite=hero.querySelector('.kj-sprite'),sprite=enemy.querySelector('.kj-sprite');
   const anchor=heroSprite.getBoundingClientRect();
   // Reserve four body widths so that every distance remains readable on phones.
@@ -67,7 +74,7 @@ export function layoutBattleDistances(arena){
   const y=floor+enemyBox.height*.55-(spriteBox.bottom-enemyBox.top);
   enemy.style.zIndex=String(Math.round(floor));
   enemy.style.top=y+'px';
-  separateUnit(enemy,placed,bounds,roof);
+  separateUnit(enemy,placed,bounds,roof);rememberUnit(enemy,layoutState);
   const previous=previousPositions.get(enemy.dataset.id);
   const state=enemy.dataset.plannedTarget+':'+distance;
   if(previous&&previous.state!==state&&!matchMedia('(prefers-reduced-motion: reduce)').matches){

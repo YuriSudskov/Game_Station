@@ -4,7 +4,7 @@ export function advanceQuestEvent(s,now=Date.now()){
  if(!paoloEligible(s)||s.paoloEvent)return false;
  s.paoloEvent={dueAt:now+PAOLO_DELAY};return true;
 }
-export const urgentQuestEvent=(s,now=Date.now())=>Boolean(paoloEligible(s)&&s.paoloEvent&&now>=s.paoloEvent.dueAt);
+export const urgentQuestEvent=(s,now=Date.now())=>Boolean(paoloEligible(s)&&!s.interactiveMission&&!s.paoloTrial&&!s.heroes?.some(h=>h.job?.kind==='interactive')&&s.paoloEvent&&now>=s.paoloEvent.dueAt);
 export const questAction=a=>/Quest|ToothQuest|BobrovBunker/.test(a)||['interactiveChoice','interactiveCombat','kolomChoice','hansaRouteChoice','choosePlayerRole','molchunTask','acceptKolom','startKolom','startHansaExpedition','startInteractiveMission','repairTechnoparkRoof','appeaseDurenForQuest','hireDurenForQuest'].includes(a);
 export function finishPaoloEvent(s,now){
  if(!urgentQuestEvent(s,now))throw new Error('Паоло пока не просил подойти.');

@@ -793,6 +793,7 @@ function zilBattleLog(combat){
 }
 function jrpgRoute(prefs){const a=state.interactiveMission;return a?.id==='kolomenskaya'?{type:'kolomChoice',node:'combat',choice:prefs?'manualPrefs':'manual'}:a?.id==='hansaRoute'?{type:'hansaRouteChoice',node:a.node,choice:'turn'}:{type:'interactiveCombat'};}
 function modalShell(title,body,{details='',sceneKey=null}={}){
+ document.body.classList.toggle('kolom-swarm-danger',Boolean(state.interactiveMission?.id==='kolomenskaya'&&state.interactiveMission.swarmAlert));
  if(['kolom','hansaRoute'].includes(modal?.type)&&recoverableAdventureHeroes(state).length)body=zilRecoverFallenChoice()+body;
  if(modal?.overflowAction)body='<div class="warning" role="alert">Не хватает места в инвентаре.</div>'+btn('Добавить вещи во временные ячейки','acceptRewardOverflow','','full')+'<p class="note">Лишние ячейки будут красными. Вещи можно использовать и продавать; после освобождения места ячейки исчезнут.</p>'+body;
  const expedition=state.interactiveMission;
@@ -866,7 +867,7 @@ function researchCenterModal(){
  return modalShell('Исследовательский центр','<div class="research-center"><div class="research-header-group"><section class="card research-overview"><div>'+leaderBlock+'</div><div class="research-metrics"><span>Мощность <strong>'+num(power)+'</strong></span><span>Успех Науки <strong>+'+num(researchScienceBonus(state))+' п.п.</strong></span><span>Учёные <strong>'+(center.scientists??0)+'</strong></span></div></section>'+filterBlock+'</div>'+result+'<h3>Исследования</h3>'+slots+'<section class="card research-upgrades"><h3>Улучшения центра</h3>'+upgradeBlock+'</section></div>');
 }
 
-function renderModal(){if(state.pendingScientistCheck&&!modal)modal={type:'scientistControl'};if(!state.teaGameOver&&!modal&&KEEPER_TUTORIAL[view]&&!state.tutorialSeen?.[view]){state.tutorialSeen??={};state.tutorialSeen[view]=true;save();modal={type:'tutorial',screen:view};}if(!modal&&state.completedLocations.surface&&!state.surfaceWelcomeSeen){modal={type:'surfaceWelcome'};}if(modal?.type==='surfaceWelcome'&&!state.surfaceWelcomeSeen){state.surfaceWelcomeSeen=true;save();}if(!modal){overlay.innerHTML='';document.body.style.overflow='';return;}const h=state.hero;
+function renderModal(){if(!modal||!state.interactiveMission?.swarmAlert)document.body.classList.remove('kolom-swarm-danger');if(state.pendingScientistCheck&&!modal)modal={type:'scientistControl'};if(!state.teaGameOver&&!modal&&KEEPER_TUTORIAL[view]&&!state.tutorialSeen?.[view]){state.tutorialSeen??={};state.tutorialSeen[view]=true;save();modal={type:'tutorial',screen:view};}if(!modal&&state.completedLocations.surface&&!state.surfaceWelcomeSeen){modal={type:'surfaceWelcome'};}if(modal?.type==='surfaceWelcome'&&!state.surfaceWelcomeSeen){state.surfaceWelcomeSeen=true;save();}if(!modal){overlay.innerHTML='';document.body.style.overflow='';return;}const h=state.hero;
  if(state.pendingScientistCheck){
  const c=state.pendingScientistCheck.check;
  return modalShell('Контрольная проба',`<h3>${esc(c.name)}</h3><p class="note">Проверка не пройдена: ${c.roll} + ${c.bonus} против ${c.dc}. Перебросить с бонусом +2? Одна попытка за вылазку.</p>${btn('Перебросить с +2','scientistCheckDecision','data-decision="reroll"','full')}${btn('Пропустить · сохранить попытку','scientistCheckDecision','data-decision="skip"','full secondary')}`);
@@ -1348,6 +1349,11 @@ document.addEventListener('input',e=>{
  root.querySelector('#auto-duration').textContent=autoDurationText(recipe,autoQuantity,max);
 });
 document.addEventListener('change',async e=>{
+ if(['kolom-hero','kolom-second','kolom-front','kolom-risk'].includes(e.target.id)){
+  const first=document.querySelector('#kolom-hero')?.value,second=document.querySelector('#kolom-second')?.value;
+  state.kolomPreparationIds=[first,first===second?'':second];state.kolomFrontHeroId=document.querySelector('#kolom-front')?.value;state.kolomRiskConfirmed=Boolean(document.querySelector('#kolom-risk')?.checked);renderModal();return;
+ }
+
  if(e.target.id==='heavy-auto-reload'){
   if(!commit({type:'toggleHeavyReload'}))e.target.checked=Boolean(state.hero?.autoHeavyReload);
   return;
@@ -1384,7 +1390,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
  if(a==='surfaceMapMode'){surfaceMapMode=el.dataset.mode;render();if(surfaceMapMode==='detail'){const map=root.querySelector('.surface-map-scroll');if(map)map.scrollLeft=map.scrollWidth*.65-map.clientWidth/2;}return;}
  if(a==='kolomOpen'){state.kolomPreparing=state.interactiveMission?.id!=='kolomenskaya';show('kolom');return;}
  if(a==='kolomAccept'){commit({type:'acceptKolom'});return;}
- if(a==='kolomStart'){const id=document.querySelector('#kolom-hero')?.value;if(commit({type:'startKolom',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),riskConfirmed:Boolean(document.querySelector('#kolom-risk')?.checked)})){state.kolomPreparing=false;}return;}
+ if(a==='kolomStart'){const id=document.querySelector('#kolom-hero')?.value;if(commit({type:'startKolom',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),frontHeroId:document.querySelector('#kolom-front')?.value,riskConfirmed:Boolean(document.querySelector('#kolom-risk')?.checked)})){state.kolomPreparing=false;}return;}
  if(a==='kolomPack'){const id=document.querySelector('#kolom-hero')?.value;state.kolomPreparationIds=[id,document.querySelector('#kolom-second')?.value];commit({type:'fillPartySupplies',heroIds:[id,document.querySelector('#kolom-second')?.value].filter(Boolean),category:el.dataset.category});return;}
  if(['jrpgTarget','jrpgSelect','jrpgExecute'].includes(a)){
   const mission=state.interactiveMission,combat=mission?.combat??mission?.pendingCombat;

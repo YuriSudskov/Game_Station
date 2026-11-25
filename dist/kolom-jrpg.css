@@ -65,3 +65,5 @@
 .kj-arena[data-scene="roofRoute"] .kj-label{position:absolute;bottom:100%;width:100%;margin-bottom:2px}
 /* Quiet units retain HP; only the active hero and selected target show details. */
 .kj-arena .kj-unit .kj-label{font-size:0;padding:3px 4px;min-height:10px}.kj-arena .kj-unit .kj-label small{display:none}.kj-arena .kj-unit .kj-label progress{margin:0;height:4px}.kj-arena .kj-unit.active-hero .kj-label,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label{font-size:11px;padding:3px 5px}.kj-arena .kj-unit.active-hero .kj-label small,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label small{display:block;font-size:10px}.kj-arena .kj-unit.active-hero .kj-label progress,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label progress{margin-top:3px}
+/* Labels never participate in the geometry of a combat miniature. */
+.kj-arena[data-perspective=true] .kj-unit .kj-label{position:absolute;bottom:100%;left:0;width:100%;margin-bottom:3px}

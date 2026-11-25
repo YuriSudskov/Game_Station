@@ -473,3 +473,4 @@ button.station-leader{text-align:left;color:var(--text);font:inherit}.main-quest
 .hero-primary-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media(max-width:600px){.hero-primary-stats .stat small{font-size:7px;letter-spacing:0}}
 .cemetery-entry{display:block;margin:12px auto 0;font-size:11px;min-height:30px;padding:5px 10px}
+body.kolom-swarm-danger .modal{box-shadow:0 0 0 2px #b94436,0 0 55px #d326264f}body.kolom-swarm-danger .modal-head{background:#492723}.kolom-swarm-alert{border:1px solid #b95148;border-radius:8px;background:#48251f;color:#ffb0a1;padding:10px;margin-bottom:10px;font-size:12px}.kolom-swarm-alert p{margin:5px 0}.kolom-swarm-alert progress{width:100%;height:12px;accent-color:#e65848}

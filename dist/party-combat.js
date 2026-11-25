@@ -3,6 +3,7 @@ import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
 import {applyKnifePoison,radioactiveBlast} from './combat.js';
 // Shared setup for interactive party encounters. Combat resolution is added separately.
 export function partyEnemyTarget(enemy,heroes,random){
+ const priority=heroes.filter(h=>h.hp>0&&!h.dead&&enemy.priorityHeroIds?.includes(h.id));if(priority.length){const chosen=priority[0];enemy.targetHeroId=chosen.id;return chosen;}
  const alive=heroes.filter(hero=>!hero.dead&&hero.hp>0),current=alive.find(hero=>hero.id===enemy.targetHeroId);
  if(current)return current;
  const target=alive.length?(enemy.targetPolicy==='front'?alive[0]:alive[random.int(0,alive.length-1)]):null;enemy.targetHeroId=target?.id??null;return target;
@@ -224,6 +225,12 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
   if(combat.actorIndex>=combat.order.length&&!combat.pendingActor){combat.actorIndex=0;combat.round++;if(combat.manual&&combat.heroes.filter(h=>h.hp>0&&!h.dead).every(h=>h.retreating)){combat.status='escaped';return combat;}}for(const wave of combat.waves??[]){if(!wave.arrived&&combat.round>=wave.round){wave.arrived=true;for(const enemy of wave.enemies){combat.enemies.push(enemy);combat.order.push({id:enemy.id,name:enemy.name,side:'enemy'});for(const hero of combat.heroes)(hero.distances??={})[enemy.id]=3;say(combat,enemy.name+' присоединяется к бою.');}}}if(combat.round>300){for(const member of combat.heroes)applyDelayedDamage(combat,member);if(updatePartyCasualties(combat)!=='running')return combat;combat.status='limit';say(combat,'Бой остановлен: достигнут предел 300 раундов.');return combat;}
   const entry=combat.pendingActor??combat.order[combat.actorIndex++];
   const hero=entry.side==='hero',actor=(hero?combat.heroes:combat.enemies).find(x=>x.id===entry.id);if(!actor||actor.hp<=0)continue;
+  if(!hero&&actor.regenerateEveryTurn)actor.hp=Math.min(actor.maxHp,actor.hp+actor.regenerateEveryTurn);
+  if(!hero&&combat.maxEnemiesPerHero){
+   const livingHeroes=combat.heroes.filter(h=>h.hp>0&&!h.dead),front=[];
+   const counts={};for(const enemy of combat.enemies.filter(e=>e.hp>0)){let target=livingHeroes.find(h=>h.id===enemy.targetHeroId&&(counts[h.id]??0)<combat.maxEnemiesPerHero)??livingHeroes.find(h=>(counts[h.id]??0)<combat.maxEnemiesPerHero);if(!target)continue;enemy.targetHeroId=target.id;counts[target.id]=(counts[target.id]??0)+1;front.push(enemy.id);}
+   if(!front.includes(actor.id))continue;
+  }
   if(combat.manual&&hero&&!actor.retreating&&!combat.manualAction){
    combat.pendingActor=entry;combat.waitingHeroId=actor.id;return combat;
   }

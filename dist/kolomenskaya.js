@@ -43,7 +43,7 @@ export function runKolom(s,action,now,random,c){
   const party=ids.map(id=>s.heroes.find(h=>h.id===id));need(party.every(h=>h&&!h.dead&&!h.job&&!c.needsAdventureRecovery(h)&&!c.radiationBlocksMissions(h)),'Нужны свободные герои.');
   need(party.every(h=>h.level>=7)||action.riskConfirmed,'Подтверди риск для героя ниже 7-го уровня.');
   for(const h of party){c.startStimulant(h,'interactive',random);h.job={kind:'interactive',mission:'kolomenskaya'};}
-  s.interactiveMission={id:'kolomenskaya',heroIds:ids,node:'fork',drySide:rolls.int(0,1)?'left':'right',xp:0,loot:{},money:0,locationRadiation:0,teaSolo:party.length===1&&Boolean(party[0].isTea),initialHeavyAmmo:party[0].heavyAmmo??0,initialAmmo:Object.fromEntries(party.map(h=>[h.id,h.heavyAmmo??0])),startedAt:now,events:[],repeat:Boolean(s.completedLocations?.kolomenskaya)};return s;
+  s.interactiveMission={id:'kolomenskaya',heroIds:ids,formation:{front:ids[0],rear:ids[1]??null},node:'fork',drySide:rolls.int(0,1)?'left':'right',xp:0,loot:{},money:0,locationRadiation:0,teaSolo:party.length===1&&Boolean(party[0].isTea),initialHeavyAmmo:party[0].heavyAmmo??0,initialAmmo:Object.fromEntries(party.map(h=>[h.id,h.heavyAmmo??0])),startedAt:now,events:[],sceneLogStart:0,repeat:Boolean(s.completedLocations?.kolomenskaya)};return s;
  }
  const a=s.interactiveMission;need(a?.id==='kolomenskaya'&&action.node===a.node,'Эта сцена уже изменилась.');
  const party=a.heroIds.map(id=>s.heroes.find(h=>h.id===id));const living=()=>party.filter(h=>h&&!h.dead&&h.hp>0&&!h.unconscious);let h=party.find(h=>h.id===(action.targetHeroId??a.selectedHealHeroId))??living()[0]??party[0];need(h,'Герой недоступен.');
@@ -116,28 +116,40 @@ export function runKolom(s,action,now,random,c){
   h.maxHp=c.heroMaximumHp(h);h.hp=Math.min(h.hp,c.effectiveMaxHp(h));if(c.heroAttributes(h).strength>0)h.unconscious=false;else if(h.poisonDoses>0){h.unconscious=true;note('Всё, сил больше нет, нужно отступать.');}return s;
  }
  switch(a.node){
- case 'fork':if(choice==='sense'){need(!a.senseUsed,'Чутьё уже проверено.');a.senseUsed=true;if(check('perception',15)){a.revealed=true;note('Сухой путь: '+(a.drySide==='left'?'левый':'правый')+'. Мокрый тоннель радиоактивен.');}}
+ case 'fork':if(choice==='sense'){need(!a.senseUsed,'Чутьё уже проверено.');a.senseUsed=true;if(check('perception',15)){a.revealed=true;note('Сухой путь: '+(a.drySide==='left'?'левый':'правый') +'. Мокрый тоннель радиоактивен.');}else note('Не удалось определить безопасный тоннель. Направление остаётся неизвестным.');}
   else{need(['left','right'].includes(choice),'Выбери тоннель.');a.branch=choice===a.drySide?'dry':'wet';if(a.branch==='wet')a.locationRadiation=4;go(a.branch==='dry'?'dry1':'wet');}break;
  case 'dry1':need(choice==='forward','Выбери продолжить.');{const roll=rolls.int(1,100);note('Встреча в сухом тоннеле: d100 = '+roll+'; бой при 1–70.');if(roll<=70)spiders(2,3,'corpse');else {note('Отряд проходит дальше без боя.');go('corpse');}}break;
  case 'corpse':if(choice==='search'){search('guardCocoon',7);if(!check('perception',12))spiders(2,2,'anomaly');else go('anomaly');}else{need(choice==='skip','Неверный выбор.');go('anomaly');}break;
- case 'anomaly':need(choice==='avoid','Неверный выбор.');for(const member of living()){if(['medium','heavy'].includes(ITEMS[member.body]?.armorClass)&&!checkOne(member,'intelligence',18)){const half=checkOne(member,'agility',13),raw=Array.from({length:6},()=>rolls.int(1,6)).reduce((a,b)=>a+b,0),damage=damageAfterArmor(raw*(half?.5:1),c.heroConfig(s,member,'surface').hero.thermalArmor);member.hp=Math.max(0,member.hp-damage);note(member.name+': аномалия '+damage+' термического урона.');}else note(member.name+': удалось уйти от разряда.');}go('dry2');break;
+ case 'anomaly':need(choice==='avoid','Неверный выбор.');for(const member of living()){if(['medium','heavy'].includes(ITEMS[member.body]?.armorClass)&&!checkOne(member,'intelligence',18)){const half=checkOne(member,'agility',13),raw=Array.from({length:6},()=>rolls.int(1,6)).reduce((a,b)=>a+b,0),damage=damageAfterArmor(raw*(half?.5:1),c.heroConfig(s,member,'surface').hero.thermalArmor);member.hp=Math.max(0,member.hp-damage);if(member.hp<=0)member.fallenScene='anomaly';note(member.name+': разряд 6d6 = '+raw+(half?' → половина '+raw*.5:' → полный урон')+', термозащита '+c.heroConfig(s,member,'surface').hero.thermalArmor+'; получено '+damage+' термического урона.');}else note(member.name+': удалось уйти от разряда.');}go('dry2');break;
  case 'dry2':need(choice==='forward','Неверный выбор.');{const roll=rolls.int(1,100);note('Последние коконы: d100 = '+roll+'; бой при 1–80.');if(roll<=80)spiders(2,4,'station');else{note('Коконы пусты.');search('emptyCocoons',7);go('station');}}break;
  case 'wet':if(choice==='back')go('fork');else{need(choice==='forward','Неверный выбор.');a.locationRadiation=4;go('worm');}break;
  case 'worm':need(choice==='fight','Неверный выбор.');combat([copy(KOLOM_ENEMIES.worm)],'lair');break;
  case 'lair':need(['search','skip'].includes(choice),'Неверный выбор.');if(choice==='search'){search('wormLair',7);}go('clear');break;
  case 'clear':need(choice==='forward','Неверный выбор.');go('station');break;
- case 'station':need(choice==='enter','Неверный выбор.');go('pressure');break;
+ case 'station':need(choice==='enter','Неверный выбор.');a.swarmTurns=5;a.swarmAlert=true;go('pressure');break;
  case 'pressure':{
-  pressure();if(casualty())return s;h=living()[0];
-  if(choice==='think'){if(check('intelligence',14)){a.ideas=Math.min(2,(a.ideas??0)+1);note(a.ideas===1?'Гранаты могут отогнать пауков. Попробуйте огонь.':'Можно применить заряженное тяжёлое оружие.');}else note('Решение пока не найдено. Можно попробовать ещё раз или отступить.');}
+  a.swarmTurns??=5;a.swarmAlert=true;
+  if(choice==='shootSwarm'){
+   need((a.swarmIntAttempts??0)>=2,'Сначала дважды проверь Интеллект.');
+   need(s.money>=10000,'Для прорыва нужно 1000 А.');s.money-=10000;a.swarmPaid=10000;
+   note('Потрачено 1000 А. Отряд пробивается через 50 пауков. Одного героя атакуют не более пяти пауков одновременно.');
+   combat(Array.from({length:50},()=>({...copy(KOLOM_ENEMIES.spider),kolomPoison:false})),'blaze');a.combat.maxEnemiesPerHero=5;a.combat.swarm=true;break;
+  }
+  need(a.swarmTurns>0,'Позиция потеряна: отступите или потратьте 1000 А на бой до смерти.');
+  const remaining=a.swarmTurns-1;
+  if(remaining<=3){const min=remaining<=1?20:10,max=remaining<=1?35:20;for(const member of living()){const damage=rolls.int(min,max);member.hp=Math.max(0,member.hp-damage);if(member.hp<=0)member.fallenScene='pressure';note(member.name+': рой пробрался в щели брони — '+damage+' физического урона без яда и потери характеристик.');}}
+  a.swarmTurns=remaining;if(casualty())return s;h=living()[0];
+  if(choice==='think'){a.swarmIntAttempts=(a.swarmIntAttempts??0)+1;if(check('intelligence',14)){a.ideas=Math.min(2,(a.ideas??0)+1);note(a.ideas===1?'Гранаты могут отогнать пауков. Попробуйте огонь.':'Можно применить заряженное тяжёлое оружие.');}else note('Решение пока не найдено. Можно попробовать ещё раз или отступить.');}
   else if(choice==='molotov'){need(a.ideas>=1&&living().some(member=>member.molotovs>0),'Нет доступного Молотова.');living().find(member=>member.molotovs>0).molotovs--;a.fireDemonstration='molotov';go('fire');}
   else if(choice==='grenade'){need(a.ideas>=1,'Сначала найди решение.');h=living().find(member=>['dynamites','lu216Grenades','tinGrenades','grenades'].some(k=>member[k]>0))??h;const key=['radioactiveGrenades','dynamites','lu216Grenades','tinGrenades','grenades'].find(k=>h[k]>0);need(key,'Нет гранаты.');h[key]--;note('Взрыв разбрасывает пауков, но новые занимают их место.');}
   else if(choice==='heavy'){h=living().find(member=>ITEMS[member.rangedWeapon]?.usesHeavyAmmo&&member.heavyAmmo>0)??h;const w=ITEMS[h.rangedWeapon];need(a.ideas>=2&&w?.usesHeavyAmmo&&h.heavyAmmo>0,'Нет заряженного тяжёлого оружия.');const qty=Math.min(h.heavyAmmo,w.flame?1:w.shots??1);h.heavyAmmo-=qty;if(w.flame){a.fireDemonstration='flame';go('fire');}else note('Очередь расчищает пространство, но пауки возвращаются.');}
   else throw Error('Неверный выбор.');break;}
  case 'fire':{
+  if(choice==='shootSwarm'){a.node='pressure';return runKolom(s,{...action,node:'pressure'},now,random,c);}
+  need((a.swarmTurns??5)>0,'Позиция потеряна: отступите или потратьте 1000 А на бой до смерти.');
   need(choice==='burn','Неверный выбор.');const flameCost=a.fireDemonstration==='flame'?9:10,molotovCost=a.fireDemonstration==='molotov'?9:10,flamers=living().filter(member=>ITEMS[member.rangedWeapon]?.flame&&member.heavyAmmo>0),flame=flamers.reduce((n,member)=>n+member.heavyAmmo,0)>=flameCost;
-  need(flame||living().reduce((n,member)=>n+(member.molotovs??0),0)>=molotovCost,'Нужно 10 оставшихся Молотовых либо огнемёт с 10 зарядами.');let remaining=flame?flameCost:molotovCost;for(const member of flame?flamers:living()){const key=flame?'heavyAmmo':'molotovs',spent=Math.min(remaining,member[key]??0);member[key]-=spent;remaining-=spent;}go('blaze');break;}
- case 'blaze':need(choice==='forward','Неверный выбор.');go('boss');break;
+  need(flame||living().reduce((n,member)=>n+(member.molotovs??0),0)>=molotovCost,'Нужно 10 оставшихся Молотовых либо огнемёт с 10 зарядами.');let remaining=flame?flameCost:molotovCost;for(const member of flame?flamers:living()){const key=flame?'heavyAmmo':'molotovs',spent=Math.min(remaining,member[key]??0);member[key]-=spent;remaining-=spent;}a.swarmTurns=Math.max(0,(a.swarmTurns??5)-1);go('blaze');break;}
+ case 'blaze':need(choice==='forward','Неверный выбор.');s.unlockedProfessions=[...new Set([...(s.unlockedProfessions??[]),'demolition'])];s.demolitionUnlocked=true;note('Нам нужно больше гранат. Открыт доступ к профессии Подрывник; подготовка профессии — скоро.');a.swarmAlert=false;go('boss');break;
  case 'boss':need(choice==='fight','Неверный выбор.');combat([copy(KOLOM_ENEMIES.queen),copy(KOLOM_ENEMIES.spider),copy(KOLOM_ENEMIES.spider)],'cleanup');a.combat.manual=true;a.combat.frames=[];return runKolom(s,{type:'kolomChoice',node:'combat',choice:'manual'},now,random,c);
  case 'cleanup':need(choice==='search','Неверный выбор.');search('queenCache',8,true);loot('kolomenskayaBeetleCorpse');go('final');break;
  case 'final':need(choice==='finish','Неверный выбор.');finish(true);return s;
