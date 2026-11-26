@@ -23,10 +23,14 @@ function separateUnit(unit,placed,bounds,roof,attempt=0){
 let previousArenaKey='';
 const previousPositions=new Map();
 const settledPositions=new Map();
-function rememberUnit(unit,state){const sprite=unit.querySelector('.kj-sprite');settledPositions.set(unit.dataset.id,{state,left:unit.style.left,top:unit.style.top,z:unit.style.zIndex,width:sprite.style.width});}
+function rememberUnit(unit,state){const sprite=unit.querySelector('.kj-sprite');settledPositions.set(unit.dataset.id,{state,left:unit.style.left,top:unit.style.top,z:unit.style.zIndex,width:sprite.style.width,approached:Boolean(unit.dataset.approachTarget)||Boolean(settledPositions.get(unit.dataset.id)?.approached)});}
 function restoreUnit(unit,state,placed){const previous=settledPositions.get(unit.dataset.id);if(!previous||previous.state!==state)return false;unit.style.left=previous.left;unit.style.top=previous.top;unit.style.zIndex=previous.z;const sprite=unit.querySelector('.kj-sprite');sprite.style.width=previous.width;const r=sprite.getBoundingClientRect();placed.push({left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,hero:unit.classList.contains('hero')});return true;}
 
 export function layoutBattleDistances(arena){
+ const compact=matchMedia('(max-width: 760px)').matches;
+ let crop=arena.parentElement?.classList.contains('kj-arena-crop')?arena.parentElement:null;
+ if(compact){if(!crop){crop=document.createElement('div');crop.className='kj-arena-crop';arena.before(crop);crop.append(arena);}const height=arena.offsetHeight;crop.style.height=(height*.9)+'px';arena.style.marginTop=(-height*.1)+'px';}
+ else if(crop){arena.style.marginTop='';crop.before(arena);crop.remove();}
  const bounds=arena.getBoundingClientRect();
  if(!bounds.width)return;
  const key=[...arena.querySelectorAll('.kj-unit')].map(unit=>unit.dataset.id).join('|')+':'+arena.dataset.scene+':'+Math.round(bounds.width)+':'+Math.round(bounds.height);
@@ -37,7 +41,10 @@ export function layoutBattleDistances(arena){
  // Feet sit on the floor; distant ranks shrink towards the horizon.
  for(const [index,unit] of heroes.entries()){
   const sprite=unit.querySelector('.kj-sprite');if(!sprite)continue;
-  const state='hero:'+index+':'+unit.classList.contains('fallen')+':'+unit.classList.contains('prone');if(restoreUnit(unit,state,placed))continue;
+  const state='hero:'+index+':'+unit.dataset.approachTarget+':'+unit.classList.contains('fallen')+':'+unit.classList.contains('prone');if(restoreUnit(unit,state,placed))continue;
+  // A defeated close-range target must not send the fighter back to the starting lane.
+  const previous=settledPositions.get(unit.dataset.id);
+  if(!unit.dataset.approachTarget&&previous?.approached&&restoreUnit(unit,previous.state,placed)){rememberUnit(unit,state);continue;}
   const laneX=.055+index*.09;
   if(roof)unit.style.left=(bounds.width*laneX)+'px';
   const depth=roof?.95-index*.075:heroes.length===1?.78:.60+.27*index/Math.max(1,heroes.length-1);
@@ -47,12 +54,15 @@ export function layoutBattleDistances(arena){
   const foot=bounds.height*depth;
   unit.style.top=(foot+box.height*.55-(art.bottom-box.top))+'px';
   unit.style.zIndex=String(Math.round(foot));
+  const target=[...arena.querySelectorAll('.kj-unit.foe')].find(e=>e.dataset.id===unit.dataset.approachTarget),anchorPosition=target&&settledPositions.get(target.dataset.id);
+  if(target&&anchorPosition){target.style.left=anchorPosition.left;target.style.top=anchorPosition.top;target.querySelector('.kj-sprite').style.width=anchorPosition.width;const r=target.querySelector('.kj-sprite').getBoundingClientRect(),box=unit.getBoundingClientRect(),art=sprite.getBoundingClientRect();unit.style.left=(r.left-bounds.left-5-art.width+box.width/2-(art.left-box.left))+'px';unit.style.top=(r.bottom-bounds.top+box.height*.55-(art.bottom-box.top))+'px';}
   separateUnit(unit,placed,bounds,roof);rememberUnit(unit,state);
  }
  for(const enemy of arena.querySelectorAll('.kj-unit.foe')){
   const hero=[...arena.querySelectorAll('.kj-unit.hero')].find(unit=>unit.dataset.id===enemy.dataset.plannedTarget);
   if(!hero)continue;
   const layoutState=enemy.dataset.plannedTarget+':'+enemy.dataset.distance+':'+enemy.classList.contains('fallen')+':'+enemy.classList.contains('prone');
+  const prior=settledPositions.get(enemy.dataset.id);if(prior&&heroes.some(h=>h.dataset.approachTarget===enemy.dataset.id)){restoreUnit(enemy,prior.state,placed);rememberUnit(enemy,layoutState);continue;}
   if(restoreUnit(enemy,layoutState,placed))continue;
   const heroSprite=hero.querySelector('.kj-sprite'),sprite=enemy.querySelector('.kj-sprite');
   const anchor=heroSprite.getBoundingClientRect();

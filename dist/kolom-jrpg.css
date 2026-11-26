@@ -67,3 +67,20 @@
 .kj-arena .kj-unit .kj-label{font-size:0;padding:3px 4px;min-height:10px}.kj-arena .kj-unit .kj-label small{display:none}.kj-arena .kj-unit .kj-label progress{margin:0;height:4px}.kj-arena .kj-unit.active-hero .kj-label,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label{font-size:11px;padding:3px 5px}.kj-arena .kj-unit.active-hero .kj-label small,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label small{display:block;font-size:10px}.kj-arena .kj-unit.active-hero .kj-label progress,.kj-arena .kj-unit.foe[aria-pressed=true] .kj-label progress{margin-top:3px}
 /* Labels never participate in the geometry of a combat miniature. */
 .kj-arena[data-perspective=true] .kj-unit .kj-label{position:absolute;bottom:100%;left:0;width:100%;margin-bottom:3px}
+.kj-arena-crop{overflow:hidden;border-radius:8px;width:100%}
+@media(max-width:760px){
+ .backdrop:has(.jrpg-modal){align-items:flex-start;padding:4px}
+ .jrpg-modal{max-height:calc(100dvh - 8px);width:100%;margin:0;border-radius:9px}
+ .jrpg-modal .modal-head{padding:7px 10px;min-height:42px;gap:8px}
+ .jrpg-modal .modal-head h2{font-size:17px;line-height:1.2;margin:0}
+ .jrpg-modal .modal-head .iconbutton{width:32px;height:32px;min-height:32px}
+ .jrpg-modal .modal-body{padding:9px 10px 14px}
+ .jrpg-modal .kj-heading{font-size:12px;line-height:1.25}
+ .jrpg-modal .kj-initiative{margin:5px 0;gap:3px}
+ .jrpg-modal .kj-initiative li{font-size:10px;padding:4px}
+ .jrpg-modal .kj-controls{margin-top:8px}
+ .jrpg-modal .kj-controls h3{font-size:15px;margin:5px 0}
+ .jrpg-modal .kj-controls details{margin:4px 0}
+ .jrpg-modal .kj-actions{margin:5px 0;gap:4px}
+ .jrpg-modal .kj-actions button{min-height:37px;padding:6px 2px;font-size:11px}
+}

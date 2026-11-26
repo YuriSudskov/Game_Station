@@ -31,7 +31,7 @@ export const KOLOM_SCENES={
  recovery:['Л','Передышка','Можно лечиться, снять отравление или продолжить путь.']
 };
 export const kolomLocal=()=>['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname);
-export const kolomAvailable=s=>kolomLocal()||Boolean(s.completedLocations?.technoparkRoof&&(s.keeperQuest?.stage>6||s.keeperQuest?.stage===6&&s.keeperQuest?.status==='completed'));
+export const kolomAvailable=s=>!s.completedLocations?.kolomenskaya&&(kolomLocal()||Boolean(s.completedLocations?.technoparkRoof&&(s.keeperQuest?.stage>6||s.keeperQuest?.stage===6&&s.keeperQuest?.status==='completed')));
 const need=(x,t)=>{if(!x)throw Error(t);};
 const copy=x=>structuredClone(x);
 const keys=['bandages','dressingKits','medicKits','doctorKits','grenades','molotovs','tinGrenades','lu216Grenades','radioactiveGrenades','dynamites','heavyAmmo'];
@@ -39,7 +39,7 @@ export function runKolom(s,action,now,random,c){
  const rolls=rng(Math.floor(random()*4294967296));
  if(action.type==='acceptKolom'){need(kolomAvailable(s),'Сначала восстанови Технопарк и заверши квесты Смотрителя.');s.kolomQuestAccepted=true;return s;}
  if(action.type==='startKolom'){
-  need(s.kolomQuestAccepted,'Сначала поговори с Димой Лосем.');need(!s.interactiveMission,'Другая вылазка уже открыта.');
+  need(!s.completedLocations?.kolomenskaya,'Коломенская уже очищена. Повтор доступен через тестовый сброс.');need(s.kolomQuestAccepted,'Сначала поговори с Димой Лосем.');need(!s.interactiveMission,'Другая вылазка уже открыта.');
   let ids=action.heroIds??[action.heroId];if(action.frontHeroId&&ids.includes(action.frontHeroId))ids=[action.frontHeroId,...ids.filter(id=>id!==action.frontHeroId)];need(Array.isArray(ids)&&ids.length>=1&&ids.length<=2&&new Set(ids).size===ids.length,'Выбери одного или двух разных героев.');
   const party=ids.map(id=>s.heroes.find(h=>h.id===id));need(party.every(h=>h&&!h.dead&&!h.job&&!c.needsAdventureRecovery(h)&&!c.radiationBlocksMissions(h)),'Нужны свободные герои.');
   need(party.every(h=>h.level>=7)||action.riskConfirmed,'Подтверди риск для героя ниже 7-го уровня.');

@@ -649,6 +649,7 @@ export function zilTunnelsExpedition(config,random,options){
  const text=spiders?'Из-за дрезины выползают два кислотных паука.':bandits?'У служебного склада засада: стрелок прикрывает бандита с монтировкой.':'Тоннель пуст. Герой находит обход к складу через служебную дверь.';
  result.events.unshift({type:'поверхность',text});
  result.route=route;
+ const external=random.int(2,5);result.locationRadiation=external;result.radiation=result.alive?Math.max(0,(config.hero.halveRadiation?Math.floor(external/2):external)-(config.hero.radiationProtection??0)):0;
  if(bandits)result.found=2;
  if(!result.alive)return result;
  result.money=ZIL_TUNNELS.returnMoney+(bandits?250:0);
@@ -807,7 +808,7 @@ export function perceptionCheck(hero,random,bonus,dc,{inclusive=false,events=nul
 export function dualPistolsActive(hero){return Boolean(hero.dualPistols&&hero.weapons?.main?.weaponClass==='pistol'&&hero.weapons?.ranged?.weaponClass==='pistol');}
 
 export function pukGrassExpedition(config,random,options){
- const radiation=random.int(2,4);
+ const radiation=random.int(2,5);
  const piercer=random.int(1,100)<=70;
  const enemy=piercer?{name:'Пронзатель',boss:true,hp:700,stealth:10,evasion:30,accuracy:20,initiative:1,armor:80,thermalArmor:30,damageMin:80,damageMax:210,attackName:'Шип',attackRange:2,ambushAccuracy:20,halfGrenadeDamage:true,halfThermalDamage:true}
   :{...config.rat,name:'Дикая крыса',hp:70,damageMin:30,damageMax:40};

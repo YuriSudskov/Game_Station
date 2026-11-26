@@ -39,7 +39,7 @@ doctorKit:{"name":"Аптечка доктора","type":"medicine","stack":true
  rox3:{equipmentCategory:10,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"flamethrowerAdvanced","type":"weapon","combat":"ranged","name":"РОКС3","weaponClass":"heavy","secondaryWeaponClass":"flamethrower","damageType":"thermal","flame":true,"min":150,"max":400,"maxDistance":1,"ammoCost":200,"value":5500,"rangedSlotOnly":true,"usesHeavyAmmo":true,"requiredHeroLevel":5},
  remington:{equipmentCategory:5,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"remington","type":"weapon","combat":"ranged","name":"Remington","weaponClass":"rifle","min":40,"max":210,"accuracyBonus":5,"closeAccuracyBonus":-15,"distancePenalty":12,"maxDistance":3,"value":3600},
  saiga20k:{equipmentCategory:5,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"saiga","type":"weapon","combat":"ranged","name":"Сайга 20К","weaponClass":"shotgun","min":40,"max":200,"maxDistance":2,"value":4000},
- improvedM16:{equipmentCategory:10,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"m16","type":"weapon","combat":"ranged","name":"M16 улучшенный","weaponClass":"automatic","min":20,"max":160,"shots":4,"shotPenalty":20,"accuracyBonus":5,"maxDistance":3,"value":5000},
+ improvedM16:{equipmentCategory:10,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"m16","type":"weapon","combat":"ranged","name":"M16 улучшенный","weaponClass":"automatic","min":50,"max":160,"shots":4,"shotPenalty":20,"accuracyBonus":5,"maxDistance":3,"value":5000},
  fiveSeven:{min:40,equipmentCategory:5,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"fiveSeven","type":"weapon","combat":"ranged","name":"FN Five Seven","weaponClass":"pistol",min:40,"max":190,"accuracyBonus":5,"maxDistance":2,"value":4000},
  american180:{equipmentCategory:10,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"americanDrum","type":"weapon","combat":"ranged","name":"American 180","weaponClass":"automatic","min":30,"max":160,"shots":10,"shotPenalty":25,"maxDistance":1,"upgradeLimit":2,"value":3600},
  poisonKnife:{equipmentCategory:5,"pendingDistribution":true,"stack":false,"rarity":"rare","icon":"knife","type":"weapon","combat":"melee","name":"Отравленный нож","min":40,"max":130,"strengthMultiplier":10,"poison":true,"value":4500},
@@ -306,7 +306,7 @@ export const LOST_CARAVAN={
  ]
 };
 export const TECHNOPARK={
- radiation:{min:0,max:3},
+ radiation:{min:1,max:3},
  seconds:35,
  description:'Тоннель за постом охраны ведёт на заброшенную станцию. Когда-то у неё был стеклянный потолок, наверное, это считалось современным. Теперь через дырки в потолке на станцию попадают снег, радиация и монстры Стражи. Их ещё называют «сусликами» из-за стойки, в которой они патрулируют территорию. Если не снять суслика первым выстрелом, он будет выть и призовёт своих собратьев, и придётся разобраться и с ними.',
  enemy:{name:'Страж',experience:15,hp:210,evasion:45,stealth:2,initiative:2,accuracy:10,armor:17,thermalArmor:0,damageMin:30,damageMax:100,attackName:'Укус',rush:{accuracyBonus:10,min:50,max:120}},
@@ -533,7 +533,7 @@ Object.assign(PERKS,{
 });
 Object.assign(PROFESSIONS.bandit,{available:true,startReady:true,combatReady:true,accuracy:9,weapon:'pistol',rangedWeapon:null,evasionBonus:0,perks:['bandit-cowboy','bandit-nimble','bandit-survivor','bandit-blur','bandit-jargon']});
 
-PROFESSIONS.scientist={name:'Учёный',strength:1,agility:1,intelligence:4,perception:3,available:true,startReady:true,combatReady:true,weapon:'pistol',accessory:'protectiveSuit',accessoryQuality:2,perks:['scientist-lab','scientist-geiger','scientist-analyst','scientist-smart']};
+PROFESSIONS.scientist={name:'Учёный',strength:1,agility:1,intelligence:4,perception:3,available:true,startReady:true,combatReady:true,weapon:'pistol',accessory:'protectiveSuit',accessoryQuality:0,perks:['scientist-lab','scientist-geiger','scientist-analyst','scientist-smart']};
 Object.assign(PERKS,{
  'scientist-lab':{name:'Лаборант',description:'+10% скорости исследований, пока жив. Бонусы нескольких Лаборантов складываются.'},
  'scientist-geiger':{name:'Гейгера',description:'+1 РАД-защиты, с шестого уровня ещё +1.'},
@@ -1021,3 +1021,8 @@ applyProfessionBalance({PROFESSIONS,PERKS,LEVEL_PERKS});
 Object.assign(PROFESSIONS,{demolition:{name:'Подрывник',strength:4,agility:1,intelligence:2,perception:2,accuracy:10,available:true,startReady:true,combatReady:true,weapon:'crowbar',perks:['demo-grenadier','demo-thrower','demo-risk','demo-scar','demo-burned']}});
 Object.assign(PERKS,Object.fromEntries([['demo-grenadier','Гранатчик','+2 места для гранат и +7 урона гранат, кроме радиоактивных.'],['demo-thrower','Метатель','+1 дистанция броска; можно выбрать дважды.'],['demo-risk','Рисковый','+5 п.п. большого взрыва, +3 п.п. взрыва под ногами.'],['demo-scar','Со шрамом','Вдвое меньше шанс взрыва под ногами.'],['demo-burned','Обожжённый','+14 термического и +7 физического поглощения.']].map(([id,name,description])=>[id,{name,description}])));
 Object.assign(LEVEL_PERKS,Object.fromEntries([['demo-thrower','Метатель',1,'+1 дистанция броска.',2],['demo-armor','Мастер брони',2,'Снимает до 5 п.п. штрафа брони и даёт +7 термозащиты при броне со штрафом.'],['demo-extra','Доп. граната',3,'Каждый второй собственный ход автобоя бросает гранату вместо атаки, если есть цель и граната.'],['demo-pyro','Пироман',4,'+20 к минимуму и +30 к максимуму урона огнемётов и Молотовых.'],['demo-dodge','Сложные броски',5,'+1 сложности уклонения от своих гранат и огнемётов.',3],['demo-area','Площадный огонь',6,'Граната задевает одного дополнительного противника на следующей дистанции.'],['demo-armored','Бронированный',7,'В средней/тяжёлой броне +15 поглощения первого входящего урона.'],['demo-explosion','Усиленный взрыв',8,'+10 к минимуму и +20 к максимуму взрывных гранат, кроме Молотова и радиационной.'],['demo-padding','Бронеподкладка',9,'В средней/тяжёлой броне +15 физической, +7 термической защиты; −5 п.п. точности и +5% времени локаций.'],['demo-refund','Самодельные гранаты',10,'Возвращает 25% фактически потраченных гранат; доли копятся по видам.']].map(([id,name,minLevel,description,maxPicks])=>[id,{name,minLevel,description,profession:'demolition',repeatable:!!maxPicks,maxPicks}])));
+
+// Quest storage is automatic and does not consume ordinary inventory cells.
+for(const id of ["paoloPassport","darkCrystal","teaNotes","traderNotes","kolomenskayaBeetles","kolomenskayaBeetleCorpse"])ITEMS[id].questStorage=true;
+
+ITEMS.paoloArmor={...ITEMS.blueSpecialArmor,name:"Броня Пауло",rarity:"rare",rainbowBorder:true,armor:ITEMS.blueSpecialArmor.armor+10,thermalArmor:ITEMS.blueSpecialArmor.thermalArmor-7,value:Math.round(ITEMS.blueSpecialArmor.value*1.10),pendingDistribution:true,description:"Личная броня Пауло. Единственный экземпляр — трофей после победы над ним. Можно улучшать приписками и схемами."};
