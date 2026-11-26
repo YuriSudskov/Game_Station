@@ -11,6 +11,7 @@ import {runHansa,hansaRoutePrice,hansaDuty} from './hansa-route.js';
 import {doctorKitCure} from './doctor-kit.js';
 
 export const RESEARCH_PROJECTS={
+ energyWeaponImprovement:{name:"Улучшение энергетического оружия",requires:"laser",difficulty:800,reward:{production:"upgrade",level:13,name:"Конденсированные накопители",soon:false},text:"Улучшение энергетического оружия и огнемётов: +15 к минимальному, +30 к максимальному урону. Стоимость +25%."},
  radProtectionSystems:{name:'Улучшенные системы RAD-защиты',type:'Защитные технологии',minProduction:{id:'science',level:11},difficulty:640,reward:{production:'science',level:11,name:'Костюм химзащиты',soon:false},text:'Герметизация швов и химически стойкая обработка повышают защиту от облучения. Открыт рецепт Науки 11: костюм химзащиты, RAD 4, герой 10-го уровня. Защитный костюм, 4 крепкие изоленты и кислота; 30 А, 180 секунд, 120 XP, успех 65%.'},
  advancedRadSuit:{name:'Продвинутый костюм химзащиты',type:'Защитные технологии',requires:'radProtectionSystems',minProduction:{id:'science',level:15},difficulty:960,reward:{production:'science',level:16,name:'Продвинутый костюм химзащиты',soon:false},text:'Кевларовое усиление и электронный контроль герметичности позволяют дольше работать в заражённых тоннелях. Открыт рецепт Науки 16: RAD 6, герой 15-го уровня. Костюм химзащиты, кевларовый материал, 2 крепкие изоленты и электронные запчасти; 50 А, 240 секунд, 200 XP, успех 55%.'},
 
@@ -683,7 +684,8 @@ export function canUpgrade(row,recipeId){
   &&(recipe.target==='body'?ITEMS[row.item]?.type==='body':(ITEMS[row.item]?.combat===(recipe.target??'melee')||((recipe.target??'melee')==='melee'&&ITEMS[row.item]?.bayonet)))
   &&(!recipe.weaponClasses||recipe.weaponClasses.includes(ITEMS[row.item]?.weaponClass)||recipe.weaponClasses.includes(ITEMS[row.item]?.secondaryWeaponClass))
   &&(!recipe.armorClasses||recipe.armorClasses.includes(ITEMS[row.item]?.armorClass))
-  &&(recipeId!=='lcu'||!ITEMS[row.item]?.requiresBeetleBattery)
+  &&(!['lcu','psct','armorPiercing'].includes(recipeId)||!(ITEMS[row.item]?.requiresBeetleBattery||ITEMS[row.item]?.energy||ITEMS[row.item]?.damageType==='energy'))
+  &&(!recipe.energyOrFlame||ITEMS[row.item]?.requiresBeetleBattery||ITEMS[row.item]?.energy||ITEMS[row.item]?.flame||ITEMS[row.item]?.weaponClass==='flamethrower')
   &&(!recipe.rejectsPoison||!ITEMS[row.item]?.poison)
   &&(!recipe.rejectsPiercing||!ITEMS[row.item]?.piercing)
   &&!recipe.excludedWeaponClasses?.includes(ITEMS[row.item]?.weaponClass)
@@ -959,7 +961,7 @@ c.hero.thermalArmor+=(h.nationalityBonuses?.thermalArmor??0)+(h.hobby?.option===
   .reduce((out,u)=>({
    min:out.min+(u.minBonus??0),max:out.max+(u.maxBonus??0),
    bonus:out.bonus+(u.bonus??0),accuracyBonus:out.accuracyBonus+(u.accuracyBonus??0)
-  }),{min:(details?.legacyWeaponMin??range.min)+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)+heavyAccuracy});
+  }),{min:(details?.legacyWeaponMin??range.min)+10*itemQuality(details),max:range.max+10*itemQuality(details),bonus:familiarity,lcuAccuracy:upgrades.filter(u=>u.recipe==='lcu').reduce((sum,u)=>sum+(u.accuracyBonus??0),0),accuracyBonus:(ITEMS[item].accuracyBonus??0)+4*itemQuality(details)+heavyAccuracy});
  return {origin:details?.origin??'unknown',item,name:itemName({item,...details}),type:combat,weaponClass,secondaryWeaponClass,piercing,maxDistance,strengthMultiplier,damageType,distancePenalty,shots,damageRolls,flame,shotPenalty,jamChance,usesHeavyAmmo,reloadMain,reloadEverySlot,closeAccuracyBonus,reloadCycle:ITEMS[item].reloadCycle,requiresBeetleBattery:ITEMS[item].requiresBeetleBattery,poison:ITEMS[item].poison||upgrades.some(u=>RECIPES[u.recipe]?.poisonChance),poisonChance:ITEMS[item].poison?20:Math.max(0,...upgrades.map(u=>RECIPES[u.recipe]?.poisonChance??0)),criticalBonus:ITEMS[item].criticalBonus??0,armorFactor:upgrades.reduce((factor,u)=>factor*(u.armorFactor??1),1),blocksAimedShots:upgrades.some(u=>u.blocksAimedShots??((RECIPES[u.recipe]?.otherRanged&&weaponClass!=='shotgun'&&secondaryWeaponClass!=='shotgun')?RECIPES[u.recipe].otherRanged.blocksAimedShots:RECIPES[u.recipe]?.blocksAimedShots)),...bonuses(combat,{min,max}),
   bayonet:bayonet?{item,type:'melee',isBayonet:true,...bonuses('melee',bayonet)}:null};
 };
@@ -1016,7 +1018,7 @@ export function stimulantEffects(item,quality=0,hero={}){
   : {hp:(40+5*rank)*scale,hpPercent:0,accuracy:5*scale};
 }
 export function heroMaximumHp(h){const strength=heroAttributes(h).strength;const base=Math.max(1,((120+30*strength+(h.nationalityBonuses?.hp??0))+(h.level-1)*(10+10*strength/3+(h.nationalityBonuses?.hpPerLevel??0)))*(1+rebirthStars(h)*.1) +specialEffect(h,'hp')*h.level+levelPerkHpBonus(h)+(h.medicNutrition??0)+(PERKS[h.startPerk??h.perk]?.maxHpBonus??0)-(h.permanentHpLoss??0));const effect=activeStimulantEffects(h);return Math.max(1,((base+effect.hp)*(h.hobby?.option==='endurance'?1.1:1)+strengthHpBonus(h))*(1+effect.hpPercent/100));}
-function levelUp(h,xp){
+export function levelUp(h,xp){
  const cap=heroLevelCap(h);
  h.earnedPerkLevels??=perkSchedule(h,h.level);
  h.xp+=xp;
@@ -1042,7 +1044,7 @@ export const SPECIAL_LOCATIONS={
  caravan:{name:'Караван потерялся',chance:LOST_CARAVAN.chance,seconds:LOST_CARAVAN.seconds,description:'Отыщи пропавший караван. В тоннелях бродят упыри, а у разбитого груза — большой упырь и вожак.'},
  patrol:{name:'Защита: стая упырей и вожак!',chance:6,seconds:40,description:'Сначала 1–3 упыря-разведчика, затем вожак с 450 HP. После первого попадания вожак ярится три своих хода, затем слабеет.'}
 };
-export const activeSpecialLocation=(state,kind)=>state.specialLocations?.[kind]?SPECIAL_LOCATIONS[kind]:null;
+export const activeSpecialLocation=(state,kind)=>kind==='technopark'&&state.completedLocations?.technoparkRoof?null:state.specialLocations?.[kind]?SPECIAL_LOCATIONS[kind]:null;
 export const isCombatRun=run=>isCombatJob(run.kind)||Boolean(run.special);
 
 const rolledSpecialLocation=(kind,run)=>Number.isInteger(run?.seed)
@@ -1172,7 +1174,7 @@ function ordinaryLocationLoot(kind,result){
 function makeRun(s,hero,kind,at,seed,allowSpecial=true){
  if(kind==='kolomTunnels')requireThat(s.completedLocations?.kolomenskaya,'Сначала очисти Коломенскую.');
  if(kind==='pukGrassSearch')requireThat(s.completedLocations?.technoparkRoof,'Сначала отремонтируй Технопарк.');
- startStimulant(hero,kind);const config=heroConfig(s,hero,kind),run=createRun(s,hero,kind,at,seed,allowSpecial,config);
+ startStimulant(hero,kind);const config=heroConfig(s,hero,kind==='technopark'&&s.completedLocations?.technoparkRoof?'surface':kind),run=createRun(s,hero,kind,at,seed,allowSpecial,config);
  if(run.result){hero.grenadeUseCounts={...(config.hero.grenadeUseCounts??hero.grenadeUseCounts??{})};const refunds=grenadeRefund(hero);run.result.grenadeRefunds=refunds;if(run.result.alive!==false){for(const row of refunds)(run.result.loot??={})[row.item]=(run.result.loot[row.item]??0)+row.qty;}else run.result.grenadeRefunds=[];}
  if(heavyAmmoWeapon(hero)&&run.result){
   run.result.heavyAmmoRemaining=config.hero.heavyAmmo;
@@ -1359,7 +1361,7 @@ function queueTrainingRun(state,hero,slot,kind,at,random=Math.random,special=fal
  const reason=trainingBlock(state,hero,kind);
  if(reason){hero.job={...assignment,kind:'trainingPause',reason};return false;}
  const run=makeRun(state,hero,kind,at,Math.floor(random()*4294967296),special);
- run.trainingFiltersSpent=trainingFilters(kind);
+ run.trainingFiltersSpent=trainingFilters(kind,state);
  const stats=trainingCenterStats(state);
  run.endsAt=at+Math.round((run.endsAt-at)*(1+stats.durationPenalty/100));
  if(run.result.alive!==false)run.result.xp=Math.max(1,roundRatio(run.result.xp,100-stats.xpPenalty));
@@ -1413,7 +1415,7 @@ function advanceTrainingCenter(state,now){
     const reload=(hero.lastHeavyReload?.loaded??0)*10;
     totals.earned+=state.money-balance+reload;
     totals.spent+=reload;
-    totals.filters+=state.filters-filters-(job.trainingFiltersSpent??trainingFilters(kind));
+    totals.filters+=state.filters-filters-(job.trainingFiltersSpent??trainingFilters(kind,state));
     totals.radiation+=(hero.radiation??0)-radiation;
     totals.damage+=(result.trapDamage??0)+(result.battles??[]).reduce((sum,battle)=>sum+(battle.damageTaken??0),0);
     if(!hero.dead){
@@ -2602,7 +2604,7 @@ s.money+=(trainer.heavyAmmo??0)*(heavyAmmoWeapon(trainer)?.ammoCost??10)+(traine
 if(trainer.mark)hero.mark=trainer.mark;
 hero.isTea=true;hero.name+=' — Чай';levelUp(hero,training.xp);hero.hp=effectiveMaxHp(hero);s.heroes=s.heroes.filter(member=>member.id!==training.trainerId);s.heroes.unshift(hero);s.teaId=hero.id;delete s.teaTraining;}else s.heroes.push(hero);s.hireNationalityRerolls=0;s.shekelFreeHire=false;s.hero=hero;s.selectedHeroId=hero.id;addHistory(s,`${hero.name} (${p.name}) принят на станцию.`,now);break;}
  case 'setRepeatPreferences':{requireThat(h,'Сначала выбери героя.');const {location,total,threshold}=action;requireThat(['mission','help','rest','patrol','technopark','caravan','surface','zilTunnels','surfaceShops','pukGrassSearch','kolomTunnels'].includes(location),'Нет такой локации.');requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([60,40,20].includes(threshold),'Выбери порог здоровья.');h.repeatPreferences={...h.repeatPreferences,[location]:{total,threshold}};break;}
- case 'startSeries':{const hero=idleHero(s),kind=action.location,total=action.total,threshold=action.threshold;requireThat(['mission','patrol','help','technopark','caravan','surface','zilTunnels','surfaceShops','pukGrassSearch','kolomTunnels'].includes(kind),'Нет такой локации.');requireFreeLocation(s,kind);requireThat(!activeSpecialLocation(s,kind),'Особую локацию можно пройти только один раз за появление.');requireLocationLevel(hero,kind);requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([60,40,20].includes(threshold),'Выбери порог здоровья.');requireThat(hero.hp/effectiveMaxHp(hero)>=threshold/100,'Здоровье уже ниже выбранного порога.');const seeds=Array.from({length:total},()=>Math.floor(random()*4294967296)),worker=clone(hero);worker.job=null;const run=makeRun(s,worker,kind,now,seeds[0]);hero.repeatPreferences={...hero.repeatPreferences,[kind]:{total,threshold}};hero.job={kind:'series',location:kind,total,threshold,seeds,worker,initial:clone(worker),run,phase:'running',completed:0,loot:{},money:0,nationalityBonus:0,xp:0,reports:[],startedAt:now,endsAt:run.endsAt};addHistory(s,`Серия: ${locationName(kind)}, ${total} прохождений.`,now);break;}
+ case 'startSeries':{const hero=idleHero(s),kind=action.location,total=action.total,threshold=action.threshold;requireThat(['mission','patrol','help','technopark','caravan','surface','zilTunnels','surfaceShops','pukGrassSearch','kolomTunnels'].includes(kind),'Нет такой локации.');requireFreeLocation(s,kind);requireThat(!activeSpecialLocation(s,kind),'Особую локацию можно пройти только один раз за появление.');requireLocationLevel(hero,kind,false,s);requireThat(Number.isInteger(total)&&total>=2&&total<=5,'Выбери от 2 до 5 прохождений.');requireThat([60,40,20].includes(threshold),'Выбери порог здоровья.');requireThat(hero.hp/effectiveMaxHp(hero)>=threshold/100,'Здоровье уже ниже выбранного порога.');const seeds=Array.from({length:total},()=>Math.floor(random()*4294967296)),worker=clone(hero);worker.job=null;const run=makeRun(s,worker,kind,now,seeds[0]);hero.repeatPreferences={...hero.repeatPreferences,[kind]:{total,threshold}};hero.job={kind:'series',location:kind,total,threshold,seeds,worker,initial:clone(worker),run,phase:'running',completed:0,loot:{},money:0,nationalityBonus:0,xp:0,reports:[],startedAt:now,endsAt:run.endsAt};addHistory(s,`Серия: ${locationName(kind)}, ${total} прохождений.`,now);break;}
  case 'stopSeries':{requireThat(h?.job?.kind==='series'&&h.job.phase==='break','Прервать можно только во время передышки.');stopSeries(h.job,'Остановлено игроком');break;}
  case 'repeatHero':{requireThat(h&&ready(h.job,now),'Результат ещё не готов.');const kind=h.job.kind==='series'?h.job.location:h.job.kind;requireThat(kind!=='rest','Отдых запускается отдельно, без повторов.');requireThat(!h.job.special&&!h.job.reports?.some(run=>run.special),'Особую локацию нельзя повторить.');const special=Boolean(activeSpecialLocation(s,kind));requireThat(special===Boolean(action.special),'Сценарий изменился. Проверь кнопку в отчёте.');requireThat(!(isCombatRun(h.job)&&!h.job.result.alive)&&!h.job.worker?.dead,'Сначала восстанови героя.');const job=h.job;
  const claimed=act(s,{type:'claimHero',heroId:h.id},now,random);

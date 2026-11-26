@@ -23,3 +23,5 @@ body[data-period="Ночь"] #clock{color:#aabedc}
 .hex.hot-zone{stroke:#a8b75b;stroke-width:14}
 .hike-health{position:relative}.hike-radiation-loss{position:absolute;right:0;top:0;bottom:0;background:repeating-linear-gradient(135deg,#a6aa45 0 3px,#505323 3px 6px)}
 .map-evening-tint{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .5s;background:linear-gradient(160deg,#e9a95830,#bd6f3020);box-shadow:inset 0 0 60px #b0743b50}#map.evening .map-evening-tint{opacity:1}#evening-warning{background:#594127ef;border:1px solid #d1a267;color:#ffe0ac}
+.building-search-progress{height:12px;background:#17271e;border:1px solid #91a377;overflow:hidden;border-radius:3px}.building-search-progress span{display:block;height:100%;background:#9cb77a;animation:hike-search 4s linear forwards}@keyframes hike-search{from{width:0}to{width:100%}}
+#map-overlay:has(.kj-battle){position:fixed;inset:0;z-index:100;padding:8px;background:#17261f;overflow:auto}#map-dialog:has(.kj-battle){width:min(100%,1000px);max-height:none;margin:auto;overflow:visible}.kj-controls button{margin:2px}

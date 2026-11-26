@@ -6,6 +6,9 @@ import {ADDITIONAL_METRO} from './hike-metro-data.js';
 import {stationFaction} from './hike-factions.js';
 import {applyDepartureRadiation} from './hike-radiation.js';
 import {cleanSafeCells,isSafeCell} from './hike-safe-cells.js';
+import {rollBuilding} from './hike-buildings.js';
+import {GUARD_CHANCE} from './hike-encounters.js';
+export const TEST_DEPARTURE_MINUTES = 480; // 15:00 relative to the standard 07:00 clock origin
 export const RADIUS = 25;
 export const HEX_RADIUS = 415; // drawing units; keep the visible hex size unchanged
 export const MAP_UNITS_PER_METRE = 3;
@@ -33,7 +36,7 @@ export const METRO = [
   ...ADDITIONAL_METRO.map(station=>({...station,grey:true})),
 ].map(station=>({...station,faction:stationFaction(station),...geographicCell(station.lat,station.lon)})).filter(station=>distance(station)<=RADIUS);
 export const START_AREA=cells.filter(c=>distance(c)<=2).map(c=>key(c.q,c.r));
-export function initialState(){return {q:0,r:0,steps:0,elapsedMinutes:0,speed:20,speedVersion:2,filters:100,heroes:structuredClone(TEST_HEROES),checked:[...START_AREA],shops:[],pending:[],ended:false,explored:[...new Set([...START_AREA,...METRO.map(c=>key(c.q,c.r))])],seen:[...new Set([...START_AREA,...METRO.map(c=>key(c.q,c.r))])]};}
+export function initialState(){return {q:0,r:0,steps:0,elapsedMinutes:TEST_DEPARTURE_MINUTES,speed:20,speedVersion:2,filters:100,heroes:structuredClone(TEST_HEROES),checked:[...START_AREA],shops:[],pending:[],ended:false,explored:[...new Set([...START_AREA,...METRO.map(c=>key(c.q,c.r))])],seen:[...new Set([...START_AREA,...METRO.map(c=>key(c.q,c.r))])]};}
 export function prepareTravel(state){return {...state,elapsedMinutes:state.elapsedMinutes??state.steps*20,speed:state.speedVersion===2?(state.speed??20):(state.speed===10?20:state.speed??20),speedVersion:2,filters:state.filters??100,heroes:state.heroes??structuredClone(TEST_HEROES),explored:[...new Set([...state.explored,...START_AREA])],checked:[...new Set([...(state.checked??state.explored),...START_AREA])],shops:(state.shops??[]).filter(id=>!START_AREA.includes(id)),pending:(state.pending??[]).filter(e=>!START_AREA.includes(e.cell))};}
 export function stepMinutes(state,target){return Math.max(1,Math.round((state.speed??20)*(state.explored.includes(key(target.q,target.r))?1:2)));}
 export function routeMinutes(state,path){let minutes=state.elapsedMinutes??state.steps*20;const explored=new Set(state.explored);for(const cell of path){minutes+=stepMinutes({...state,explored:[...explored]},cell);if(!isNight({elapsedMinutes:minutes}))explored.add(key(cell.q,cell.r));}return minutes;}
@@ -42,16 +45,18 @@ export function isNight(state){return travelClock(state).period==='Ночь';}
 export function logAction(state,text){const t=travelClock(state);return {...state,journal:[...(state.journal??[]),{day:t.day,time:t.time,text}]};}
 export function prepareFindings(state){return {...state,checked:state.checked??[...state.explored],shops:state.shops??[],pending:state.pending??[],rewards:state.rewards??[],ended:state.ended??false};}
 export function checkFindings(state,random=Math.random){
+  if(START_AREA.includes(key(state.q,state.r)))return state;
   if(isSafeCell(state))return cleanSafeCells(state);
   if(isNight(state))return state;
   state=prepareFindings(state);const id=key(state.q,state.r);
-  if(state.checked.includes(id))return state;
-  const roll=random(),shop=roll<.15,remains=roll>=.15&&roll<.25;
-  return {...state,checked:[...state.checked,id],shops:shop?[...new Set([...state.shops,id])]:state.shops,pending:[...(shop?[{type:'shop',cell:id}]:[]),...(remains?[{type:'remains',cell:id}]:[])]};
+  if(state.checked.includes(id))return {...state,pending:random()<GUARD_CHANCE?[{type:'guard',cell:id}]:[]};
+  const remains=random()<.1,building=rollBuilding(random);
+  const guard=random()<GUARD_CHANCE;
+  return {...state,checked:[...state.checked,id],buildings:{...state.buildings,...(building?{[id]:building}:{})},pending:[...(guard?[{type:'guard',cell:id}]:[]),...(remains?[{type:'remains',cell:id}]:[]),...(building?[{type:'building',cell:id}]:[])]};
 }
 export function resolveFinding(state,choice,random=Math.random){
   const event=state.pending?.[0];if(!event||isNight(state))return state;
-  if(event.type==='shop'&&choice!=='leave'||event.type==='remains'&&!['search','leave'].includes(choice))return state;
+  if(['shop','building'].includes(event.type)&&choice!=='leave'||event.type==='remains'&&!['search','leave'].includes(choice))return state;
   if(event.type==='remains'&&choice==='search'){
     const roll=1+Math.floor(random()*20),bonus=state.searchBonus??0,success=roll+bonus>=10;
     const reward=success?{...LEVEL5_REWARDS[Math.floor(random()*LEVEL5_REWARDS.length)]}:null;
@@ -60,7 +65,16 @@ export function resolveFinding(state,choice,random=Math.random){
   return {...state,pending:state.pending.slice(1)};
 }
 export function finishHike(state){if(state.ended||isNight(state)||state.pending?.length||!METRO.some(s=>distance(state,s)===0))return state;return {...state,ended:true};}
-export function startHike(state){if(!state.ended)return state;return reveal({...state,q:0,r:0,steps:0,elapsedMinutes:0,filters:100,heroes:structuredClone(TEST_HEROES),ended:false,failed:false,pending:[]});}
+export function searchBuilding(state){
+ const id=key(state.q,state.r),building=state.buildings?.[id];
+ if(state.ended||state.pending?.length||isNight(state)||!building||building.remaining<=0)return state;
+ const before=state.elapsedMinutes,elapsedMinutes=before+40;
+ let filters=state.filters,heroes=structuredClone(state.heroes);
+ for(let tick=Math.floor(before/20);tick<Math.floor(elapsedMinutes/20);tick++)for(const h of heroes){if(h.dead||h.hp<=0||h.unconscious)continue;if(filters>0)filters--;else h.unconscious=true;}
+ const failed=heroes.every(h=>h.dead||h.hp<=0||h.unconscious);
+ return logAction(advanceWeather({...state,filters,heroes,elapsedMinutes,failed,ended:failed,deathCell:failed?id:state.deathCell,buildings:{...state.buildings,[id]:{...building,remaining:building.remaining-1}}},elapsedMinutes),'Обыскали здание. Ничего не нашли.');
+}
+export function startHike(state){if(!state.ended)return state;return reveal({...state,q:0,r:0,steps:0,elapsedMinutes:TEST_DEPARTURE_MINUTES,filters:100,heroes:structuredClone(TEST_HEROES),ended:false,failed:false,pending:[]});}
 export function reveal(state){
   const defaults=initialState();
   return {...state,explored:[...new Set([...state.explored,...defaults.explored])],seen:[...new Set([...defaults.seen,...(state.seen??[]),...state.explored,...cells.filter(c=>distance(c,state)<=1).map(c=>key(c.q,c.r))])]};
@@ -73,9 +87,10 @@ export function move(state,target){
   for(let tick=Math.floor(before/20);tick<Math.floor(elapsedMinutes/20);tick++)for(const hero of heroes){if(hero.unconscious)continue;if(filters>0)filters--;else hero.unconscious=true;}
   const failed=heroes.every(h=>h.unconscious);
   const night=isNight({elapsedMinutes});
-  return advanceWeather(reveal({...state,...target,steps:state.steps+1,elapsedMinutes,filters,heroes,failed,ended:failed,deathCell:failed?key(target.q,target.r):state.deathCell,explored:night?state.explored:[...new Set([...state.explored,key(target.q,target.r)])]}),elapsedMinutes);
+  return advanceWeather(reveal({...state,previousCell:{q:state.q,r:state.r},...target,steps:state.steps+1,elapsedMinutes,filters,heroes,failed,ended:failed,deathCell:failed?key(target.q,target.r):state.deathCell,explored:night?state.explored:[...new Set([...state.explored,key(target.q,target.r)])]}),elapsedMinutes);
 }
 export function clock(steps){const minutes=420+Math.round(steps*20);return {day:Math.floor(minutes/1440)+1,time:`${String(Math.floor(minutes/60)%24).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`,period:minutes%1440<420?'Ночь':minutes%1440<480?'Рассвет':minutes%1440<1140?'День':minutes%1440<1200?'Закат':'Ночь'};}
+
 
 
 

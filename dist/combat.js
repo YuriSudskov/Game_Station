@@ -76,7 +76,7 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
     +(distance>0?n.distantAccuracy??0:0)
     +(weapon.origin==='crafted'?n.craftedAccuracy??0:weapon.origin==='bought'?n.boughtAccuracy??0:0)
     +(distance===0?(hero.closeAccuracyBonus??0)+(weapon.closeAccuracyBonus??0):0)
-    +(weapon.accuracyBonus??0)
+    +(weapon.accuracyBonus??0)-(distance>2?(weapon.lcuAccuracy??0):0)
     +(ranged?(hero.rangedAccuracyBonus??0)-Math.max(0,(weapon.distancePenalty??15)-(hero.sniperDistanceReduction??(perks.includes('sniper-range')?4:0))-(['rifle','shotgun'].includes(weapon.weaponClass)?hero.longGunDistanceReduction??0:0))*distance:(hero.meleeAccuracyBonus??0)-(weapon.saboteurRush?0:hero.attackAccuracyPenalty??0))
     -(pistol?(hero.pistolAccuracyPenalty??0):0)
     -(weapon.shotPenalty??0)+(weapon.shots?(hero.burstAccuracyBonus??0):0)+(ambush?15:0)-(hero.dualWieldAccuracyPenalty??0);

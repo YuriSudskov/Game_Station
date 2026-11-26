@@ -1,3 +1,6 @@
+import {buildingInfo,migrateBuildings} from './hike-buildings.js';
+import {TEST_DEPARTURE_MINUTES,searchBuilding} from './hike-map-model.js';
+import {renderGuard} from './hike-encounters-ui.js';
 import {WEATHER,initializeWeather,cellRadiation,weatherRadiationText} from './hike-weather.js';
 import {cells,center,key,distance,initialState,prepareTravel,stepMinutes,routeMinutes,travelClock,isNight,logAction,prepareFindings,checkFindings,resolveFinding,finishHike,startHike,reveal,move,clock,ORIGIN,METRO,MAP_UNITS_PER_METRE} from './hike-map-model.js';
 import {terrainAt} from './hike-terrain.js';
@@ -11,11 +14,13 @@ const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg', storag
 let state=initialState();
 try{const saved=JSON.parse(localStorage.getItem(storage));if(saved&&cells.some(c=>c.q===saved.q&&c.r===saved.r)&&Number.isInteger(saved.steps)&&saved.steps>=0&&Array.isArray(saved.explored))state={...saved,explored:saved.explored.filter(k=>cells.some(c=>key(c.q,c.r)===k))};}catch{}
 if(!state.seen&&state.steps===0)state=initialState();
-state=prepareRadiationZones(initializeWeather(prepareTravel(prepareFindings(reveal(state)))));
+state=prepareRadiationZones(migrateBuildings(initializeWeather(prepareTravel(prepareFindings(reveal(state))))));
+if(state.encountersMapVersion!==1){state={...state,...initialState(),heroes:state.heroes,filters:state.filters,prepared:state.prepared,preparing:state.preparing,buildings:{},shops:[],pending:[],journal:[],cellRadiation:state.cellRadiation,encountersMapVersion:1};state=prepareRadiationZones(initializeWeather(state));}
+if(state.steps===0&&state.elapsedMinutes===0){state=initializeWeather({...state,elapsedMinutes:TEST_DEPARTURE_MINUTES,weatherIndex:null,weatherCheckedMinute:null,journal:[]});}
 save();
 let scale=1,offset={x:0,y:0},width=0,height=0,drag=null;
 let planned=[],walking=false;
-let popup=null,selectedHero=0;
+let popup=null,selectedHero=0,searching=false;
 function returnFilterReserve(){
   if(!state.reserveFilters)return 0;
   const path=findRoute(state,{q:0,r:0},c=>terrainAt(c).blocked,c=>stepMinutes(state,c));
@@ -32,29 +37,35 @@ function showPreparation(fresh){
   mountPreparation(root,{source,previousDraft:draft,
     onRefresh:raw=>{try{const next=copySource(raw?.heroes?raw:JSON.parse(localStorage.getItem(MAIN_SAVE_KEY)??'null'));localStorage.removeItem('station-hike-preparation-draft-v1');showPreparation(next);}catch(e){root.append(Object.assign(document.createElement('p'),{textContent:e.message}));}},
     onAmmoChange:qty=>{source.ammo=qty;localStorage.setItem('station-hike-source-v1',JSON.stringify(source));showPreparation(source);},
-    onStart:loadout=>{state=logAction(prepareTravel(prepareFindings(reveal({...state,...loadout,q:0,r:0,steps:0,elapsedMinutes:0,pending:[],ended:false,failed:false,prepared:true,preparing:false,weatherIndex:null,weatherCheckedMinute:null,journal:[]}))),'Вышли из Автозаводской. Начали поход.');state=initializeWeather(state);root.hidden=true;document.body.classList.remove('preparing');save();render();recenter();}
+    onStart:loadout=>{state=logAction(prepareTravel(prepareFindings(reveal({...state,...loadout,q:0,r:0,steps:0,elapsedMinutes:TEST_DEPARTURE_MINUTES,pending:[],ended:false,failed:false,prepared:true,preparing:false,weatherIndex:null,weatherCheckedMinute:null,journal:[]}))),'Вышли из Автозаводской. Начали поход.');state=initializeWeather(state);root.hidden=true;document.body.classList.remove('preparing');save();render();recenter();}
   });
 }
 const nodes=new Map(),tiles=new Map();
 function element(tag,attrs){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
 function renderFindings(){
   const panel=$('map-dialog'),actions=$('hike-actions'),event=state.pending[0];panel.replaceChildren();actions.replaceChildren();
-  const blocked=Boolean(event||popup);
-  $('map-overlay').hidden=!blocked;$('canvas').inert=blocked;$('reset').disabled=walking||Boolean(event);
+  const blocked=Boolean(event||popup||searching);
+  $('map-overlay').hidden=!blocked;$('canvas').inert=blocked;$('reset').disabled=walking||searching||Boolean(event);
   function text(message,parent=panel){const p=document.createElement('p');p.textContent=message;parent.append(p);}
-  function button(label,handler,parent=panel){const b=document.createElement('button');b.textContent=label;b.disabled=walking;b.onclick=handler;parent.append(b);}
+  function button(label,handler,parent=panel){const b=document.createElement('button');b.textContent=label;b.disabled=walking||searching;b.onclick=handler;parent.append(b);}
   function open(kind){popup={kind};renderFindings();}
   button('Инвентарь',()=>open('inventory'),actions);
   if(!event&&!state.ended){
     const minute=(420+state.elapsedMinutes)%1440;
     if(isNight(state)||minute>=1080)button('Искать укрытие',()=>open('shelter'),actions);
     if(!isNight(state)){
-      if(state.shops.includes(key(state.q,state.r)))button('Разрушенный магазин',()=>open('shop'),actions);
+      const building=state.buildings?.[key(state.q,state.r)];if(building)button(`${buildingInfo(building.id).name} · ${building.remaining}/${building.total}`,()=>open('building'),actions);
       if(METRO.some(s=>distance(state,s)===0))button('Спуститься в метро',()=>{state=logAction(finishHike(state),'Спустились в метро. Поход завершён.');planned=[];showRoute();save();popup={kind:'ended'};render();},actions);
     }
   }
   if(state.ended)button('Новый поход',()=>showPreparation(),actions);
-  if(event){
+  if(event?.type==='guard'){
+    renderGuard({state,panel,save,render,retreat:()=>{const target=state.previousCell;if(!target)return;const next=move({...state,pending:[]},target);state=logAction(next,'Отступили от Стража на предыдущую клетку.');popup=null;planned=[];}});
+  }else if(event?.type==='building'){
+    const b=state.buildings[event.cell],info=buildingInfo(b.id);text('Нашли: '+info.name);buildingImage(info);text('Доступно поисков: '+b.remaining+' · по 40 минут.');
+    button('Войти в здание',()=>{state=resolveFinding(state,'leave');popup={kind:'building'};save();render();});
+    button('Оставить и вернуться позже',()=>{state=logAction(resolveFinding(state,'leave'),'Оставили здание для осмотра позже.');save();render();});
+  }else if(event){
     const title=document.createElement('h2');title.textContent=event.type==='shop'?'Мы нашли разрушенный магазин':'Останки сталкера';panel.append(title);
     const illustration=element('svg',{viewBox:'0 0 400 130',class:'finding-art','aria-label':event.type==='shop'?'Схема разрушенного магазина':'Схема останков сталкера',role:'img'});
     illustration.innerHTML=event.type==='shop'?'<path d="M45 115V48L170 22L200 43L228 16L350 50V115M40 48H170L190 67L210 48H357M70 115V70H130V115M150 78H195V110H150M245 70H320V108H245M25 118H370M100 30L125 18L143 29M208 115L225 90L238 113"/>':'<path d="M25 110L80 92L135 112L185 98L235 113L290 93L370 111M105 83L143 66L191 75L220 91L265 88M155 68L144 45L177 38L196 63M220 90L247 109M117 80L87 100M201 76L213 59L240 62"/>';
@@ -75,13 +86,21 @@ function renderFindings(){
       text('Припасы в сумке: '+((state.cargo??[]).filter(r=>!r.item.startsWith('$')).map(r=>`${itemName(r)} ×${r.qty}`).join(', ')||'нет'));
       text(`Общие патроны: ${state.ammo??0}`);
       text('Применение припасов и смена снаряжения — Скоро.');
-    }else if(popup.kind==='shop')text('Разрушенный магазин. Осмотр — Скоро.');
+     }else if(popup.kind==='building'){
+      const b=state.buildings?.[key(state.q,state.r)],info=buildingInfo(b.id);text(info.name);buildingImage(info);
+      text('Осталось поисков: '+b.remaining+' из '+b.total);
+      if(searching){text('Идёт поиск…');const progress=document.createElement('div');progress.className='building-search-progress';progress.innerHTML='<span></span>';panel.append(progress);}
+      else {if(state.failed)text('Группа погибла без фильтров.');else if(popup.searched)text('Ничего не нашли.');if(b.remaining>0&&!isNight(state)&&!state.ended)button(popup.searched?'Продолжать поиск · 40 минут':'Искать · 40 минут',async()=>{
+        const next=searchBuilding(state);if(next===state)return;state=next;searching=true;save();render();await new Promise(r=>setTimeout(r,4000));searching=false;popup={kind:'building',searched:true};render();
+      });else text(isNight(state)?'Ночью поиск недоступен.':'Все доступные места осмотрены.');}
+    }
     else if(popup.kind==='shelter')text('Поиск укрытия — Скоро. Условия ночлега ещё не настроены.');
     else if(popup.kind==='ended')text('Поход завершён. Группа спустилась в метро.');
     else text(popup.text);
-    button('Закрыть',()=>{popup=null;renderFindings();});
+    button(popup.kind==='building'?'Покинуть здание':'Закрыть',()=>{popup=null;renderFindings();});
   }
   renderJournal();
+  function buildingImage(info){const img=document.createElement('img');img.src='hike-building-icons/'+info.id+'.svg';img.alt=info.name;img.width=112;img.height=112;panel.append(img);}
 }
 function renderJournal(){
   const journal=$('journal'),atBottom=journal.scrollHeight-journal.scrollTop-journal.clientHeight<30;journal.replaceChildren();
@@ -133,7 +152,10 @@ function render(){
     if(visible&&terrain.label){const p=center(c),label=element('text',{x:p.x,y:p.y+130,'text-anchor':'middle','font-size':90,fill:terrain.bridge?'#f5dca0':'#b6d1d9',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent=terrain.bridge?'Мост':terrain.water?'Вода':'Берег';$('terrain-labels').append(label);}
     if(visible&&(state.cellRadiation?.[id]??3)>3){node.classList.add('hot-zone');const p=center(c),label=element('text',{x:p.x,y:p.y-280,'text-anchor':'middle','font-size':85,fill:'#e3ec91',stroke:'#17241e','stroke-width':20,'paint-order':'stroke'});label.textContent=`РАД ${cellRadiation({...state,q:c.q,r:c.r})}`;$('terrain-labels').append(label);}
   }
-  for(const id of state.shops){const [q,r]=id.split(',').map(Number),p=center({q,r}),label=element('text',{x:p.x,y:p.y-100,'text-anchor':'middle','font-size':83,fill:'#f0d194',stroke:'#17241e','stroke-width':18,'paint-order':'stroke'});label.textContent='Магазин';$('terrain-labels').append(label);}
+  for(const [id,b] of Object.entries(state.buildings??{})){const [q,r]=id.split(',').map(Number),p=center({q,r}),info=buildingInfo(b.id);if(!info)continue;
+    const img=element('image',{href:'hike-building-icons/'+info.id+'.svg',x:p.x-180,y:p.y-220,width:360,height:360,'pointer-events':'none'});$('terrain-labels').append(img);
+    const label=element('text',{x:p.x,y:p.y+210,'text-anchor':'middle','font-size':72,fill:'#f0d194',stroke:'#17241e','stroke-width':16,'paint-order':'stroke'});label.textContent=info.name+' · '+b.remaining+'/'+b.total;$('terrain-labels').append(label);
+  }
   $('marker').setAttribute('transform',markerTransform(center(state)));renderFindings();
 }
 // Web Mercator raster tiles, locally scaled to real ground metres at the station.
@@ -162,7 +184,7 @@ async function travel(){
       const from=center(state),to=center(target),started=performance.now();
       $('hint').textContent=`В пути · осталось клеток: ${planned.length}`;
       await new Promise(resolve=>{function frame(now){const t=Math.min(1,(now-started)/700);$('marker').setAttribute('transform',markerTransform({x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t}));if(t<1)requestAnimationFrame(frame);else resolve();}requestAnimationFrame(frame);});
-      const next=move(state,target);if(next===state)break;state=next.ended?next:checkFindings(next);planned.shift();const finding=state.pending[0],terrain=terrainAt(state);state=logAction(state,state.failed?'Группа погибла без фильтров.':finding?.type==='shop'?'Мы нашли разрушенный магазин.':finding?.type==='remains'?'Мы нашли свежие останки растерзанного сталкера.':terrain.bridge?'Вышли на полуразрушенный мост.':isNight(state)?'Продолжили путь в темноте. Разведка невозможна.':'Вокруг одни развалины. Ничего не нашли.');save();render();showRoute();if(state.pending.length||state.ended)break;
+      const next=move(state,target);if(next===state)break;state=next.ended?next:checkFindings(next);planned.shift();const finding=state.pending[0],terrain=terrainAt(state);state=logAction(state,state.failed?'Группа погибла без фильтров.':finding?.type==='building'?'Обнаружили здание.':finding?.type==='remains'?'Мы нашли свежие останки растерзанного сталкера.':terrain.bridge?'Вышли на полуразрушенный мост.':isNight(state)?'Продолжили путь в темноте. Разведка невозможна.':'Вокруг одни развалины. Ничего не нашли.');save();render();showRoute();if(state.pending.length||state.ended)break;
     }
     $('hint').textContent=state.pending.length?'Найдена находка. Выберите действие, чтобы продолжить.':`Прибыли · ${travelClock(state).time}. Выберите следующую цель.`;
   }finally{walking=false;planned=[];$('reset').disabled=false;showRoute();renderFindings();}
@@ -185,6 +207,9 @@ $('center').onclick=recenter;$('reset').onclick=()=>{if(walking||state.pending.l
 new ResizeObserver(()=>{width=$('map').clientWidth;height=$('map').clientHeight;scale=width/(7*Math.sqrt(3)*415+80);draw();}).observe($('map'));
 render();offset=center(state);
 if(!state.prepared||state.preparing)showPreparation();
+
+
+
 
 
 

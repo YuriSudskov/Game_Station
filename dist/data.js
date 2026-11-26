@@ -1026,3 +1026,5 @@ Object.assign(LEVEL_PERKS,Object.fromEntries([['demo-thrower','Метатель'
 for(const id of ["paoloPassport","darkCrystal","teaNotes","traderNotes","kolomenskayaBeetles","kolomenskayaBeetleCorpse"])ITEMS[id].questStorage=true;
 
 ITEMS.paoloArmor={...ITEMS.blueSpecialArmor,name:"Броня Пауло",rarity:"rare",rainbowBorder:true,armor:ITEMS.blueSpecialArmor.armor+10,thermalArmor:ITEMS.blueSpecialArmor.thermalArmor-7,value:Math.round(ITEMS.blueSpecialArmor.value*1.10),pendingDistribution:true,description:"Личная броня Пауло. Единственный экземпляр — трофей после победы над ним. Можно улучшать приписками и схемами."};
+
+RECIPES.condensedAccumulators={name:"Конденсированные накопители",production:"upgrade",level:13,research:"energyWeaponImprovement",ingredients:{electronicParts:2,steel:1,acid:1},cost:1000,seconds:120,xp:150,chance:65,upgrade:true,target:"ranged",energyOrFlame:true,minBonus:15,maxBonus:30,prefix:"Конденс.",valueIncreasePercent:25};
