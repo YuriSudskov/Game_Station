@@ -83,7 +83,7 @@ export function playKolomFrames(container,previous,current,onComplete){
    later(()=>{
     if(frame.kind==='web'){popup(target,frame.hit?(frame.restriction==='movement'?'Движение сковано':'Опутан'):'Промах',frame.hit?'kj-web-text':'kj-miss');return;}
     paint(frame.targetId,frame.hp,frame.maxHp);
-    if(!frame.hit){popup(target,'Промах','kj-miss');return;}
+    if(!frame.hit){popup(target,frame.ricochet?'Рикошет':'Промах','kj-miss');return;}
     const targetSprite=target?.querySelector('.kj-sprite');
     if(targetSprite){
      targetSprite.classList.remove('kj-hit-flash','kj-red-flash');
@@ -95,7 +95,7 @@ export function playKolomFrames(container,previous,current,onComplete){
       targetSprite.animate([{translate:'0 0'},{translate:direction*12+'px 0'},{translate:'0 0'}],{duration:190*speed});
      }
     }
-    popup(target,(frame.critical?'КРИТ −':'−')+Math.round(frame.damage),frame.critical?'kj-critical':'');
+    popup(target,(frame.critical?'КРИТ −':'−')+Math.round(frame.damage),frame.piercing?'kj-piercing':frame.critical?'kj-critical':'');
    },reduced?0:(frame.kind==='shot'?65:180)*speed);
   },elapsed);
   elapsed+=duration;

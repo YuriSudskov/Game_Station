@@ -5,7 +5,7 @@ export const JRPG_MAGAZINES={
  ak47:30,ak74:30,rpk:100,ppsh:71,m60:100,improvedM16:30,american180:177,
  pistol:8,mr73:6,fiveSeven:20,brenTen:10,mosin:5,remington:5,
  saiga20k:5,browning:5,slugShotgun:5,abzats:20,velocipedel:60,
- bastard:30,nailGun:30,handCrossbow:1,homemadeRifle:1,ashot:1,
+ bastard:30,nailGun:30,handCrossbow:3,homemadeRifle:1,ashot:1,
  laserPistol:10,laserRifle:10,heavyLaser:30
 };
 export function magazineState(hero,slot){

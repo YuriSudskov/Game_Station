@@ -482,3 +482,9 @@ body.kolom-swarm-danger .modal{box-shadow:0 0 0 2px #b94436,0 0 55px #d326264f}b
 .paolo-results .expedition-result-return{background:#da963e;color:#20190e;border:2px solid #ffb64e;font-weight:700;min-height:46px;margin-top:14px}.paolo-results .expedition-result-return:hover{background:#efaa4c}.paolo-results .loot{list-style:none;padding:0}.paolo-results .loot li{padding:8px 10px;border:1px solid #536346;border-radius:6px}.quest-inventory{margin-top:18px}
 
 .dima-quest-intro{display:grid;grid-template-columns:86px minmax(0,1fr);gap:14px;align-items:start}.dima-quest-person img{display:block;width:76px;height:76px}.dima-quest-person h3{font-size:16px;margin:8px 0 0}.dima-quest-copy p{margin:0 0 8px}.dima-quest-copy{min-width:0}@media(max-width:420px){.dima-quest-intro{grid-template-columns:76px minmax(0,1fr);gap:10px}.dima-quest-copy p{font-size:13px}}
+
+.armor-piercing-damage{color:#ffdc45;font-weight:800}
+
+.severe-wound-hp{color:#f4cc49!important}.hpbar.severe-wound-hp>i{background:#f4cc49!important}
+
+.supplies-auto-options{display:flex;flex-wrap:wrap;gap:8px 18px;margin:8px 0 12px;font-size:13px}.supplies-auto-options label{display:flex;align-items:center;gap:6px}

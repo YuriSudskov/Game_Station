@@ -1,3 +1,4 @@
+import {severelyWounded,syncWoundChecks} from './severe-wound.js';
 import {grenadeSpec,recordGrenade,GRENADE_FIELDS} from './demolition.js';
 import {doctorKitCure} from './doctor-kit.js';
 import {ITEMS,SURFACE,TECHNOPARK,ZIL_TUNNELS,CARAVAN,PATROL,GHOUL_LEADER,LOST_CARAVAN} from './data.js';
@@ -42,7 +43,7 @@ export function applyKnifePoison(target,weapon,damage,random){
  else target.skipNextTurn=true;
  return true;
 }
-export const damageAfterArmor = (raw,armor) => Math.max(1,raw-armor);
+export const damageAfterArmor = (raw,armor,random=null) => {const absorbed=raw-armor<=0;if(random)random.lastArmorAbsorbed=absorbed;return absorbed?(random?.int?random.int(1,9):1+Math.floor(Math.random()*9)):raw-armor;};
 export function levelXp(level,xp,reward,thresholds,maxLevel=20) {
   xp+=reward;
   while(level<maxLevel && thresholds[level]!=null && xp>=thresholds[level]) { xp-=thresholds[level]; level++; }
@@ -63,11 +64,12 @@ export function prepareProfessionShot(hero,weapon,book){
   damageAfterProtection:cold?2:1,criticalBonus:perks.includes('sniper-crit')?(rifle?5:3):0};
 }
 export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoundedHero=false,battleDamageBonus=0,firstRanged=false,correctionBonus=0,focusDamageBonus=0,hp=hero.currentHp??hero.maxHp}={}){
+  syncWoundChecks(hero,hp);
   const n=hero.nationality??{},energy=['energy','flamethrower'].includes(weapon.weaponClass)||weapon.flame;const ranged=weapon.type==='ranged',pistol=ranged&&weapon.weaponClass==='pistol';
   const longGun=['rifle','shotgun'].includes(weapon.weaponClass)||weapon.secondaryWeaponClass==='shotgun';
   const rifleOrAutomatic=['rifle','automatic'].includes(weapon.weaponClass);
   const perks=hero.professionPerks??[];
-  const accuracy=hero.accuracy+(distance>=2&&weapon.weaponClass==='rifle'&&perks.includes('sniper-optics')?10:0)+(perks.includes('heavy-control')&&(weapon.flame||weapon.shots&&weapon.weaponClass==='heavy')?7:0)-(weapon.shots&&perks.includes('heavy-burst')?5:0)+(longGun?n.longGunAccuracy??0:0)+(rifleOrAutomatic?n.rifleAutomaticAccuracy??0:0)+(pistol||!ranged?n.pistolMeleeAccuracy??0:0)-(dualPistolsActive(hero)&&pistol?10:0)+correctionBonus+(ranged&&firstRanged?(hero.firstRangedAccuracyBonus??0):0)
+  const accuracy=hero.accuracy-(severelyWounded(hero,hp)?20:0)+(distance>=2&&weapon.weaponClass==='rifle'&&perks.includes('sniper-optics')?10:0)+(perks.includes('heavy-control')&&(weapon.flame||weapon.shots&&weapon.weaponClass==='heavy')?7:0)-(weapon.shots&&perks.includes('heavy-burst')?5:0)+(longGun?n.longGunAccuracy??0:0)+(rifleOrAutomatic?n.rifleAutomaticAccuracy??0:0)+(pistol||!ranged?n.pistolMeleeAccuracy??0:0)-(dualPistolsActive(hero)&&pistol?10:0)+correctionBonus+(ranged&&firstRanged?(hero.firstRangedAccuracyBonus??0):0)
     +(targetHasWoundedHero?n.vendettaAccuracy??0:n.unwoundedAccuracy??0)
     +(ranged?n.rangedAccuracy??0:0)
     +(pistol&&distance<=1?n.closePistolAccuracy??0:0)
@@ -85,7 +87,7 @@ export function heroAttackStats(hero,weapon,distance,{ambush=false,targetHasWoun
     +focusDamageBonus+(rifleOrAutomatic?n.rifleAutomaticDamage??0:0)+(hero.desperation&&hp<hero.maxHp*.5?(ranged?10:20):0)+(n.weaponDamage??0)+(ranged?n.rangedDamage??0:0)+(targetHasWoundedHero?n.vendettaDamage??0:0)+battleDamageBonus+(energy?n.energyDamage??0:0)+(n.mutantDamage??0)+(weapon.damageType==='thermal'?n.thermalDamage??0:0)
     +(distance===0?(hero.closeDamageBonus??0):0)+(weapon.bonus??0)+(pistol?(hero.pistolDamageBonus??0):0);
   const damagePenalty=ranged||weapon.saboteurRush?0:hero.attackDamagePenalty??0;const damagePenaltyPercent=ranged||weapon.saboteurRush?0:hero.attackDamagePenaltyPercent??0,damageMultiplier=1-damagePenaltyPercent/100;
-  const attacks=ambush?1:dualPistolsActive(hero)&&pistol?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
+  const attacks=ambush?1:ranged?(weapon.shots?weapon.shots+(hero.burstBonus??0):pistol?hero.pistolAttacks??1:1):hero.attacksPerTurn??1;
   return {accuracy,bonus,damagePenalty,damagePenaltyPercent,damageMultiplier,attacks,min:Math.max(1,(weapon.min+bonus-damagePenalty+(weapon.flame&&hero.demoPyro?20:0))*damageMultiplier),max:Math.max(1,(weapon.max+bonus-damagePenalty+(weapon.flame&&hero.demoPyro?30:0))*damageMultiplier)};
 }
 export function withStarterPerk(config,perk,level=1) {
@@ -145,7 +147,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   const note=(type,data)=>{if(trace) events.push({type,...data});};
   let damageTaken=0;
   const hurt=damage=>{damageTaken+=Math.min(Math.max(0,hp),damage);hp-=damage;};
-  let hp=startHp,minimumHp=startHp,ratHp=r.hp,firstMelee=true,firstRanged=ambush||!h.ambushRangedBonusSpent,woundBonus=false,woundedEvasion=false,berserkDamage=0,counterUsed=false;const national=h.nationality??{};const woundCheck=()=>{minimumHp=Math.min(minimumHp,hp);if(!woundBonus&&national.battleWoundAccuracy&&startHp-hp>=h.maxHp*.2){woundBonus=true;}};
+  let hp=startHp,minimumHp=startHp,ratHp=r.hp,firstMelee=true,firstRanged=ambush||!h.ambushRangedBonusSpent,woundBonus=false,woundedEvasion=false,berserkDamage=0,counterUsed=false;const national=h.nationality??{};const woundCheck=()=>{syncWoundChecks(h,hp,h.maxHp);syncWoundChecks(r,ratHp,r.maxHp??config.rat.hp);minimumHp=Math.min(minimumHp,hp);if(!woundBonus&&national.battleWoundAccuracy&&startHp-hp>=h.maxHp*.2){woundBonus=true;}};
   if(!ambush)delete h.ambushRangedBonusSpent;
   const dc=9+r.stealth,perception=perceptionCheck(h,random,h.perception+(h.perceptionCheckBonus??0)+(h.initialPerceptionBonus??0)+(h.detectionBonus??0)+(h.nationality?.detectionBonus??0)-(h.checkPenalty??0),dc,{events,trace});
   const perceptionRoll=perception.roll,margin=perception.total-dc;
@@ -204,7 +206,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
   let burningHero=false;
   const blast=(target,agility,armor,base,dodgeDc)=>{
     const roll=random.int(1,20),dodged=roll+agility>dodgeDc;
-    const damage=damageAfterArmor(base*(dodged?.5:1),armor);
+    const damage=damageAfterArmor(base*(dodged?.5:1),armor,random);
     return {target,roll,agility,dodgeDc,dodged,armor,damage};
   };
   const applyBlast=(base,dodgeDc,hitHero,turn,power=1,damageType='thermal')=>{
@@ -235,7 +237,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);
     const armor=(h.armor??0)+(hit?absorbFirstHit(0):0);
     const base=hit?damageRoll(random,r.damageMin,r.damageMax,damageMode):0;
-    const damage=hit?incoming(reduceIncoming(damageAfterArmor(base*(1-(h.monsterProtection??0)/100)*(critical?1.5*((1-(national.criticalDamageReductionPercent??0)/100)*(1-(h.criticalProtection??0)/100)):1),armor),0),0):0;
+    const damage=hit?incoming(reduceIncoming(damageAfterArmor(base*(1-(h.monsterProtection??0)/100)*(critical?1.5*((1-(national.criticalDamageReductionPercent??0)/100)*(1-(h.criticalProtection??0)/100)):1),armor,random),0),0):0;
     hurt(damage);woundCheck();
     note('атака',{turn:0,actor:r.name,weapon:'Шип из засады',distance,roll,critical,accuracy,evasion,hit,base,armor,damage,heroHp:Math.max(0,hp),ratHp});
     if(hp<=0)return finish(0);
@@ -273,7 +275,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       if(weapon.type==='melee')firstMelee=false;if(weapon.type==='ranged')firstRanged=false;
       const criticalRoll=random.int(1,100),critical=criticalRoll<=(h.criticalChance??5)+(weapon.criticalBonus??0)+meleeCriticalBonus(h,weapon),roll=critical?null:random.int(1,100),evasion=r.evasion-(r.saboteurTrip?10:0),hit=critical||hits(roll,accuracy,evasion);
       const armor=weapon.piercing?0:(r.armor+(r.rageTurns>0?20:0))*(weapon.armorFactor??1),components=[];let base=0,damage=0;
-      if(hit)for(let i=0;i<(weapon.damageRolls??1);i++){const raw=damageRoll(random,weapon.min,weapon.max,damageMode);base+=raw;const dealt=damageAfterArmor((raw+stats.bonus-stats.damagePenalty)*stats.damageMultiplier*(critical?meleeCriticalMultiplier(h,weapon):1),armor);components.push(dealt);damage+=dealt;}
+      if(hit)for(let i=0;i<(weapon.damageRolls??1);i++){const raw=damageRoll(random,weapon.min,weapon.max,damageMode);base+=raw;const dealt=damageAfterArmor((raw+stats.bonus-stats.damagePenalty)*stats.damageMultiplier*(critical?meleeCriticalMultiplier(h,weapon):1),armor,random);components.push(dealt);damage+=dealt;}
       if(hit)saboteurFirstMeleeHit(h,saboteurState,r,weapon);
       ratHp-=damage;note('атака',{counter:true,turn,attack,actor:'герой',targetName:r.name??'крыса',slot:'main',weapon:weapon.item??weapon.type,distance:0,criticalRoll,critical,roll,accuracy,evasion,hit,base,bonus:stats.bonus,damagePenalty:stats.damagePenalty,damagePenaltyPercent:stats.damagePenaltyPercent,armor,damage,components,heroHp:Math.max(0,hp),ratHp:Math.max(0,ratHp)});
       if(hit)triggerRage(turn);
@@ -358,7 +360,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       h.heavyAmmo--;
       const targets=[r,...opponents.filter(enemy=>enemy!==r&&enemy.hp>0&&inRange(weapon,enemy.distance))].map(target=>({target,distance:target===r?distance:target.distance}));
       const flameHits=flameAttack(h,weapon,targets,random).map(hit=>{
-        const armor=hit.target.thermalArmor??0,damage=damageAfterArmor(hit.raw,armor)*(hit.target.halfThermalDamage?.5:1);
+        const armor=hit.target.thermalArmor??0,damage=damageAfterArmor(hit.raw,armor,random)*(hit.target.halfThermalDamage?.5:1);
         hit.target.hp-=damage;
         return {targetName:hit.target.name,damage,ratHp:Math.max(0,hit.target.hp),dodged:hit.dodged};
       });
@@ -376,7 +378,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
       if(openingTurn&&national.openingExtraAttack)primaryAttacks++;
       if(weapon?.quickReloadShot)primaryAttacks=1;
       const offhand=heroTurn&&!ambush&&distance===0&&h.dualWield?h.weapons?.ranged:null;
-      const cowboy=heroTurn&&!ambush&&dualPistolsActive(h);const sequence=rushAttack?[weapon]:cowboy?[main,h.weapons.ranged].filter(w=>inRange(w,distance)):Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();if(cowboy&&openingTurn&&national.openingExtraAttack)sequence.push(weapon);
+      const cowboy=heroTurn&&!ambush&&dualPistolsActive(h);const sequence=rushAttack?[weapon]:cowboy?[main,h.weapons.ranged].filter(w=>inRange(w,distance)).flatMap(w=>Array(h.pistolAttacks??1).fill(w)):Array.from({length:primaryAttacks},()=>heroTurn&&offhand?.type==='melee'?[weapon,offhand]:[weapon]).flat();if(cowboy&&openingTurn&&national.openingExtraAttack)sequence.push(weapon);
       const attacks=heroTurn&&weapon.usesHeavyAmmo
         ?Math.min(sequence.length,weapon.shots+(h.burstBonus??0),h.heavyAmmo)
         :sequence.length;
@@ -385,7 +387,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
         const attackStats=heroTurn?heroAttackStats(h,weapon,distance,{ambush,targetHasWoundedHero:r.hurtHero,battleDamageBonus:berserkDamage,firstRanged,correctionBonus:correctionFor(weapon),focusDamageBonus:focusFor(weapon),hp}):null;
         const hasOffhandSequence=!rushAttack&&!cowboy&&offhand?.type==='melee';
         const primaryAttack=hasOffhandSequence?(attack%2?(attack+1)/2:0):attack;
-        const accuracy=heroTurn?attackStats.accuracy-(rushAttack?10:0)+secondStrikeAccuracy(h,weapon,primaryAttack)+(woundBonus?national.battleWoundAccuracy:0)+(firstMelee&&weapon.type==='melee'?(national.firstMeleeAccuracy??0):0):r.accuracy-(r.poisonAccuracy?15:0)-(r.saboteurArmHit?10:0)+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(r.rageTriggered?(r.rageTurns>0?10:-10):0);
+        const accuracy=heroTurn?attackStats.accuracy-(rushAttack?10:0)+secondStrikeAccuracy(h,weapon,primaryAttack)+(woundBonus?national.battleWoundAccuracy:0)+(firstMelee&&weapon.type==='melee'?(national.firstMeleeAccuracy??0):0):r.accuracy-(severelyWounded(r,ratHp,r.maxHp??config.rat.hp)?20:0)-(r.poisonAccuracy?15:0)-(r.saboteurArmHit?10:0)+(rush?.accuracyBonus??0)-(powerSwing?.accuracyPenalty??0)+(r.rageTriggered?(r.rageTurns>0?10:-10):0);
         const armor=heroTurn?(weapon.piercing?0:weapon.damageType==='thermal'&&r.halfThermalDamage?r.thermalArmor:r.armor):escortTarget?caravan.armor:h.armor;
         const damagePenalty=heroTurn?attackStats.damagePenalty:0;
         if(heroTurn&&weapon.type==='melee')firstMelee=false;if(heroTurn&&weapon.type==='ranged'){firstRanged=false;if(ambush)h.ambushRangedBonusSpent=true;}const criticalRoll=random.int(1,100),critical=criticalRoll<=(heroTurn?(h.criticalChance??5)+(weapon.criticalBonus??0)+meleeCriticalBonus(h,weapon):(r.criticalChance??3));const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);
@@ -405,14 +407,14 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
           const rolls=heroTurn&&!wrestlingThrow?(weapon.damageRolls??1):1;
           for(let i=0;i<rolls;i++){
             const raw=wrestlingThrow?random.int(20,60):heroTurn?damageRoll(random,weapon.min,weapon.max,damageMode):damageRoll(random,rush?.min??r.damageMin,rush?.max??r.damageMax,damageMode);
-            const dealt=wrestlingThrow?damageAfterArmor(raw+h.strength*10,r.armor??0):damageAfterArmor((raw+bonus+(i===0?closeBonus:0)-damagePenalty)*(heroTurn?attackStats.damageMultiplier:1)*(critical?(heroTurn?meleeCriticalMultiplier(h,weapon):1.5):1)*(critical&&!heroTurn&&!escortTarget?1-(national.criticalDamageReductionPercent??0)/100:1)*(heroTurn||escortTarget||r.kind==='bandit'?1:1-(h.monsterProtection??0)/100),effectiveArmor)*(heroTurn&&weapon.damageType==='thermal'&&r.halfThermalDamage?.5:1);
+            const dealt=wrestlingThrow?damageAfterArmor(raw+h.strength*10,r.armor??0,random):damageAfterArmor((raw+bonus+(i===0?closeBonus:0)-damagePenalty)*(heroTurn?attackStats.damageMultiplier:1)*(critical?(heroTurn?meleeCriticalMultiplier(h,weapon):1.5):1)*(critical&&!heroTurn&&!escortTarget?1-(national.criticalDamageReductionPercent??0)/100:1)*(heroTurn||escortTarget||r.kind==='bandit'?1:1-(h.monsterProtection??0)/100),effectiveArmor,random)*(heroTurn&&weapon.damageType==='thermal'&&r.halfThermalDamage?.5:1);
             const finalDamage=dealt*(weapon?.damageAfterProtection??1)*(heroTurn&&h.scientistMechanism&&mechanicalEnemy(r)?1.2:1);base+=raw;damage+=finalDamage;components.push(finalDamage);
           }
           if(!heroTurn&&!escortTarget&&r.radiationBite){const dose=Math.max(0,random.int(10,20)-(h.radiationProtection??0));h.biteRadiation=(h.biteRadiation??0)+dose;h.maxHp=Math.max(1,h.maxHp-(h.radiationHpCost??10)*dose);hp=Math.min(hp,h.maxHp);damage=0;if(random.int(1,100)<=20)h.beetleSkip=true;note('событие отряда',{text:'Укус жука: +'+dose+' РАД.'});}
           if(!heroTurn&&!escortTarget){const before=damage;damage=incoming(reduceIncoming(damage,turn),turn);if(before!==damage)for(let i=0;i<components.length;i++)components[i]*=damage/before;}
-          if(heroTurn){ratHp-=damage;saboteurFirstMeleeHit(h,saboteurState,r,weapon);if(ratHp>0&&applyKnifePoison(r,weapon,damage,random))note('яд',{turn,target:r.name??'крыса',boss:Boolean(r.boss)});}else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hurt(damage);
+          if(heroTurn){ratHp-=damage;saboteurFirstMeleeHit(h,saboteurState,r,weapon);if(ratHp>0&&!random.lastArmorAbsorbed&&applyKnifePoison(r,weapon,damage,random))note('яд',{turn,target:r.name??'крыса',boss:Boolean(r.boss)});}else if(escortTarget)caravan.hp=Math.max(0,caravan.hp-damage);else hurt(damage);
         }
-        if(hit&&!heroTurn&&!escortTarget){r.hurtHero=true;woundedEvasion=true;berserkDamage=Math.min(national.berserkCap??0,berserkDamage+(national.berserkOnHit??0));}woundCheck();note('атака',{turn,attack,actor,...(escortTarget?{target:'караван',caravanHp:caravan.hp}:{}),...(heroTurn?{targetName:r.name??'крыса',slot:weapon===h.weapons?.ranged?'ranged':'main'}:{}),weapon:heroTurn?(weapon.item??weapon.type):(rush?'Рывок':powerSwing?'Мощный замах':r.attackName??'укус'),...(heroTurn&&weapon.isBayonet?{bayonet:true}:{}),distance,roll,criticalRoll,critical,accuracy,evasion,hit,base,bonus,damagePenalty,damagePenaltyPercent:attackStats?.damagePenaltyPercent??0,armor:effectiveArmor,damage,...(components.length>1?{components}:{}),heroHp:Math.max(0,hp),ratHp:Math.max(0,ratHp)});
+        if(hit&&!heroTurn&&!escortTarget){r.hurtHero=true;woundedEvasion=true;berserkDamage=Math.min(national.berserkCap??0,berserkDamage+(national.berserkOnHit??0));}woundCheck();note('атака',{turn,attack,actor,...(escortTarget?{target:'караван',caravanHp:caravan.hp}:{}),...(heroTurn?{targetName:r.name??'крыса',slot:weapon===h.weapons?.ranged?'ranged':'main'}:{}),weapon:heroTurn?(weapon.item??weapon.type):(rush?'Рывок':powerSwing?'Мощный замах':r.attackName??'укус'),...(heroTurn&&weapon.isBayonet?{bayonet:true}:{}),distance,ricochet:!hit&&!heroTurn&&hits(roll,accuracy,evasion-(h.ricochet??0)),piercing:heroTurn&&(weapon.piercing||(weapon.armorFactor??1)<1),roll,criticalRoll,critical,accuracy,evasion,hit,base,bonus,damagePenalty,damagePenaltyPercent:attackStats?.damagePenaltyPercent??0,armor:effectiveArmor,damage,...(components.length>1?{components}:{}),heroHp:Math.max(0,hp),ratHp:Math.max(0,ratHp)});
         if(!heroTurn&&!escortTarget&&h.emergencyHeal&&!h.emergencyHealUsed&&hp<h.maxHp*.3){h.emergencyHealUsed=true;const before=Math.max(0,hp),amount=nationalityHealing(h,30+7*h.strength);hp=Math.min(h.maxHp,before+amount);perkHealing+=hp-before;note('живучий уб',{turn,healed:hp-before,hp,rescued:before===0});}
         if(hit&&!heroTurn&&!escortTarget){
           const auto=applyAutoStimulator(config,random,hp,treatment);
@@ -440,7 +442,7 @@ export function battle(config,random,startHp,{trace=false,damageMode=config.tria
     if(caravan?.hp>0&&caravanTurn){
       const target=opponents.find(enemy=>enemy.hp>0&&enemy.attackTarget==='caravan')??opponents.find(enemy=>enemy.hp>0);
       const roll=random.int(1,100),accuracy=caravan.accuracy-15*target.distance,evasion=target.evasion-(target.saboteurTrip?10:0),hit=hits(roll,accuracy,evasion);
-      const damage=hit?damageAfterArmor(damageRoll(random,ITEMS.ashot.min,ITEMS.ashot.max,damageMode),target.armor):0;
+      const damage=hit?damageAfterArmor(damageRoll(random,ITEMS.ashot.min,ITEMS.ashot.max,damageMode),target.armor,random):0;
       target.hp-=damage;
       ratHp=r.hp;
       note('атака',{turn,actor:'Караванщик',weapon:'ashot',roll,accuracy,evasion,hit,damage,heroHp:hp,ratHp:Math.max(0,target.hp),caravanHp:caravan.hp,targetName:target.name});
@@ -742,7 +744,7 @@ export function surfaceExpedition(config,random,{hp,bandages=0,dressingKits=0,do
    const dodgeBonus=h.agility+(h.defenseCheckBonus??0)-(h.checkPenalty??0);
    for(let turn=1;turn<=(physical?1:2)&&hp>0;turn++){
     const base=random.int(explosive.min,explosive.max),dodge=random.int(1,20),dodged=dodge+dodgeBonus>explosive.dodgeDc;
-    const damage=damageAfterArmor(base*(dodged?.5:1),armor)*(h.damageTakenMultiplier??1);
+    const damage=damageAfterArmor(base*(dodged?.5:1),armor,random)*(h.damageTakenMultiplier??1);
     trapDamage+=Math.min(hp,damage);
     hp=Math.max(0,hp-damage);minimumHp=Math.min(minimumHp,hp);
     const damageText=physical?`Ловушка, взрыв: ${damage} физического урона.`:`Ловушка, огонь ${turn}: ${damage} термического урона.`;

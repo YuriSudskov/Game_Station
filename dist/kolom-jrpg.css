@@ -84,3 +84,7 @@
  .jrpg-modal .kj-actions{margin:5px 0;gap:4px}
  .jrpg-modal .kj-actions button{min-height:37px;padding:6px 2px;font-size:11px}
 }
+
+.kj-piercing{color:#ffdc45!important;font-weight:800!important}
+
+.kj-unit.severely-wounded progress{accent-color:#f4cc49}.kj-unit.severely-wounded .kj-label small{color:#f4cc49}

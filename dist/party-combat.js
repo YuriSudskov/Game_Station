@@ -1,3 +1,4 @@
+import {severelyWounded,syncWoundChecks} from './severe-wound.js';
 import {grenadeSpec,recordGrenade} from './demolition.js';
 import {prepareMagazines,reloadMagazine} from './jrpg-magazines.js';
 import {mechanicalEnemy,scientistSafetyBonus} from './scientist.js';
@@ -61,11 +62,11 @@ function applyDelayedDamage(combat,hero){
 function armorDamage(c,target,raw,type,random,piercing=false,preview=false,armorFactor=1,damageMultiplier=1){
  let armor=piercing?0:type==='thermal'?(target.thermalArmor??0):(target.armor??0);
  if(!piercing&&target.firstHitArmor&&!target.paddingSpent){armor+=target.firstHitArmor;target.paddingSpent=true;say(c,target.name+': ватник слетает.');}
- let damage=damageAfterArmor(raw,armor*armorFactor)*damageMultiplier;if(type==='thermal'){damage*=target.thermalMultiplier??1;if(target.kolomQueen){target.armor=60;target.meltedUntil=c.round+1;}}
+ let damage=damageAfterArmor(raw,armor*armorFactor,random)*damageMultiplier;if(type==='thermal'){damage*=target.thermalMultiplier??1;if(target.kolomQueen){target.armor=60;target.meltedUntil=c.round+1;}}
  if(!target.heavyHitUsed&&(target.halveHeavyHit&&damage>target.maxHp*.25||target.professionPerks?.includes('heavy-hold')&&damage>=target.maxHp*.20)){damage/=2;target.heavyHitUsed=true;}
  if(preview)return damage;
- const dealt=applyPartyDamage(c,target,damage,random);
- if(c.manual)(c.frames??=[]).push({actorId:c.manualActorId,targetId:target.id,...c.manualEffect,hit:true,damage:dealt,hp:target.hp,maxHp:target.maxHp});
+ const dealt=applyPartyDamage(c,target,damage,random);syncWoundChecks(target);
+ if(c.manual)(c.frames??=[]).push({actorId:c.manualActorId,targetId:target.id,...c.manualEffect,hit:true,piercing:piercing||armorFactor<1,damage:dealt,hp:target.hp,maxHp:target.maxHp});
  return dealt;
 }
 function applyPartyDamage(c,target,damage,random){
@@ -87,11 +88,12 @@ function applyPartyDamage(c,target,damage,random){
  return damage;
 }
 function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,burst=null,accuracyAdjustment=0){
+ syncWoundChecks(actor);syncWoundChecks(target);
  const book=hero?(actor.sniperShots??={}):null;
  if(hero)weapon=prepareProfessionShot(actor,weapon,book);
- const attackHero=c.manual&&actor.manualMode!=='paired'?{...actor,dualPistols:false,...(weapon.manualSingle&&weapon.type==='melee'?{attackAccuracyPenalty:0,attackDamagePenaltyPercent:0}:{})}:actor;
- const stats=hero?heroAttackStats(attackHero,weapon,distance,{targetHasWoundedHero:target.hurtHeroIds?.includes(actor.id),focusDamageBonus:actor.focusTarget===target.id?(weapon.type==='ranged'?10:weapon.noStrength?0:actor.strength*7):0,battleDamageBonus:actor.berserkDamage??0,hp:actor.hp,firstRanged:!actor.firstRangedSpent,correctionBonus:actor.correctionTarget===target.id?Math.min(actor.correctionMax??15,(actor.correctionShots??0)*(actor.correctionStep??0)):0}):null;
- const accuracy=hero?stats.accuracy+accuracyAdjustment+(weapon.manualSingle&&weapon.weaponClass==='pistol'?(actor.pistolAccuracyPenalty??0):0)+(c.manual?(actor.manualAim==='head'?-30:['arm','leg'].includes(actor.manualAim)?-20:0):0)+(actor.woundAccuracyActive?(actor.nationality?.battleWoundAccuracy??0):0)+(!actor.firstMeleeSpent&&weapon.type==='melee'?(actor.nationality?.firstMeleeAccuracy??0):0):actor.accuracy-(actor.manualArm?10:0)-(actor.poisonAccuracy?15:0)-(actor.saboteurArmHit?10:0)+(weapon.accuracyBonus??0),critical=random.int(1,100)<=((actor.criticalChance??(hero?5:3))+(weapon.criticalBonus??0)+(hero?meleeCriticalBonus(actor,weapon):0));
+ const attackHero=c.manual&&!['paired','pairedDouble'].includes(actor.manualMode)?{...actor,dualPistols:false,...(weapon.manualSingle&&weapon.type==='melee'?{attackAccuracyPenalty:0,attackDamagePenaltyPercent:0}:{})}:actor;
+ const stats=hero?heroAttackStats(c.manual&&actor.manualMode==='paired'?{...attackHero,pistolAccuracyPenalty:0}:attackHero,weapon,distance,{targetHasWoundedHero:target.hurtHeroIds?.includes(actor.id),focusDamageBonus:actor.focusTarget===target.id?(weapon.type==='ranged'?10:weapon.noStrength?0:actor.strength*7):0,battleDamageBonus:actor.berserkDamage??0,hp:actor.hp,firstRanged:!actor.firstRangedSpent,correctionBonus:actor.correctionTarget===target.id?Math.min(actor.correctionMax??15,(actor.correctionShots??0)*(actor.correctionStep??0)):0}):null;
+ const accuracy=hero?stats.accuracy+accuracyAdjustment+(weapon.manualSingle&&weapon.weaponClass==='pistol'?(actor.pistolAccuracyPenalty??0):0)+(c.manual?(actor.manualAim==='head'?-30:['arm','leg'].includes(actor.manualAim)?-20:0):0)+(actor.woundAccuracyActive?(actor.nationality?.battleWoundAccuracy??0):0)+(!actor.firstMeleeSpent&&weapon.type==='melee'?(actor.nationality?.firstMeleeAccuracy??0):0):actor.accuracy-(severelyWounded(actor)?20:0)-(actor.manualArm?10:0)-(actor.poisonAccuracy?15:0)-(actor.saboteurArmHit?10:0)+(weapon.accuracyBonus??0),critical=random.int(1,100)<=((actor.criticalChance??(hero?5:3))+(weapon.criticalBonus??0)+(hero?meleeCriticalBonus(actor,weapon):0));
  const evasion=hero?target.evasion-(target.saboteurTrip?10:0)+(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0):evasionAtDistance(target,distance,target.hp,(distance===0&&c.round===1?(target.openingCloseEvasionBonus??0):0)+(target.woundedInBattle?(target.nationality?.woundedEvasion??0):0));
  if(c.manual)c.manualEffect={kind:weapon.type==='ranged'?'shot':'melee',critical};
  const roll=critical?null:random.int(1,100),hit=critical||hits(roll,accuracy,evasion);let damage=0;
@@ -116,15 +118,15 @@ function shot(c,actor,target,weapon,distance,random,hero=false,counter=false,bur
   damage+=armorDamage(c,target,raw,weapon.damageType??'physical',random,weapon.piercing,aggregate,armorFactor*(weapon.armorFactor??1),(weapon.damageAfterProtection??1)*(aimed==='head'?2:1));
  }
  if(hero&&hit&&target.hp>0&&['arm','leg'].includes(aimed)&&random.int(1,100)<=50){if(aimed==='arm')target.manualArm=true;else target.manualProne=true;}
- if(c.manual&&!hit)(c.frames??=[]).push({actorId:actor.id,targetId:target.id,...c.manualEffect,accuracy,evasion,hit:false,damage:0,hp:target.hp});
+ if(c.manual&&!hit)(c.frames??=[]).push({actorId:actor.id,targetId:target.id,...c.manualEffect,accuracy,evasion,hit:false,ricochet:hits(roll,accuracy,evasion-(target.ricochet??0)),damage:0,hp:target.hp});
  if(hero&&hit)saboteurFirstMeleeHit(actor,actor,target,weapon);
  if(aggregate&&hit)damage=applyPartyDamage(c,target,damage,random);
- if(!hero&&hit&&target.hp>0&&(actor.kolomPoison||actor.kolomSting)){const roll=random.int(1,20),bonus=(target.strength??0)+(target.defenseCheckBonus??0)+scientistSafetyBonus(target);if(roll+bonus<=13){target.poisonDoses=Math.min(10,(target.poisonDoses??0)+1);target.strength=Math.max(0,target.strength-1);target.maxHp=Math.max(1,target.maxHp-10);target.hp=Math.min(target.hp,target.maxHp);target.agility=Math.max(0,target.agility-1);target.accuracy-=5;target.evasion-=5;if(target.strength<=0){target.poisonExhausted=true;target.unconscious=true;}if(c.manual)c.frames.push({kind:'poison',actorId:actor.id,targetId:target.id,hp:target.hp,maxHp:target.maxHp,poisonDoses:target.poisonDoses});say(c,target.name+': Отравлен ('+target.poisonDoses+').');}}
- if(hero&&target.hp>0&&applyKnifePoison(target,weapon,damage,random))say(c,target.name+(target.boss?': яд, −15 п.п. точности на следующий ход.':': яд, пропускает следующий ход.'));
+ if(!random.lastArmorAbsorbed&&!hero&&hit&&target.hp>0&&(actor.kolomPoison||actor.kolomSting)){const roll=random.int(1,20),bonus=(target.strength??0)+(target.defenseCheckBonus??0)-(target.checkPenalty??0)+scientistSafetyBonus(target);if(roll+bonus<=13){target.poisonDoses=Math.min(10,(target.poisonDoses??0)+1);target.strength=Math.max(0,target.strength-1);target.maxHp=Math.max(1,target.maxHp-10);target.hp=Math.min(target.hp,target.maxHp);target.agility=Math.max(0,target.agility-1);target.accuracy-=5;target.evasion-=5;if(target.strength<=0){target.poisonExhausted=true;target.unconscious=true;}if(c.manual)c.frames.push({kind:'poison',actorId:actor.id,targetId:target.id,hp:target.hp,maxHp:target.maxHp,poisonDoses:target.poisonDoses});say(c,target.name+': Отравлен ('+target.poisonDoses+').');}}
+ if(!random.lastArmorAbsorbed&&hero&&target.hp>0&&applyKnifePoison(target,weapon,damage,random))say(c,target.name+(target.boss?': яд, −15 п.п. точности на следующий ход.':': яд, пропускает следующий ход.'));
  if(burst){
   if(!burst.length)c.events.push({type:'очередь отряда',turn:c.round,actorName:actor.name,targetName:target.name,attacks:burst});
   burst.push({weapon:weapon.item??weapon.name,hit,critical,damage,heroHp:actor.hp,ratHp:target.hp});
- }else say(c,`${actor.name} → ${target.name}: ${wrestlingThrow?'бросок с прогиба':weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':'промах'}.`);
+ }else say(c,`${actor.name} → ${target.name}: ${wrestlingThrow?'бросок с прогиба':weapon.name??ITEMS[weapon.item]?.name??weapon.item??'атака'} — ${hit?(critical?'КРИТ ':'')+damage+' урона, '+target.hp+' HP':hits(roll,accuracy,evasion-(target.ricochet??0))?'Рикошет':'промах'}.`);
  if(hit&&weapon.type==='melee'&&target.thorns){
   const reflected=random.int(target.thorns.min,target.thorns.max);
   actor.hp=Math.max(0,actor.hp-reflected);
@@ -331,10 +333,10 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
    }
    if(!combat.manual&&weapon.reloadMain&&(weapon===main||combat.manual&&manualAction?.slot==='main'||weapon.reloadEverySlot||weapon.quickReloadShot)){{const base=weapon.quickReloadBase??weapon;base.reloadCycleShots=(base.reloadCycleShots??0)+1;if(base.reloadCycleShots>=(base.reloadCycle??1)){base.reloadCycleShots=0;actor.reloading=true;actor.reloadWeapon=base;}}}
    if(actor.tauntFirstTurn&&!actor.ownTurnDone){target.accuracy+=10;target.evasion-=20;}
-   let sequence=Array.from({length:heroAttackStats(combat.manual&&manualAction?.mode!=='paired'?{...actor,dualPistols:false}:actor,weapon,distance).attacks},()=>weapon);
+   let sequence=Array.from({length:heroAttackStats(combat.manual&&!['paired','pairedDouble'].includes(manualAction?.mode)?{...actor,dualPistols:false}:actor,weapon,distance).attacks},()=>weapon);
    if(combat.manual&&manualAction?.mode==='single'&&!weapon.quickReloadShot)sequence=[weapon];
-   if(combat.manual&&manualAction?.mode==='paired')sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
-   if(!combat.manual&&dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w));
+   if(combat.manual&&['paired','pairedDouble'].includes(manualAction?.mode))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w)).flatMap(w=>Array(manualAction.mode==='pairedDouble'?actor.pistolAttacks??2:1).fill(w));
+   if(!combat.manual&&dualPistolsActive(actor))sequence=[main,actor.weapons.ranged].filter(w=>distance<=weaponMaxDistance(actor,w)).flatMap(w=>Array(actor.pistolAttacks??1).fill(w));
    else if(!combat.manual&&actor.dualWield&&distance===0&&actor.weapons?.ranged?.type==='melee')sequence=sequence.flatMap(w=>[w,{...actor.weapons.ranged,noStrength:true}]);
    if(!actor.ownTurnDone&&actor.nationality?.openingExtraAttack)sequence.push(weapon);
    if(weapon.usesHeavyAmmo)sequence=sequence.slice(0,Math.min((weapon.shots??1)+(weapon.shots?actor.burstBonus??0:0),actor.heavyAmmo));
@@ -345,7 +347,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     const attackNumber=w===weapon?++primaryAttack:0;
     if(target.hp<=0)break;
     if(combat.manual&&w.type==='ranged'&&!w.isBayonet){
-     const slot=manualAction?.mode==='paired'?(w===main?'main':'ranged'):manualAction.slot;
+     const slot=['paired','pairedDouble'].includes(manualAction?.mode)?(w===main?'main':'ranged'):manualAction.slot;
      const magazine=actor.jrpgMagazines[slot],cost=w.damageRolls??1;
      if(!w.requiresBeetleBattery&&(!magazine||magazine.rounds<cost))break;
      if(magazine)magazine.rounds-=cost;
@@ -375,7 +377,7 @@ export function advancePartyCombat(combat,random,{maxActors=10000}={}){
     if(distance>(kind==='web'?1:0)){for(const hero of alive){hero.distances??={};hero.distances[actor.id]=Math.max(0,(hero.distances[actor.id]??distance)-1);}say(combat,actor.name+' сокращает дистанцию до '+Math.max(0,distance-1)+' вместо атаки.');continue;}
     const spec=kind==='web'?actor.webAttack:actor.mainAttack;
     const hit=shot(combat,actor,target,{...spec,type:kind==='main'?'melee':'ranged',min:spec.damageMin,max:spec.damageMax},distance,random);
-    if(kind==='web'&&hit&&target.hp>0){const roll=random.int(1,20),safety=scientistSafetyBonus(target);target.entangled=roll+target.strength+(target.defenseCheckBonus??0)+safety<=13;say(combat,target.name+': Сила '+roll+' + '+target.strength+(safety?' + '+safety+' (Протокол безопасности)':'')+' против 13 — '+(target.entangled?'опутан':'выстоял')+'.');}
+    if(kind==='web'&&hit&&target.hp>0){const roll=random.int(1,20),safety=scientistSafetyBonus(target);target.entangled=roll+target.strength+(target.defenseCheckBonus??0)-(target.checkPenalty??0)+safety<=13;say(combat,target.name+': Сила '+roll+' + '+target.strength+(safety?' + '+safety+' (Протокол безопасности)':'')+' против 13 — '+(target.entangled?'опутан':'выстоял')+'.');}
     if(updatePartyCasualties(combat)!=='running'){if(actor.hp>0&&actor.plannedAttacks.length)combat.pendingActor=entry;else{delete actor.plannedAttacks;delete combat.pendingActor;}return combat;}
    }
    delete actor.plannedAttacks;delete combat.pendingActor;

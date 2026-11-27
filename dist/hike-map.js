@@ -1,6 +1,9 @@
+import {rescueCost,rescue} from './hike-shelter.js';
+import {prepareUniqueSites} from './hike-unique-sites.js';
 import {buildingInfo,migrateBuildings} from './hike-buildings.js';
 import {TEST_DEPARTURE_MINUTES,searchBuilding} from './hike-map-model.js';
 import {renderGuard} from './hike-encounters-ui.js';
+import {shelterPanel,queueRest} from './hike-shelter-ui.js';
 import {WEATHER,initializeWeather,cellRadiation,weatherRadiationText} from './hike-weather.js';
 import {cells,center,key,distance,initialState,prepareTravel,stepMinutes,routeMinutes,travelClock,isNight,logAction,prepareFindings,checkFindings,resolveFinding,finishHike,startHike,reveal,move,clock,ORIGIN,METRO,MAP_UNITS_PER_METRE} from './hike-map-model.js';
 import {terrainAt} from './hike-terrain.js';
@@ -20,7 +23,9 @@ if(state.steps===0&&state.elapsedMinutes===0){state=initializeWeather({...state,
 save();
 let scale=1,offset={x:0,y:0},width=0,height=0,drag=null;
 let planned=[],walking=false;
-let popup=null,selectedHero=0,searching=false;
+state=prepareUniqueSites(state);save();
+let popup=state.rest?{kind:'shelter'}:null,selectedHero=0,searching=false;
+state.spentFilters??=Math.max(0,(state.cargo??[]).filter(r=>r.item==='$filters').reduce((n,r)=>n+r.qty,0)-(state.filters??0));
 function returnFilterReserve(){
   if(!state.reserveFilters)return 0;
   const path=findRoute(state,{q:0,r:0},c=>terrainAt(c).blocked,c=>stepMinutes(state,c));
@@ -34,25 +39,27 @@ function showPreparation(fresh){
   try{const raw=fresh??JSON.parse(localStorage.getItem('station-hike-source-v1')??'null');source=raw?.copiedAt?raw:copySource(raw??JSON.parse(localStorage.getItem(MAIN_SAVE_KEY)??'null'));localStorage.setItem('station-hike-source-v1',JSON.stringify(source));}
   catch(e){root.replaceChildren();const p=document.createElement('p');p.textContent=e.message;root.append(p);const file=document.createElement('input');file.type='file';file.accept='.json';file.setAttribute('aria-label','Импортировать JSON-сохранение');file.onchange=async()=>{try{showPreparation(JSON.parse(await file.files[0].text()));}catch(error){p.textContent=error.message;}};root.append(file);return;}
   let draft;try{draft=JSON.parse(localStorage.getItem('station-hike-preparation-draft-v1'));}catch{}
+  const blockedIds=new Set((state.strandedGroups??[]).flatMap(g=>g.heroes.map(h=>h.id)));source={...source,heroes:source.heroes.map(h=>(state.rescuedHeroes??[]).find(r=>r.id===h.id)??h).filter(h=>!blockedIds.has(h.id)&&!(h.adventureCooldownUntil>Date.now()))};
   mountPreparation(root,{source,previousDraft:draft,
     onRefresh:raw=>{try{const next=copySource(raw?.heroes?raw:JSON.parse(localStorage.getItem(MAIN_SAVE_KEY)??'null'));localStorage.removeItem('station-hike-preparation-draft-v1');showPreparation(next);}catch(e){root.append(Object.assign(document.createElement('p'),{textContent:e.message}));}},
     onAmmoChange:qty=>{source.ammo=qty;localStorage.setItem('station-hike-source-v1',JSON.stringify(source));showPreparation(source);},
-    onStart:loadout=>{state=logAction(prepareTravel(prepareFindings(reveal({...state,...loadout,q:0,r:0,steps:0,elapsedMinutes:TEST_DEPARTURE_MINUTES,pending:[],ended:false,failed:false,prepared:true,preparing:false,weatherIndex:null,weatherCheckedMinute:null,journal:[]}))),'Вышли из Автозаводской. Начали поход.');state=initializeWeather(state);root.hidden=true;document.body.classList.remove('preparing');save();render();recenter();}
+    onStart:loadout=>{state=logAction(prepareTravel(prepareFindings(reveal({...state,...loadout,spentFilters:0,repairedFilters:0,q:0,r:0,steps:0,elapsedMinutes:TEST_DEPARTURE_MINUTES,pending:[],rest:null,selectedShelter:null,shelterSearch:[],barricaded:false,ended:false,failed:false,prepared:true,preparing:false,weatherIndex:null,weatherCheckedMinute:null,journal:[]}))),'Вышли из Автозаводской. Начали поход.');state=initializeWeather(state);root.hidden=true;document.body.classList.remove('preparing');save();render();recenter();}
   });
 }
 const nodes=new Map(),tiles=new Map();
 function element(tag,attrs){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
 function renderFindings(){
-  const panel=$('map-dialog'),actions=$('hike-actions'),event=state.pending[0];panel.replaceChildren();actions.replaceChildren();
+  const panel=$('map-dialog'),actions=$('hike-actions'),event=state.pending[0];panel.replaceChildren();panel.classList.remove('shelter-dialog');actions.replaceChildren();
   const blocked=Boolean(event||popup||searching);
   $('map-overlay').hidden=!blocked;$('canvas').inert=blocked;$('reset').disabled=walking||searching||Boolean(event);
   function text(message,parent=panel){const p=document.createElement('p');p.textContent=message;parent.append(p);}
   function button(label,handler,parent=panel){const b=document.createElement('button');b.textContent=label;b.disabled=walking||searching;b.onclick=handler;parent.append(b);}
   function open(kind){popup={kind};renderFindings();}
   button('Инвентарь',()=>open('inventory'),actions);
+  if(!event&&!state.ended&&state.strandedGroups?.some(g=>g.cell===key(state.q,state.r))){const cost=rescueCost(state);button('Спасти отряд · фильтры '+(cost??'путь не найден'),()=>{if(rescue(state)){popup=null;save();render();recenter();}},actions);}
   if(!event&&!state.ended){
     const minute=(420+state.elapsedMinutes)%1440;
-    if(isNight(state)||minute>=1080)button('Искать укрытие',()=>open('shelter'),actions);
+    if(state.rest||state.shelters?.[key(state.q,state.r)]||isNight(state)||minute>=1080)button(state.rest?'Продолжить отдых':'Искать укрытие',()=>open('shelter'),actions);
     if(!isNight(state)){
       const building=state.buildings?.[key(state.q,state.r)];if(building)button(`${buildingInfo(building.id).name} · ${building.remaining}/${building.total}`,()=>open('building'),actions);
       if(METRO.some(s=>distance(state,s)===0))button('Спуститься в метро',()=>{state=logAction(finishHike(state),'Спустились в метро. Поход завершён.');planned=[];showRoute();save();popup={kind:'ended'};render();},actions);
@@ -94,12 +101,13 @@ function renderFindings(){
         const next=searchBuilding(state);if(next===state)return;state=next;searching=true;save();render();await new Promise(r=>setTimeout(r,4000));searching=false;popup={kind:'building',searched:true};render();
       });else text(isNight(state)?'Ночью поиск недоступен.':'Все доступные места осмотрены.');}
     }
-    else if(popup.kind==='shelter')text('Поиск укрытия — Скоро. Условия ночлега ещё не настроены.');
+    else if(popup.kind==='shelter')shelterPanel({state,panel,save,render});
     else if(popup.kind==='ended')text('Поход завершён. Группа спустилась в метро.');
     else text(popup.text);
-    button(popup.kind==='building'?'Покинуть здание':'Закрыть',()=>{popup=null;renderFindings();});
+    if(!state.rest)button(popup.kind==='building'?'Покинуть здание':'Закрыть',()=>{popup=null;renderFindings();});
   }
   renderJournal();
+  queueRest(state,save,render);
   function buildingImage(info){const img=document.createElement('img');img.src='hike-building-icons/'+info.id+'.svg';img.alt=info.name;img.width=112;img.height=112;panel.append(img);}
 }
 function renderJournal(){
@@ -156,6 +164,7 @@ function render(){
     const img=element('image',{href:'hike-building-icons/'+info.id+'.svg',x:p.x-180,y:p.y-220,width:360,height:360,'pointer-events':'none'});$('terrain-labels').append(img);
     const label=element('text',{x:p.x,y:p.y+210,'text-anchor':'middle','font-size':72,fill:'#f0d194',stroke:'#17241e','stroke-width':16,'paint-order':'stroke'});label.textContent=info.name+' · '+b.remaining+'/'+b.total;$('terrain-labels').append(label);
   }
+  for(const [id,shelter] of Object.entries(state.shelters??{})){const [q,r]=id.split(',').map(Number),p=center({q,r});if(!seen.has(id)&&!explored.has(id))continue;const img=element('image',{href:shelter.unique?'hike-building-icons/bunker42.svg':'hike-building-icons/shelter-camp.svg',x:p.x-130,y:p.y-130,width:260,height:230,'pointer-events':'none'});$('terrain-labels').append(img);const label=element('text',{x:p.x,y:p.y+170,'text-anchor':'middle','font-size':80,fill:'#e0dda9',stroke:'#17241e','stroke-width':15,'paint-order':'stroke'});label.textContent=shelter.name??'Укрытие';$('terrain-labels').append(label);}
   $('marker').setAttribute('transform',markerTransform(center(state)));renderFindings();
 }
 // Web Mercator raster tiles, locally scaled to real ground metres at the station.
@@ -207,6 +216,10 @@ $('center').onclick=recenter;$('reset').onclick=()=>{if(walking||state.pending.l
 new ResizeObserver(()=>{width=$('map').clientWidth;height=$('map').clientHeight;scale=width/(7*Math.sqrt(3)*415+80);draw();}).observe($('map'));
 render();offset=center(state);
 if(!state.prepared||state.preparing)showPreparation();
+
+
+
+
 
 
 

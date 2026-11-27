@@ -1,0 +1,2 @@
+export function severelyWounded(unit,hp=unit?.hp??unit?.currentHp,maxHp=unit?.maxHp){if(!unit)return false;const alive=!unit.dead&&hp>0;const active=alive&&(hp<maxHp*.5||hp===maxHp*.5&&Boolean(unit.severelyWounded));unit.severelyWounded=active;return active;}
+export function syncWoundChecks(unit,hp=unit?.hp??unit?.currentHp,maxHp=unit?.maxHp){const penalty=severelyWounded(unit,hp,maxHp)?4:0;unit.checkPenalty=(unit.checkPenalty??0)-(unit.severeWoundCheckPenalty??0)+penalty;unit.severeWoundCheckPenalty=penalty;return penalty;}

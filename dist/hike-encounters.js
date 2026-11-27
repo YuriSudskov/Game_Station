@@ -4,10 +4,11 @@ import {rng,heroAttackStats,hits,damageAfterArmor,bandageHeal} from './combat.js
 import {preparePartyCombat,advancePartyCombat,decidePartyCasualty,partyBattleExperience} from './party-combat.js';
 import {validateManualAction,healingSupplies,grenadeSupplies} from './kolom-jrpg.js';
 import {prepareMagazines,magazineState} from './jrpg-magazines.js';
+import {springShelterTraps} from './hike-rest-tasks.js';
 export const GUARD_CHANCE=.1;
 const rolls=()=>rng(Math.floor(Math.random()*4294967296));
 const alive=s=>s.heroes.filter(h=>!h.dead&&!h.unconscious&&h.hp>0);
-const fields=[...Object.values(healingSupplies),...Object.values(grenadeSupplies),'heavyAmmo','jrpgMagazines','poisonDoses','favoriteShots'];
+const fields=[...Object.values(healingSupplies),...Object.values(grenadeSupplies),'heavyAmmo','jrpgMagazines','poisonDoses','favoriteShots','poisonAttributeRecovery','attributeLossOrder','temporaryAttributeLoss'];
 const config=(s,h)=>heroConfig({heroes:s.heroes},h,'surface').hero;
 export function skill(s,h,kind,dc,r=rolls()){
  const c=config(s,h),bonus=kind==='stealth'?c.agility+(c.stealthCheckBonus??0):kind==='intelligence'?c.intelligence+(c.intelligenceCheckBonus??0):c.perception+(c.detectionBonus??0)+(c.perceptionCheckBonus??0);
@@ -23,10 +24,10 @@ export function beginGuard(s){
  if(e.phase==='alarm')startGuardBattle(s);
 }
 export function startGuardBattle(s){
- const e=s.pending[0],r=rolls(),n=r.int(4,6),mature=r.int(1,100)<=20;
+ const e=s.pending[0],r=rolls(),n=r.int(4,6),mature=e.night||r.int(1,100)<=20;
  const enemies=Array.from({length:n},(_,i)=>i===n-1&&mature?{...MATURE_GUARD}:{...TECHNOPARK.enemy});enemies[0]={...e.guard};
  const fighters=alive(s).map(h=>{const f={...config(s,h),id:h.id,name:h.name,hp:h.hp,maxHp:effectiveMaxHp(h)};for(const k of fields)if(h[k]!==undefined)f[k]=structuredClone(h[k]);return f;});
- e.combat=preparePartyCombat(fighters,enemies,r);e.combat.manual=true;e.combat.frames=[];e.phase='combat';advancePartyCombat(e.combat,r,{maxActors:100});syncBattle(s);
+ e.combat=preparePartyCombat(fighters,enemies,r);if(e.night)springShelterTraps(s,e.combat,r);e.combat.manual=true;e.combat.frames=[];e.phase='combat';advancePartyCombat(e.combat,r,{maxActors:100});syncBattle(s);
 }
 export function guardChoice(s,choice,id){
  const e=s.pending[0];if(e?.phase!=='choice')return;
@@ -42,11 +43,14 @@ export function guardChoice(s,choice,id){
  }
 }
 export function syncBattle(s){const e=s.pending[0],b=e?.combat;if(!b)return;
- for(const f of b.heroes){const h=s.heroes.find(h=>h.id===f.id);if(!h)continue;h.hp=Math.max(0,f.hp);h.dead=Boolean(f.dead||f.hp<=0);for(const k of fields)if(f[k]!==undefined)h[k]=structuredClone(f[k]);}
+ for(const f of b.heroes){const h=s.heroes.find(h=>h.id===f.id);if(!h)continue;const doses=Math.max(0,(f.poisonDoses??0)-(h.poisonDoses??0));for(let i=0;i<doses;i++)for(const key of ["strength","agility"])(h.attributeLossOrder??=[]).push({key,type:"poison"});f.attributeLossOrder=h.attributeLossOrder;h.hp=Math.max(0,f.hp);h.dead=Boolean(f.dead||f.hp<=0);for(const k of fields)if(f[k]!==undefined)h[k]=structuredClone(f[k]);}
  if(['victory','escaped','defeat','poisonRetreat'].includes(b.status)){e.phase='recovery';awardBattle(s);}
 }
 function awardBattle(s){const e=s.pending[0];if(e.awarded)return;e.awarded=true;const xp=partyBattleExperience(e.combat),members=alive(s);for(const h of members)levelUp(Object.assign(h,{xp:h.xp??0}),Math.floor(xp/Math.max(1,members.length)));(s.encounterLog??=[]).push(`Бой завершён: ${e.combat.status}. Опыт за поверженных: ${xp} на отряд.`);}
 export function battleAction(s,command){const b=s.pending[0]?.combat;if(!b)return;validateManualAction(b,command);b.manualAction=structuredClone(command);b.manualRevision=(b.manualRevision??0)+1;b.manualStarted=true;b.frames=[];advancePartyCombat(b,rolls(),{maxActors:100});syncBattle(s);}
 export function continueBattle(s){const b=s.pending[0]?.combat;if(b.status==='casualty')decidePartyCasualty(b,'fight');b.frames=[];advancePartyCombat(b,rolls(),{maxActors:100});syncBattle(s);}
-export function healEncounter(s,id,item){const h=alive(s).find(h=>h.id===id),field=healingSupplies[item];if(!h||!field||!(h[field]>0))return;const cfg={hero:{...config(s,h),maxHp:effectiveMaxHp(h)}};const result=bandageHeal(cfg,rolls(),h.hp,item);h[field]--;h.hp=result.hp;}
+export function healEncounter(s,id,item){const h=alive(s).find(h=>h.id===id),field=healingSupplies[item];if(!h||!field||!(h[field]>0))return;const cfg={hero:{...config(s,h),maxHp:effectiveMaxHp(h)}};const result=bandageHeal(cfg,rolls(),h.hp,item);h[field]--;h.hp=result.hp;if(s.pending?.[0])s.pending[0].healed=true;}
+
+
+
 
